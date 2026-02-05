@@ -1,0 +1,471 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import nock from 'nock';
+import { OpsClient } from '../src/client.js';
+import { BASE_URL } from './setup.js';
+
+describe('OpsClient', () => {
+  let client: OpsClient;
+
+  beforeEach(() => {
+    client = new OpsClient({
+      baseUrl: BASE_URL,
+      apiKey: 'ulr_test-api-key-12345',
+    });
+  });
+
+  describe('constructor', () => {
+    it('should create client with API key', () => {
+      expect(client.isAuthenticated()).toBe(true);
+      expect(client.getAuthType()).toBe('api_key');
+    });
+
+    it('should create client without credentials', () => {
+      const unauthClient = new OpsClient({ baseUrl: BASE_URL });
+      expect(unauthClient.isAuthenticated()).toBe(false);
+      expect(unauthClient.getAuthType()).toBeNull();
+    });
+  });
+
+  describe('auth operations', () => {
+    it('should register a new user', async () => {
+      nock(BASE_URL)
+        .post('/auth/register', { email: 'test@example.com', password: 'password123' })
+        .reply(201, {
+          data: {
+            user: { id: 'user-1', email: 'test@example.com' },
+            token: 'jwt-token-123',
+          },
+        });
+
+      const result = await client.auth.register({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+
+      expect(result.user.email).toBe('test@example.com');
+      expect(result.token).toBe('jwt-token-123');
+    });
+
+    it('should login and return token', async () => {
+      nock(BASE_URL)
+        .post('/auth/login', { email: 'test@example.com', password: 'password123' })
+        .reply(200, {
+          data: {
+            user: { id: 'user-1', email: 'test@example.com' },
+            token: 'jwt-token-456',
+          },
+        });
+
+      const result = await client.auth.login({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+
+      expect(result.token).toBe('jwt-token-456');
+    });
+
+    it('should get current user', async () => {
+      nock(BASE_URL)
+        .get('/auth/me')
+        .reply(200, {
+          data: {
+            id: 'user-1',
+            email: 'test@example.com',
+            role: 'user',
+          },
+        });
+
+      const user = await client.auth.getMe();
+
+      expect(user.id).toBe('user-1');
+      expect(user.email).toBe('test@example.com');
+    });
+
+    it('should list API keys', async () => {
+      nock(BASE_URL)
+        .get('/auth/keys')
+        .reply(200, {
+          data: [
+            { id: 'key-1', name: 'Test Key', prefix: 'ulr_test' },
+          ],
+        });
+
+      const keys = await client.auth.listApiKeys();
+
+      expect(keys).toHaveLength(1);
+      expect(keys[0].name).toBe('Test Key');
+    });
+
+    it('should create API key', async () => {
+      nock(BASE_URL)
+        .post('/auth/keys', { name: 'New Key' })
+        .reply(201, {
+          data: {
+            id: 'key-2',
+            name: 'New Key',
+            key: 'ulr_full-key-value',
+          },
+        });
+
+      const result = await client.auth.createApiKey({ name: 'New Key' });
+
+      expect(result.key).toBe('ulr_full-key-value');
+    });
+  });
+
+  describe('project operations', () => {
+    it('should list projects', async () => {
+      nock(BASE_URL)
+        .get('/projects')
+        .reply(200, {
+          data: [
+            { id: 'proj-1', name: 'Project A' },
+            { id: 'proj-2', name: 'Project B' },
+          ],
+        });
+
+      const projects = await client.projects.list();
+
+      expect(projects).toHaveLength(2);
+      expect(projects[0].name).toBe('Project A');
+    });
+
+    it('should get project by ID or name', async () => {
+      nock(BASE_URL)
+        .get('/projects/proj-1')
+        .reply(200, {
+          data: { id: 'proj-1', name: 'Project A', createdAt: '2024-01-01' },
+        });
+
+      const project = await client.projects.get('proj-1');
+
+      expect(project.id).toBe('proj-1');
+      expect(project.name).toBe('Project A');
+    });
+
+    it('should create project', async () => {
+      nock(BASE_URL)
+        .post('/projects', { name: 'New Project' })
+        .reply(201, {
+          data: { id: 'proj-3', name: 'New Project' },
+        });
+
+      const project = await client.projects.create({ name: 'New Project' });
+
+      expect(project.name).toBe('New Project');
+    });
+
+    it('should get project summary', async () => {
+      nock(BASE_URL)
+        .get('/projects/proj-1/summary')
+        .reply(200, {
+          data: {
+            project: { id: 'proj-1', name: 'Project A' },
+            totalRuns: 10,
+            totalIssues: 25,
+            openIssues: 5,
+          },
+        });
+
+      const summary = await client.projects.getSummary('proj-1');
+
+      expect(summary.totalRuns).toBe(10);
+      expect(summary.openIssues).toBe(5);
+    });
+
+    it('should get project trends', async () => {
+      nock(BASE_URL)
+        .get('/projects/proj-1/trends')
+        .reply(200, {
+          data: [
+            { date: '2024-01-01', openIssues: 10, closedIssues: 5 },
+            { date: '2024-01-02', openIssues: 8, closedIssues: 7 },
+          ],
+        });
+
+      const trends = await client.projects.getTrends('proj-1');
+
+      expect(trends).toHaveLength(2);
+      expect(trends[0].openIssues).toBe(10);
+    });
+  });
+
+  describe('run operations', () => {
+    it('should save validation run', async () => {
+      nock(BASE_URL)
+        .post('/runs')
+        .reply(201, {
+          data: {
+            run: { id: 'run-1', runNumber: 1 },
+            issues: { created: 3, updated: 1 },
+          },
+        });
+
+      const result = await client.runs.save({
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        validators: [
+          { name: 'code-validator', score: 85, status: 'PASS' },
+        ],
+        recommendations: [],
+      });
+
+      expect(result.run.runNumber).toBe(1);
+    });
+
+    it('should get latest run', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1/latest')
+        .reply(200, {
+          data: { id: 'run-5', runNumber: 5, workflowType: 'ship' },
+        });
+
+      const run = await client.runs.getLatest('proj-1');
+
+      expect(run.runNumber).toBe(5);
+    });
+
+    it('should list runs by project', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1')
+        .reply(200, {
+          data: [
+            { id: 'run-1', runNumber: 1 },
+            { id: 'run-2', runNumber: 2 },
+          ],
+        });
+
+      const runs = await client.runs.listByProject('proj-1');
+
+      expect(runs).toHaveLength(2);
+    });
+
+    it('should diff two runs', async () => {
+      nock(BASE_URL)
+        .get('/runs/diff')
+        .query({ project: 'proj-1', base_run: 1, compare_run: 2 })
+        .reply(200, {
+          data: {
+            fixed: [{ id: 'issue-1', title: 'Fixed bug' }],
+            new: [{ id: 'issue-2', title: 'New issue' }],
+            unchanged: [],
+          },
+        });
+
+      const diff = await client.runs.diff({
+        project: 'proj-1',
+        baseRun: 1,
+        compareRun: 2,
+      });
+
+      expect(diff.fixed).toHaveLength(1);
+      expect(diff.new).toHaveLength(1);
+    });
+  });
+
+  describe('issue operations', () => {
+    it('should create user issue', async () => {
+      nock(BASE_URL)
+        .post('/issues')
+        .reply(201, {
+          data: {
+            id: 'issue-1',
+            title: 'Manual issue',
+            priority: 'critical',
+          },
+        });
+
+      const issue = await client.issues.create({
+        project: 'proj-1',
+        title: 'Manual issue',
+        priority: 'critical',
+      });
+
+      expect(issue.title).toBe('Manual issue');
+    });
+
+    it('should search issues', async () => {
+      nock(BASE_URL)
+        .get('/issues/search')
+        .query({ query: 'authentication' })
+        .reply(200, {
+          data: [
+            { id: 'issue-1', title: 'Auth bug' },
+            { id: 'issue-2', title: 'Login authentication issue' },
+          ],
+        });
+
+      const issues = await client.issues.search({ query: 'authentication' });
+
+      expect(issues).toHaveLength(2);
+    });
+
+    it('should get issue details', async () => {
+      nock(BASE_URL)
+        .get('/issues/issue-1/details')
+        .reply(200, {
+          data: {
+            issue: { id: 'issue-1', title: 'Bug' },
+            occurrences: 5,
+            notes: [],
+          },
+        });
+
+      const details = await client.issues.getDetails('issue-1');
+
+      expect(details.occurrences).toBe(5);
+    });
+
+    it('should update issue status', async () => {
+      nock(BASE_URL)
+        .patch('/issues/issue-1/status', { status: 'completed', reason: 'Fixed' })
+        .reply(200, {
+          data: { id: 'issue-1', status: 'completed' },
+        });
+
+      const issue = await client.issues.updateStatus('issue-1', {
+        status: 'completed',
+        reason: 'Fixed',
+      });
+
+      expect(issue.status).toBe('completed');
+    });
+
+    it('should add note to issue', async () => {
+      nock(BASE_URL)
+        .post('/issues/issue-1/notes', { content: 'This is a note', note_type: 'context' })
+        .reply(201, {
+          data: { id: 'note-1', content: 'This is a note' },
+        });
+
+      const note = await client.issues.addNote('issue-1', {
+        content: 'This is a note',
+        noteType: 'context',
+      });
+
+      expect(note.content).toBe('This is a note');
+    });
+  });
+
+  describe('analytics operations', () => {
+    it('should get validator performance', async () => {
+      nock(BASE_URL)
+        .get('/analytics/validators/performance')
+        .reply(200, {
+          data: [
+            { validator: 'code-validator', avgScore: 85, runCount: 100 },
+            { validator: 'test-architect', avgScore: 78, runCount: 80 },
+          ],
+        });
+
+      const perf = await client.analytics.getValidatorPerformance();
+
+      expect(perf).toHaveLength(2);
+      expect(perf[0].avgScore).toBe(85);
+    });
+
+    it('should get burndown data', async () => {
+      nock(BASE_URL)
+        .get('/analytics/taxonomy/burndown')
+        .reply(200, {
+          data: {
+            timeSeries: [
+              { date: '2024-01-01', STR: 5, SEM: 10, PRA: 3, EPI: 2 },
+            ],
+            trends: { STR: 'declining', SEM: 'stable' },
+          },
+        });
+
+      const burndown = await client.analytics.getBurndown();
+
+      expect(burndown.timeSeries).toHaveLength(1);
+    });
+
+    it('should get velocity metrics', async () => {
+      nock(BASE_URL)
+        .get('/analytics/taxonomy/velocity')
+        .reply(200, {
+          data: {
+            modes: [
+              { mode: 'STR-OMI', velocity: -5, trend: 'improving' },
+            ],
+          },
+        });
+
+      const velocity = await client.analytics.getVelocity();
+
+      expect(velocity.modes[0].mode).toBe('STR-OMI');
+    });
+  });
+
+  describe('taxonomy operations', () => {
+    it('should get taxonomy schema', async () => {
+      nock(BASE_URL)
+        .get('/taxonomy')
+        .reply(200, {
+          data: {
+            domains: [
+              { code: 'STR', name: 'Structural', modes: ['OMI', 'RED', 'MIS'] },
+              { code: 'SEM', name: 'Semantic', modes: ['VAL', 'TYP', 'LOG'] },
+            ],
+            severities: ['critical', 'high', 'medium', 'low', 'info'],
+          },
+        });
+
+      const taxonomy = await client.taxonomy.get();
+
+      expect(taxonomy.domains).toHaveLength(2);
+      expect(taxonomy.severities).toContain('critical');
+    });
+  });
+
+  describe('admin operations', () => {
+    it('should get admin stats', async () => {
+      nock(BASE_URL)
+        .get('/admin/stats')
+        .reply(200, {
+          data: {
+            totalUsers: 100,
+            activeUsers: 80,
+            totalProjects: 50,
+          },
+        });
+
+      const stats = await client.admin.getStats();
+
+      expect(stats.totalUsers).toBe(100);
+      expect(stats.activeUsers).toBe(80);
+    });
+
+    it('should list users with pagination', async () => {
+      nock(BASE_URL)
+        .get('/admin/users')
+        .query({ limit: 10 })
+        .reply(200, {
+          data: {
+            users: [
+              { id: 'user-1', email: 'user1@example.com' },
+            ],
+            pagination: { total: 100, limit: 10, page: 1 },
+          },
+        });
+
+      const result = await client.admin.listUsers({ limit: 10 });
+
+      expect(result.users).toHaveLength(1);
+      expect(result.pagination.total).toBe(100);
+    });
+
+    it('should deactivate user', async () => {
+      nock(BASE_URL)
+        .delete('/admin/users/user-1')
+        .reply(200, {
+          data: { user: { id: 'user-1', isActive: false } },
+        });
+
+      const result = await client.admin.deactivateUser('user-1');
+
+      expect(result.user.isActive).toBe(false);
+    });
+  });
+});

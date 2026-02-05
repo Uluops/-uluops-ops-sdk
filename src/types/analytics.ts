@@ -1,0 +1,407 @@
+import type { FailureDomain, Trend, Granularity, DiscoveryGroupBy } from './enums.js';
+
+/**
+ * Common query options for analytics endpoints
+ */
+export interface AnalyticsQuery {
+  project?: string;
+  days?: number; // 1-365, default 30
+  limit?: number; // 1-100
+}
+
+/**
+ * Time period metadata
+ */
+export interface Period {
+  start: string;
+  end: string;
+  days: number;
+}
+
+// ============================================
+// VALIDATOR ANALYTICS
+// ============================================
+
+/**
+ * Validator performance metrics
+ */
+export interface ValidatorPerformance {
+  name: string;
+  totalRuns: number;
+  avgScore: number;
+  minScore: number;
+  maxScore: number;
+  passRate: number;
+  avgDurationMs: number | null;
+  totalIssuesFound: number;
+}
+
+/**
+ * Validator reliability stats
+ */
+export interface ValidatorReliability {
+  name: string;
+  totalIssues: number;
+  falsePositiveRate: number;
+  resolutionRate: number;
+  avgTimeToResolveDays: number | null;
+  reliabilityScore: number;
+}
+
+/**
+ * Validator reliability query options
+ */
+export interface ValidatorReliabilityQuery {
+  validator?: string;
+  project?: string;
+  days?: number;
+}
+
+// ============================================
+// RESOLUTION ANALYTICS
+// ============================================
+
+/**
+ * Project resolution rate
+ */
+export interface ResolutionRate {
+  project: string;
+  totalIssues: number;
+  resolvedIssues: number;
+  resolutionRate: number;
+  avgTimeToResolveDays: number | null;
+}
+
+// ============================================
+// FILE ANALYTICS
+// ============================================
+
+/**
+ * File hotspot (files with most issues)
+ */
+export interface FileHotspot {
+  filePath: string;
+  totalIssues: number;
+  openIssues: number;
+  resolvedIssues: number;
+  topValidators: string[];
+}
+
+// ============================================
+// TAXONOMY ANALYTICS
+// ============================================
+
+/**
+ * Basic taxonomy distribution
+ */
+export interface TaxonomyDistribution {
+  domain: FailureDomain;
+  mode: string;
+  count: number;
+  percentage: number;
+}
+
+/**
+ * Full taxonomy analytics
+ */
+export interface FullTaxonomyAnalytics {
+  byDomain: Array<{
+    domain: FailureDomain;
+    count: number;
+    percentage: number;
+  }>;
+  bySeverity: Array<{
+    severity: string;
+    count: number;
+    percentage: number;
+  }>;
+  byMode: Array<{
+    domain: FailureDomain;
+    mode: string;
+    count: number;
+    percentage: number;
+  }>;
+  byValidator: Array<{
+    validator: string;
+    domain: FailureDomain;
+    count: number;
+  }>;
+}
+
+// ============================================
+// BURNDOWN ANALYTICS
+// ============================================
+
+/**
+ * Burndown time series data point
+ */
+export interface BurndownDataPoint {
+  date: string;
+  STR: number;
+  SEM: number;
+  PRA: number;
+  EPI: number;
+  total: number;
+}
+
+/**
+ * Outlier detection result
+ */
+export interface OutlierPoint {
+  date: string;
+  value: number;
+  direction: 'high' | 'low';
+}
+
+/**
+ * Residual diagnostics for trend reliability
+ */
+export interface ResidualDiagnostics {
+  durbinWatson: number;
+  autocorrelation: 'none' | 'positive' | 'negative' | 'inconclusive';
+  varianceRatio: number | null;
+  heteroscedasticity: 'constant' | 'increasing' | 'decreasing' | 'inconclusive';
+  skewness: number;
+  runsTestZ: number;
+  assumptionScore: number;
+  warnings: string[];
+}
+
+/**
+ * Domain trend analysis
+ */
+export interface DomainTrend {
+  netChange: number;
+  trend: Trend;
+  avgDailyChange: number;
+  confidence: 'high' | 'medium' | 'low';
+  sampleSize: number;
+  rSquared: number;
+  standardError: number;
+  confidenceInterval: [number, number];
+  outliers: OutlierPoint[];
+  diagnostics: ResidualDiagnostics | null;
+  ciReliable: boolean;
+  warnings: string[];
+  weeklyPatternDetected: boolean;
+}
+
+/**
+ * Burndown result
+ */
+export interface BurndownResult {
+  timeSeries: BurndownDataPoint[];
+  trends: {
+    STR: DomainTrend;
+    SEM: DomainTrend;
+    PRA: DomainTrend;
+    EPI: DomainTrend;
+  };
+  period: Period;
+}
+
+/**
+ * Burndown query options
+ */
+export interface BurndownQuery extends AnalyticsQuery {
+  granularity?: Granularity;
+}
+
+// ============================================
+// VELOCITY ANALYTICS
+// ============================================
+
+/**
+ * Velocity item (rate of change per failure mode)
+ */
+export interface VelocityItem {
+  domain: FailureDomain;
+  mode: string;
+  failureCode: string;
+  currentCount: number;
+  previousCount: number;
+  velocityPercent: number;
+  alert: boolean;
+  sparkline: number[];
+  trendReliability: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Velocity summary
+ */
+export interface VelocitySummary {
+  improving: string[];
+  stable: string[];
+  degrading: string[];
+  mostImproved: string | null;
+  mostConcerning: string | null;
+}
+
+/**
+ * Velocity result
+ */
+export interface VelocityResult {
+  items: VelocityItem[];
+  summary: VelocitySummary;
+  period: Period;
+}
+
+/**
+ * Velocity query options
+ */
+export interface VelocityQuery extends AnalyticsQuery {
+  alertThreshold?: number; // 10-500, default 50
+}
+
+// ============================================
+// DISCOVERY ANALYTICS
+// ============================================
+
+/**
+ * Domain breakdown for discovery
+ */
+export interface DiscoveryDomainBreakdown {
+  new: number;
+  recurring: number;
+}
+
+/**
+ * Discovery timeline point
+ */
+export interface DiscoveryTimelinePoint {
+  period: string;
+  newIssues: number;
+  recurringIssues: number;
+  domains: Record<FailureDomain, DiscoveryDomainBreakdown>;
+}
+
+/**
+ * Discovery summary
+ */
+export interface DiscoverySummary {
+  totalNew: number;
+  totalRecurring: number;
+  newToRecurringRatio: number | null;
+  peakNewPeriod: { period: string; count: number } | null;
+}
+
+/**
+ * Discovery result
+ */
+export interface DiscoveryResult {
+  timeline: DiscoveryTimelinePoint[];
+  summary: DiscoverySummary;
+  period: Period;
+}
+
+/**
+ * Discovery query options
+ */
+export interface DiscoveryQuery extends AnalyticsQuery {
+  groupBy?: DiscoveryGroupBy;
+}
+
+// ============================================
+// VALIDATOR MATRIX ANALYTICS
+// ============================================
+
+/**
+ * Validator matrix row
+ */
+export interface ValidatorMatrixRow {
+  validator: string;
+  domains: Record<FailureDomain, number>;
+  total: number;
+  coverage: number;
+  coveragePercent: number;
+}
+
+/**
+ * Blind spot (validator missing domain coverage)
+ */
+export interface BlindSpot {
+  validator: string;
+  missingDomains: FailureDomain[];
+}
+
+/**
+ * Single point of failure (only one validator detects)
+ */
+export interface SinglePointFailure {
+  domain: FailureDomain;
+  mode: string;
+  onlyValidator: string;
+}
+
+/**
+ * High overlap (multiple validators detect same thing)
+ */
+export interface HighOverlap {
+  mode: string;
+  validatorCount: number;
+  validators: string[];
+}
+
+/**
+ * Matrix coverage analysis
+ */
+export interface MatrixAnalysis {
+  blindSpots: BlindSpot[];
+  singlePoints: SinglePointFailure[];
+  highOverlap: HighOverlap[];
+}
+
+/**
+ * Validator matrix result
+ */
+export interface ValidatorMatrixResult {
+  matrix: ValidatorMatrixRow[];
+  analysis: MatrixAnalysis;
+}
+
+/**
+ * Validator matrix query options
+ */
+export interface ValidatorMatrixQuery extends AnalyticsQuery {
+  minIssues?: number; // 1-1000, default 5
+}
+
+// ============================================
+// TREND ANALYTICS
+// ============================================
+
+/**
+ * Generic trend summary
+ */
+export interface TrendSummary {
+  metric: string;
+  current: number;
+  previous: number;
+  change: number;
+  changePercent: number;
+  trend: Trend;
+}
+
+// ============================================
+// TAXONOMY SCHEMA
+// ============================================
+
+/**
+ * Failure taxonomy schema (reference data)
+ */
+export interface TaxonomySchema {
+  failureDomains: Array<{
+    code: FailureDomain;
+    name: string;
+    description: string;
+  }>;
+  severityCodes: Array<{
+    code: string;
+    severity: string;
+    description: string;
+  }>;
+  severities: string[];
+  priorities: string[];
+  statuses: string[];
+  failureCodePattern: string;
+}

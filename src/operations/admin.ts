@@ -1,0 +1,201 @@
+import type { OpsHttpClient } from '../http/http-client.js';
+import type {
+  AdminCreateUserInput,
+  AdminUpdateUserInput,
+  AdminSession,
+  AdminApiKey,
+  AdminStats,
+  UserStats,
+  PublicUser,
+  BulkResult,
+  ListUsersQuery,
+  ListSessionsQuery,
+  ListKeysQuery,
+} from '../types/auth.js';
+import type { Pagination } from '../types/responses.js';
+
+/**
+ * Get admin dashboard statistics
+ */
+export async function getStats(client: OpsHttpClient): Promise<AdminStats> {
+  return client.get<AdminStats>('/admin/stats');
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+/**
+ * List all users with filtering and pagination
+ */
+export async function listUsers(
+  client: OpsHttpClient,
+  query?: ListUsersQuery
+): Promise<{ users: PublicUser[]; pagination: Pagination }> {
+  return client.get<{ users: PublicUser[]; pagination: Pagination }>('/admin/users', {
+    search: query?.search,
+    role: Array.isArray(query?.role) ? query.role.join(',') : query?.role,
+    subscription_tier: Array.isArray(query?.subscriptionTier)
+      ? query.subscriptionTier.join(',')
+      : query?.subscriptionTier,
+    is_active: query?.isActive,
+    sort_by: query?.sortBy,
+    sort_order: query?.sortOrder,
+    page: query?.page,
+    limit: query?.limit,
+  });
+}
+
+/**
+ * Get a user by ID with stats
+ */
+export async function getUser(
+  client: OpsHttpClient,
+  userId: string
+): Promise<{ user: PublicUser; stats: UserStats }> {
+  return client.get<{ user: PublicUser; stats: UserStats }>(`/admin/users/${userId}`);
+}
+
+/**
+ * Create a new user (admin)
+ */
+export async function createUser(
+  client: OpsHttpClient,
+  input: AdminCreateUserInput
+): Promise<{ user: PublicUser; temporaryPassword?: string }> {
+  return client.post<{ user: PublicUser; temporaryPassword?: string }>('/admin/users', {
+    email: input.email,
+    password: input.password,
+    role: input.role,
+    subscription_tier: input.subscriptionTier,
+    send_welcome_email: input.sendWelcomeEmail,
+  });
+}
+
+/**
+ * Update a user (admin)
+ */
+export async function updateUser(
+  client: OpsHttpClient,
+  userId: string,
+  input: AdminUpdateUserInput
+): Promise<{ user: PublicUser }> {
+  return client.patch<{ user: PublicUser }>(`/admin/users/${userId}`, {
+    email: input.email,
+    role: input.role,
+    subscription_tier: input.subscriptionTier,
+  });
+}
+
+/**
+ * Deactivate (soft-delete) a user
+ */
+export async function deactivateUser(
+  client: OpsHttpClient,
+  userId: string
+): Promise<{ user: PublicUser }> {
+  return client.delete<{ user: PublicUser }>(`/admin/users/${userId}`);
+}
+
+/**
+ * Reactivate a deactivated user
+ */
+export async function reactivateUser(
+  client: OpsHttpClient,
+  userId: string
+): Promise<{ user: PublicUser }> {
+  return client.post<{ user: PublicUser }>(`/admin/users/${userId}/reactivate`);
+}
+
+/**
+ * Trigger a password reset email for a user
+ */
+export async function resetUserPassword(
+  client: OpsHttpClient,
+  userId: string
+): Promise<{ message: string }> {
+  return client.post<{ message: string }>(`/admin/users/${userId}/reset-password`);
+}
+
+/**
+ * Bulk deactivate users
+ */
+export async function bulkDeactivate(
+  client: OpsHttpClient,
+  userIds: string[]
+): Promise<BulkResult> {
+  return client.post<BulkResult>('/admin/users/bulk-deactivate', {
+    user_ids: userIds,
+  });
+}
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+
+/**
+ * List all active sessions
+ */
+export async function listSessions(
+  client: OpsHttpClient,
+  query?: ListSessionsQuery
+): Promise<{ sessions: AdminSession[]; pagination: Pagination }> {
+  return client.get<{ sessions: AdminSession[]; pagination: Pagination }>('/admin/sessions', {
+    user_id: query?.userId,
+    sort_by: query?.sortBy,
+    sort_order: query?.sortOrder,
+    page: query?.page,
+    limit: query?.limit,
+  });
+}
+
+/**
+ * Terminate a specific session
+ */
+export async function terminateSession(
+  client: OpsHttpClient,
+  sessionId: string
+): Promise<{ message: string }> {
+  return client.delete<{ message: string }>(`/admin/sessions/${sessionId}`);
+}
+
+/**
+ * Terminate all sessions for a user
+ */
+export async function terminateUserSessions(
+  client: OpsHttpClient,
+  userId: string
+): Promise<{ message: string }> {
+  return client.delete<{ message: string }>(`/admin/sessions/user/${userId}`);
+}
+
+// ============================================
+// API KEY MANAGEMENT
+// ============================================
+
+/**
+ * List all API keys
+ */
+export async function listKeys(
+  client: OpsHttpClient,
+  query?: ListKeysQuery
+): Promise<{ keys: AdminApiKey[]; pagination: Pagination }> {
+  return client.get<{ keys: AdminApiKey[]; pagination: Pagination }>('/admin/keys', {
+    user_id: query?.userId,
+    search: query?.search,
+    sort_by: query?.sortBy,
+    sort_order: query?.sortOrder,
+    page: query?.page,
+    limit: query?.limit,
+  });
+}
+
+/**
+ * Revoke any API key
+ */
+export async function revokeKey(
+  client: OpsHttpClient,
+  keyId: string
+): Promise<{ message: string }> {
+  return client.delete<{ message: string }>(`/admin/keys/${keyId}`);
+}

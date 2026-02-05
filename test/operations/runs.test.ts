@@ -1,0 +1,377 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import nock from 'nock';
+import { OpsHttpClient } from '../../src/http/http-client.js';
+import * as runOps from '../../src/operations/runs.js';
+import { BASE_URL } from '../setup.js';
+
+describe('Run Operations', () => {
+  let client: OpsHttpClient;
+
+  beforeEach(() => {
+    client = new OpsHttpClient({
+      baseUrl: BASE_URL,
+      apiKey: 'ulr_test-api-key-12345',
+    });
+  });
+
+  describe('save', () => {
+    it('should save validation run', async () => {
+      nock(BASE_URL)
+        .post('/runs', (body) => {
+          return (
+            body.project === 'my-project' &&
+            body.workflow_type === 'post-implementation' &&
+            body.validators.length === 1 &&
+            body.validators[0].name === 'code-validator'
+          );
+        })
+        .reply(201, {
+          data: {
+            run: { id: 'run-1', runNumber: 1, workflowType: 'post-implementation' },
+            issues: { created: 2, updated: 0, unchanged: 1 },
+          },
+        });
+
+      const result = await runOps.save(client, {
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        validators: [
+          { name: 'code-validator', score: 85, status: 'PASS' },
+        ],
+        recommendations: [],
+      });
+
+      expect(result.run.runNumber).toBe(1);
+      expect(result.issues.created).toBe(2);
+    });
+
+    it('should save run with recommendations', async () => {
+      nock(BASE_URL)
+        .post('/runs', (body) => {
+          return (
+            body.recommendations.length === 1 &&
+            body.recommendations[0].title === 'Fix bug' &&
+            body.recommendations[0].priority === 'critical'
+          );
+        })
+        .reply(201, {
+          data: {
+            run: { id: 'run-2', runNumber: 2 },
+            issues: { created: 1, updated: 0 },
+          },
+        });
+
+      const result = await runOps.save(client, {
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        validators: [],
+        recommendations: [
+          {
+            validator: 'code-validator',
+            title: 'Fix bug',
+            priority: 'critical',
+          },
+        ],
+      });
+
+      expect(result.issues.created).toBe(1);
+    });
+
+    it('should save run with token metrics', async () => {
+      nock(BASE_URL)
+        .post('/runs', (body) => {
+          const tokens = body.validators[0].tokens;
+          return (
+            tokens.input_tokens === 1000 &&
+            tokens.output_tokens === 500
+          );
+        })
+        .reply(201, {
+          data: {
+            run: { id: 'run-3', runNumber: 3 },
+            issues: { created: 0, updated: 0 },
+          },
+        });
+
+      await runOps.save(client, {
+        project: 'my-project',
+        workflowType: 'ship',
+        validators: [
+          {
+            name: 'test-architect',
+            score: 90,
+            status: 'PASS',
+            tokens: {
+              inputTokens: 1000,
+              outputTokens: 500,
+            },
+          },
+        ],
+        recommendations: [],
+      });
+    });
+  });
+
+  describe('validate', () => {
+    it('should validate run without saving', async () => {
+      nock(BASE_URL)
+        .post('/runs/validate')
+        .reply(200, {
+          data: {
+            wouldCreate: [{ title: 'New issue', priority: 'suggested' }],
+            wouldUpdate: [],
+            wouldRegress: [],
+            validationErrors: [],
+          },
+        });
+
+      const result = await runOps.validate(client, {
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        validators: [{ name: 'code-validator', score: 85, status: 'PASS' }],
+        recommendations: [
+          { validator: 'code-validator', title: 'New issue', priority: 'suggested' },
+        ],
+      });
+
+      expect(result.wouldCreate).toHaveLength(1);
+      expect(result.validationErrors).toHaveLength(0);
+    });
+  });
+
+  describe('diff', () => {
+    it('should diff two runs', async () => {
+      nock(BASE_URL)
+        .get('/runs/diff')
+        .query({ project: 'my-project', base_run: 1, compare_run: 2 })
+        .reply(200, {
+          data: {
+            fixed: [{ id: 'issue-1', title: 'Fixed bug' }],
+            new: [{ id: 'issue-2', title: 'New issue' }],
+            unchanged: [{ id: 'issue-3', title: 'Still there' }],
+            validatorChanges: [
+              { validator: 'code-validator', baseScore: 75, compareScore: 85 },
+            ],
+          },
+        });
+
+      const result = await runOps.diff(client, {
+        project: 'my-project',
+        baseRun: 1,
+        compareRun: 2,
+      });
+
+      expect(result.fixed).toHaveLength(1);
+      expect(result.new).toHaveLength(1);
+      expect(result.unchanged).toHaveLength(1);
+    });
+  });
+
+  describe('archive', () => {
+    it('should archive runs by run number', async () => {
+      nock(BASE_URL)
+        .post('/runs/archive', {
+          project: 'my-project',
+          before_run_number: 10,
+        })
+        .reply(200, {
+          data: {
+            archivedCount: 9,
+            archivedRunNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+          },
+        });
+
+      const result = await runOps.archive(client, {
+        project: 'my-project',
+        beforeRunNumber: 10,
+      });
+
+      expect(result.archivedCount).toBe(9);
+    });
+
+    it('should archive runs keeping last N', async () => {
+      nock(BASE_URL)
+        .post('/runs/archive', {
+          project: 'my-project',
+          keep_last: 5,
+        })
+        .reply(200, {
+          data: { archivedCount: 15 },
+        });
+
+      const result = await runOps.archive(client, {
+        project: 'my-project',
+        keepLast: 5,
+      });
+
+      expect(result.archivedCount).toBe(15);
+    });
+  });
+
+  describe('update', () => {
+    it('should update run by project and number', async () => {
+      nock(BASE_URL)
+        .patch('/runs/update', {
+          project: 'my-project',
+          run_number: 5,
+          all_gates_passed: true,
+          average_score: 92,
+        })
+        .reply(200, {
+          data: { id: 'run-5', runNumber: 5, allGatesPassed: true, averageScore: 92 },
+        });
+
+      const run = await runOps.update(client, {
+        project: 'my-project',
+        runNumber: 5,
+        allGatesPassed: true,
+        averageScore: 92,
+      });
+
+      expect(run.allGatesPassed).toBe(true);
+      expect(run.averageScore).toBe(92);
+    });
+  });
+
+  describe('listByProject', () => {
+    it('should list runs for a project', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1')
+        .reply(200, {
+          data: [
+            { id: 'run-1', runNumber: 1 },
+            { id: 'run-2', runNumber: 2 },
+          ],
+        });
+
+      const runs = await runOps.listByProject(client, 'proj-1');
+
+      expect(runs).toHaveLength(2);
+    });
+
+    it('should list runs with query params', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1')
+        .query({ limit: 5, offset: 10 })
+        .reply(200, {
+          data: [{ id: 'run-11', runNumber: 11 }],
+        });
+
+      const runs = await runOps.listByProject(client, 'proj-1', {
+        limit: 5,
+        offset: 10,
+      });
+
+      expect(runs).toHaveLength(1);
+    });
+  });
+
+  describe('getLatest', () => {
+    it('should get latest run', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1/latest')
+        .reply(200, {
+          data: { id: 'run-100', runNumber: 100, workflowType: 'ship' },
+        });
+
+      const run = await runOps.getLatest(client, 'proj-1');
+
+      expect(run.runNumber).toBe(100);
+    });
+
+    it('should get latest run by workflow type', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1/latest')
+        .query({ workflow_type: 'post-implementation' })
+        .reply(200, {
+          data: { id: 'run-95', runNumber: 95, workflowType: 'post-implementation' },
+        });
+
+      const run = await runOps.getLatest(client, 'proj-1', 'post-implementation');
+
+      expect(run.workflowType).toBe('post-implementation');
+    });
+  });
+
+  describe('getDetails', () => {
+    it('should get run details with recommendations', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1/details')
+        .reply(200, {
+          data: {
+            run: { id: 'run-10', runNumber: 10 },
+            recommendations: [
+              { id: 'rec-1', title: 'Fix this', correlation: 'new' },
+            ],
+            summary: { newIssues: 1, fixedIssues: 2 },
+          },
+        });
+
+      const details = await runOps.getDetails(client, 'proj-1');
+
+      expect(details.recommendations).toHaveLength(1);
+      expect(details.summary.newIssues).toBe(1);
+    });
+
+    it('should get details for specific run number', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-1/details')
+        .query({ run_number: 5 })
+        .reply(200, {
+          data: {
+            run: { id: 'run-5', runNumber: 5 },
+            recommendations: [],
+            summary: {},
+          },
+        });
+
+      const details = await runOps.getDetails(client, 'proj-1', 5);
+
+      expect(details.run.runNumber).toBe(5);
+    });
+  });
+
+  describe('get', () => {
+    it('should get run by ID', async () => {
+      nock(BASE_URL)
+        .get('/runs/run-uuid-123')
+        .reply(200, {
+          data: { id: 'run-uuid-123', runNumber: 42, workflowType: 'ship' },
+        });
+
+      const run = await runOps.get(client, 'run-uuid-123');
+
+      expect(run.id).toBe('run-uuid-123');
+      expect(run.runNumber).toBe(42);
+    });
+  });
+
+  describe('updateById', () => {
+    it('should update run by ID', async () => {
+      nock(BASE_URL)
+        .patch('/runs/run-uuid-123', {
+          average_score: 88,
+        })
+        .reply(200, {
+          data: { id: 'run-uuid-123', averageScore: 88 },
+        });
+
+      const run = await runOps.updateById(client, 'run-uuid-123', {
+        averageScore: 88,
+      });
+
+      expect(run.averageScore).toBe(88);
+    });
+  });
+
+  describe('deleteRun', () => {
+    it('should delete run with confirmation header', async () => {
+      nock(BASE_URL)
+        .delete('/runs/run-uuid-123')
+        .matchHeader('X-Confirm-Delete', 'run-uuid-123')
+        .reply(200, { data: {} });
+
+      await expect(runOps.deleteRun(client, 'run-uuid-123')).resolves.toBeUndefined();
+    });
+  });
+});
