@@ -83,7 +83,10 @@ export function formatKeyValue(data: Record<string, unknown>, indent = 0): strin
   return Object.entries(data)
     .filter(([, v]) => v !== undefined && v !== null)
     .map(([k, v]) => {
-      const label = k.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+      // Only transform camelCase if key doesn't already contain spaces
+      const label = k.includes(' ')
+        ? k
+        : k.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
       if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
         return `${prefix}${label}:\n${formatKeyValue(v as Record<string, unknown>, indent + 2)}`;
       }
