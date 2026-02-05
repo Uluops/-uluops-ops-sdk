@@ -15,6 +15,10 @@ import type {
   ValidatorInput,
   RecommendationInput,
 } from '../types/runs.js';
+import {
+  validateSaveFeaturesListInput,
+  validateArchiveRunsInput,
+} from '../config/validators.js';
 
 /**
  * Options for validator transformation
@@ -115,6 +119,7 @@ export async function save(
   client: OpsHttpClient,
   input: SaveFeaturesListInput
 ): Promise<SaveFeaturesListResponse> {
+  validateSaveFeaturesListInput(input);
   return client.post<SaveFeaturesListResponse>('/runs', {
     project: input.project,
     workflow_type: input.workflowType,
@@ -143,6 +148,7 @@ export async function validate(
   client: OpsHttpClient,
   input: SaveFeaturesListInput
 ): Promise<ValidateFeaturesListResponse> {
+  validateSaveFeaturesListInput(input);
   return client.post<ValidateFeaturesListResponse>('/runs/validate', {
     project: input.project,
     workflow_type: input.workflowType,
@@ -172,6 +178,7 @@ export async function archive(
   client: OpsHttpClient,
   input: ArchiveRunsInput
 ): Promise<ArchiveRunsResult> {
+  validateArchiveRunsInput(input);
   return client.post<ArchiveRunsResult>('/runs/archive', {
     project: input.project,
     before_run_number: input.beforeRunNumber,

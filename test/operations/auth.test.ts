@@ -91,13 +91,13 @@ describe('Auth Operations', () => {
       nock(BASE_URL)
         .post('/auth/reset-password', {
           token: 'reset-token-123',
-          newPassword: 'newSecurePassword',
+          password: 'newSecurePassword',
         })
         .reply(200, { data: { message: 'Password reset successfully' } });
 
       const result = await authOps.resetPassword(client, {
         token: 'reset-token-123',
-        newPassword: 'newSecurePassword',
+        password: 'newSecurePassword',
       });
 
       expect(result.message).toBe('Password reset successfully');
@@ -178,19 +178,19 @@ describe('Auth Operations', () => {
   describe('updateProfile', () => {
     it('should update user profile', async () => {
       nock(BASE_URL)
-        .patch('/auth/profile', { displayName: 'New Name' })
+        .patch('/auth/profile', { name: 'New Name' })
         .reply(200, {
           data: {
             user: {
               id: 'user-1',
-              displayName: 'New Name',
+              name: 'New Name',
             },
           },
         });
 
-      const result = await authOps.updateProfile(client, { displayName: 'New Name' });
+      const result = await authOps.updateProfile(client, { name: 'New Name' });
 
-      expect(result.user.displayName).toBe('New Name');
+      expect(result.user.name).toBe('New Name');
     });
   });
 

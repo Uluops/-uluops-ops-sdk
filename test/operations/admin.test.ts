@@ -142,18 +142,20 @@ describe('Admin Operations', () => {
         .post('/admin/users', {
           email: 'newuser@example.com',
           password: 'securePass123',
-          role: 'user',
+          role: 'developer',
+          subscription_tier: 'free',
         })
         .reply(201, {
           data: {
-            user: { id: 'user-new', email: 'newuser@example.com', role: 'user' },
+            user: { id: 'user-new', email: 'newuser@example.com', role: 'developer' },
           },
         });
 
       const result = await adminOps.createUser(client, {
         email: 'newuser@example.com',
         password: 'securePass123',
-        role: 'user',
+        role: 'developer',
+        subscriptionTier: 'free',
       });
 
       expect(result.user.email).toBe('newuser@example.com');
@@ -163,7 +165,8 @@ describe('Admin Operations', () => {
       nock(BASE_URL)
         .post('/admin/users', {
           email: 'invited@example.com',
-          role: 'user',
+          role: 'viewer',
+          subscription_tier: 'free',
           send_welcome_email: true,
         })
         .reply(201, {
@@ -175,7 +178,8 @@ describe('Admin Operations', () => {
 
       const result = await adminOps.createUser(client, {
         email: 'invited@example.com',
-        role: 'user',
+        role: 'viewer',
+        subscriptionTier: 'free',
         sendWelcomeEmail: true,
       });
 
@@ -257,7 +261,11 @@ describe('Admin Operations', () => {
     it('should bulk deactivate users', async () => {
       nock(BASE_URL)
         .post('/admin/users/bulk-deactivate', {
-          user_ids: ['user-1', 'user-2', 'user-3'],
+          user_ids: [
+            '00000000-0000-1000-8000-000000000001',
+            '00000000-0000-1000-8000-000000000002',
+            '00000000-0000-1000-8000-000000000003',
+          ],
         })
         .reply(200, {
           data: {
@@ -271,7 +279,11 @@ describe('Admin Operations', () => {
           },
         });
 
-      const result = await adminOps.bulkDeactivate(client, ['user-1', 'user-2', 'user-3']);
+      const result = await adminOps.bulkDeactivate(client, [
+        '00000000-0000-1000-8000-000000000001',
+        '00000000-0000-1000-8000-000000000002',
+        '00000000-0000-1000-8000-000000000003',
+      ]);
 
       expect(result.success).toBe(3);
       expect(result.failed).toBe(0);

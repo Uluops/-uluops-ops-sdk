@@ -13,6 +13,11 @@ import type {
   ListKeysQuery,
 } from '../types/auth.js';
 import type { Pagination } from '../types/responses.js';
+import {
+  validateAdminCreateUserInput,
+  validateAdminUpdateUserInput,
+  validateBulkDeactivateInput,
+} from '../config/validators.js';
 
 /**
  * Get admin dashboard statistics
@@ -63,6 +68,7 @@ export async function createUser(
   client: OpsHttpClient,
   input: AdminCreateUserInput
 ): Promise<{ user: PublicUser; temporaryPassword?: string }> {
+  validateAdminCreateUserInput(input);
   return client.post<{ user: PublicUser; temporaryPassword?: string }>('/admin/users', {
     email: input.email,
     password: input.password,
@@ -80,6 +86,7 @@ export async function updateUser(
   userId: string,
   input: AdminUpdateUserInput
 ): Promise<{ user: PublicUser }> {
+  validateAdminUpdateUserInput(input);
   return client.patch<{ user: PublicUser }>(`/admin/users/${encodeURIComponent(userId)}`, {
     email: input.email,
     role: input.role,
@@ -124,6 +131,7 @@ export async function bulkDeactivate(
   client: OpsHttpClient,
   userIds: string[]
 ): Promise<BulkResult> {
+  validateBulkDeactivateInput({ userIds });
   return client.post<BulkResult>('/admin/users/bulk-deactivate', {
     user_ids: userIds,
   });

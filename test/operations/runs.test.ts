@@ -49,6 +49,7 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .post('/runs', (body) => {
           return (
+            body.validators.length === 1 &&
             body.recommendations.length === 1 &&
             body.recommendations[0].title === 'Fix bug' &&
             body.recommendations[0].priority === 'critical'
@@ -64,7 +65,9 @@ describe('Run Operations', () => {
       const result = await runOps.save(client, {
         project: 'my-project',
         workflowType: 'post-implementation',
-        validators: [],
+        validators: [
+          { name: 'code-validator', score: 70, status: 'FAIL' },
+        ],
         recommendations: [
           {
             validator: 'code-validator',

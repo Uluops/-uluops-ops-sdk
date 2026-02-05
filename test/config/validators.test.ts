@@ -3,13 +3,23 @@ import {
   InputValidationError,
   validateRegisterInput,
   validateLoginInput,
+  validateUpdateProfileInput,
+  validateChangePasswordInput,
+  validateResetPasswordInput,
+  validateCreateApiKeyInput,
   validateCreateProjectInput,
   validateDeleteProjectInput,
   validateRenameProjectInput,
   validateSaveFeaturesListInput,
+  validateArchiveRunsInput,
   validateCreateUserIssueInput,
+  validateUpdateIssueInput,
   validateUpdateIssueStatusInput,
   validateCreateIssueNoteInput,
+  validateBulkStatusUpdateInput,
+  validateAdminCreateUserInput,
+  validateAdminUpdateUserInput,
+  validateBulkDeactivateInput,
   validateUuid,
   validateRequiredString,
   validatePositiveInt,
@@ -45,6 +55,21 @@ describe('Config Validators', () => {
 
     it('should reject missing password', () => {
       const input = { email: 'test@example.com' };
+      expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
+    });
+
+    it('should reject short password (< 8 chars)', () => {
+      const input = { email: 'test@example.com', password: 'short' };
+      expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
+    });
+
+    it('should accept exactly 8 char password', () => {
+      const input = { email: 'test@example.com', password: '12345678' };
+      expect(() => validateRegisterInput(input)).not.toThrow();
+    });
+
+    it('should reject password exceeding 128 chars', () => {
+      const input = { email: 'test@example.com', password: 'a'.repeat(129) };
       expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
     });
   });
@@ -218,6 +243,257 @@ describe('Config Validators', () => {
     it('should reject empty content', () => {
       const input = { content: '' };
       expect(() => validateCreateIssueNoteInput(input)).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateUpdateProfileInput', () => {
+    it('should accept valid name update', () => {
+      expect(() => validateUpdateProfileInput({ name: 'New Name' })).not.toThrow();
+    });
+
+    it('should accept valid username', () => {
+      expect(() => validateUpdateProfileInput({ username: 'johndoe' })).not.toThrow();
+    });
+
+    it('should reject empty object (no fields)', () => {
+      expect(() => validateUpdateProfileInput({})).toThrow(InputValidationError);
+    });
+
+    it('should reject invalid username format', () => {
+      expect(() => validateUpdateProfileInput({ username: 'UPPERCASE' })).toThrow(InputValidationError);
+    });
+
+    it('should reject username starting with number', () => {
+      expect(() => validateUpdateProfileInput({ username: '1abc' })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateChangePasswordInput', () => {
+    it('should accept valid input', () => {
+      expect(() => validateChangePasswordInput({
+        currentPassword: 'oldPass123',
+        newPassword: 'newPass456',
+      })).not.toThrow();
+    });
+
+    it('should reject short new password', () => {
+      expect(() => validateChangePasswordInput({
+        currentPassword: 'oldPass123',
+        newPassword: 'short',
+      })).toThrow(InputValidationError);
+    });
+
+    it('should reject missing currentPassword', () => {
+      expect(() => validateChangePasswordInput({ newPassword: 'newPass456' })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateResetPasswordInput', () => {
+    it('should accept valid input', () => {
+      expect(() => validateResetPasswordInput({
+        token: 'reset-token-abc',
+        password: 'newSecure123',
+      })).not.toThrow();
+    });
+
+    it('should reject missing token', () => {
+      expect(() => validateResetPasswordInput({ password: 'newSecure123' })).toThrow(InputValidationError);
+    });
+
+    it('should reject short password', () => {
+      expect(() => validateResetPasswordInput({ token: 'abc', password: 'short' })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateCreateApiKeyInput', () => {
+    it('should accept empty object', () => {
+      expect(() => validateCreateApiKeyInput({})).not.toThrow();
+    });
+
+    it('should accept input with name', () => {
+      expect(() => validateCreateApiKeyInput({ name: 'My Key' })).not.toThrow();
+    });
+
+    it('should accept input with expiresAt', () => {
+      expect(() => validateCreateApiKeyInput({ expiresAt: '2025-12-31T00:00:00Z' })).not.toThrow();
+    });
+
+    it('should reject name exceeding 100 chars', () => {
+      expect(() => validateCreateApiKeyInput({ name: 'x'.repeat(101) })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateArchiveRunsInput', () => {
+    it('should accept valid input with beforeRunNumber', () => {
+      expect(() => validateArchiveRunsInput({ project: 'my-project', beforeRunNumber: 10 })).not.toThrow();
+    });
+
+    it('should accept valid input with keepLast', () => {
+      expect(() => validateArchiveRunsInput({ project: 'my-project', keepLast: 5 })).not.toThrow();
+    });
+
+    it('should reject missing project', () => {
+      expect(() => validateArchiveRunsInput({ beforeRunNumber: 10 })).toThrow(InputValidationError);
+    });
+
+    it('should reject zero keepLast', () => {
+      expect(() => validateArchiveRunsInput({ project: 'p', keepLast: 0 })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateUpdateIssueInput', () => {
+    it('should accept valid title update', () => {
+      expect(() => validateUpdateIssueInput({ title: 'Updated title' })).not.toThrow();
+    });
+
+    it('should accept valid severity update', () => {
+      expect(() => validateUpdateIssueInput({ severity: 'high' })).not.toThrow();
+    });
+
+    it('should accept valid failure code', () => {
+      expect(() => validateUpdateIssueInput({ failureCode: 'SEM-VAL/H' })).not.toThrow();
+    });
+
+    it('should reject invalid failure code format', () => {
+      expect(() => validateUpdateIssueInput({ failureCode: 'invalid' })).toThrow(InputValidationError);
+    });
+
+    it('should reject empty title', () => {
+      expect(() => validateUpdateIssueInput({ title: '' })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateBulkStatusUpdateInput', () => {
+    it('should accept valid updates array', () => {
+      expect(() => validateBulkStatusUpdateInput({
+        updates: [{ issueId: '550e8400-e29b-41d4-a716-446655440000', status: 'completed' }],
+      })).not.toThrow();
+    });
+
+    it('should reject empty updates array', () => {
+      expect(() => validateBulkStatusUpdateInput({ updates: [] })).toThrow(InputValidationError);
+    });
+
+    it('should reject invalid status in updates', () => {
+      expect(() => validateBulkStatusUpdateInput({
+        updates: [{ issueId: '550e8400-e29b-41d4-a716-446655440000', status: 'invalid' }],
+      })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateAdminCreateUserInput', () => {
+    it('should accept valid input', () => {
+      expect(() => validateAdminCreateUserInput({
+        email: 'new@example.com',
+        role: 'developer',
+        subscriptionTier: 'free',
+      })).not.toThrow();
+    });
+
+    it('should accept input with optional password', () => {
+      expect(() => validateAdminCreateUserInput({
+        email: 'new@example.com',
+        password: 'securePass123',
+        role: 'admin',
+        subscriptionTier: 'enterprise',
+      })).not.toThrow();
+    });
+
+    it('should reject invalid role', () => {
+      expect(() => validateAdminCreateUserInput({
+        email: 'new@example.com',
+        role: 'superadmin',
+        subscriptionTier: 'free',
+      })).toThrow(InputValidationError);
+    });
+
+    it('should reject invalid subscription tier', () => {
+      expect(() => validateAdminCreateUserInput({
+        email: 'new@example.com',
+        role: 'developer',
+        subscriptionTier: 'platinum',
+      })).toThrow(InputValidationError);
+    });
+
+    it('should reject missing required fields', () => {
+      expect(() => validateAdminCreateUserInput({ email: 'new@example.com' })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateAdminUpdateUserInput', () => {
+    it('should accept valid role update', () => {
+      expect(() => validateAdminUpdateUserInput({ role: 'admin' })).not.toThrow();
+    });
+
+    it('should accept valid tier update', () => {
+      expect(() => validateAdminUpdateUserInput({ subscriptionTier: 'pro' })).not.toThrow();
+    });
+
+    it('should reject empty object (no fields)', () => {
+      expect(() => validateAdminUpdateUserInput({})).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateBulkDeactivateInput', () => {
+    it('should accept valid UUID array', () => {
+      expect(() => validateBulkDeactivateInput({
+        userIds: ['550e8400-e29b-41d4-a716-446655440000'],
+      })).not.toThrow();
+    });
+
+    it('should reject empty array', () => {
+      expect(() => validateBulkDeactivateInput({ userIds: [] })).toThrow(InputValidationError);
+    });
+
+    it('should reject non-UUID strings', () => {
+      expect(() => validateBulkDeactivateInput({ userIds: ['not-a-uuid'] })).toThrow(InputValidationError);
+    });
+  });
+
+  describe('validateSaveFeaturesListInput - boundaries', () => {
+    it('should reject score below 0', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: -1, status: 'FAIL' }],
+        recommendations: [],
+      })).toThrow(InputValidationError);
+    });
+
+    it('should reject score above 100', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 101, status: 'FAIL' }],
+        recommendations: [],
+      })).toThrow(InputValidationError);
+    });
+
+    it('should accept score at boundaries (0 and 100)', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 0, status: 'FAIL' }],
+        recommendations: [],
+      })).not.toThrow();
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 100, status: 'PASS' }],
+        recommendations: [],
+      })).not.toThrow();
+    });
+
+    it('should reject empty validators array', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [],
+        recommendations: [],
+      })).toThrow(InputValidationError);
+    });
+
+    it('should reject invalid recommendation priority', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 80, status: 'PASS' }],
+        recommendations: [{ validator: 'v', title: 'Issue', priority: 'invalid' }],
+      })).toThrow(InputValidationError);
     });
   });
 

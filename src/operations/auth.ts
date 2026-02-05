@@ -15,6 +15,14 @@ import type {
   PublicUser,
 } from '../types/auth.js';
 import type { MessageResponse } from '../types/responses.js';
+import {
+  validateRegisterInput,
+  validateLoginInput,
+  validateUpdateProfileInput,
+  validateChangePasswordInput,
+  validateResetPasswordInput,
+  validateCreateApiKeyInput,
+} from '../config/validators.js';
 
 /**
  * Register a new user
@@ -23,6 +31,7 @@ export async function register(
   client: OpsHttpClient,
   input: RegisterInput
 ): Promise<RegisterResponse> {
+  validateRegisterInput(input);
   return client.post<RegisterResponse>('/auth/register', input);
 }
 
@@ -33,6 +42,7 @@ export async function login(
   client: OpsHttpClient,
   input: LoginInput
 ): Promise<LoginResponse> {
+  validateLoginInput(input);
   return client.post<LoginResponse>('/auth/login', input);
 }
 
@@ -62,6 +72,7 @@ export async function resetPassword(
   client: OpsHttpClient,
   input: ResetPasswordInput
 ): Promise<MessageResponse> {
+  validateResetPasswordInput(input);
   return client.post<MessageResponse>('/auth/reset-password', input);
 }
 
@@ -72,6 +83,7 @@ export async function changePassword(
   client: OpsHttpClient,
   input: ChangePasswordInput
 ): Promise<MessageResponse> {
+  validateChangePasswordInput(input);
   return client.put<MessageResponse>('/auth/password', input);
 }
 
@@ -106,6 +118,7 @@ export async function updateProfile(
   client: OpsHttpClient,
   input: UpdateProfileInput
 ): Promise<{ user: PublicUser }> {
+  validateUpdateProfileInput(input);
   return client.patch<{ user: PublicUser }>('/auth/profile', input);
 }
 
@@ -145,6 +158,7 @@ export async function createApiKey(
   client: OpsHttpClient,
   input?: CreateApiKeyInput
 ): Promise<ApiKeyCreatedResponse> {
+  if (input) validateCreateApiKeyInput(input);
   return client.post<ApiKeyCreatedResponse>('/auth/keys', input);
 }
 

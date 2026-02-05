@@ -15,6 +15,11 @@ import type {
   MergeIssuesResult,
 } from '../types/projects.js';
 import type { Issue } from '../types/issues.js';
+import {
+  validateCreateProjectInput,
+  validateDeleteProjectInput,
+  validateRenameProjectInput,
+} from '../config/validators.js';
 
 /**
  * List all projects for the current user
@@ -40,6 +45,7 @@ export async function create(
   client: OpsHttpClient,
   input: CreateProjectInput
 ): Promise<Project> {
+  validateCreateProjectInput(input);
   return client.post<Project>('/projects', input);
 }
 
@@ -62,6 +68,7 @@ export async function deleteProject(
   idOrName: string,
   input: DeleteProjectInput
 ): Promise<void> {
+  validateDeleteProjectInput(input);
   await client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
     confirm: input.confirm,
     confirmation_phrase: input.confirmationPhrase,
@@ -76,6 +83,7 @@ export async function softDelete(
   idOrName: string,
   input: DeleteProjectInput
 ): Promise<void> {
+  validateDeleteProjectInput(input);
   await client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
     confirm: input.confirm,
     confirmation_phrase: input.confirmationPhrase,
@@ -99,6 +107,7 @@ export async function rename(
   client: OpsHttpClient,
   input: RenameProjectInput
 ): Promise<Project> {
+  validateRenameProjectInput(input);
   return client.post<Project>('/projects/rename', {
     old_name: input.oldName,
     new_name: input.newName,

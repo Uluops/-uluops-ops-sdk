@@ -1405,6 +1405,17 @@ const client = new OpsClient({
 });
 ```
 
+### Request Size Limits
+
+The API enforces the following payload limits:
+
+- **Request body**: 1 MB maximum for most endpoints
+- **`raw_markdown`** field in `runs.save()`: up to 100,000 characters
+- **Recommendations array**: no hard limit, but very large arrays (1000+) may cause timeouts
+- **Bulk operations**: capped at 100 items per request (e.g., `bulkUpdateStatus`)
+
+Requests exceeding these limits will receive a `413 Payload Too Large` or `422 Unprocessable Entity` response.
+
 ## Input Validation
 
 The SDK includes Zod-based runtime validators for all mutating operations. Import them from `@uluops/ops-sdk/config`:

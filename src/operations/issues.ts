@@ -13,6 +13,13 @@ import type {
   BulkStatusUpdateItem,
   StatusUpdateResult,
 } from '../types/issues.js';
+import {
+  validateCreateUserIssueInput,
+  validateUpdateIssueInput,
+  validateUpdateIssueStatusInput,
+  validateCreateIssueNoteInput,
+  validateBulkStatusUpdateInput,
+} from '../config/validators.js';
 
 /**
  * Create a user-submitted issue
@@ -21,6 +28,7 @@ export async function create(
   client: OpsHttpClient,
   input: CreateUserIssueInput
 ): Promise<Issue> {
+  validateCreateUserIssueInput(input);
   return client.post<Issue>('/issues', {
     project: input.project,
     title: input.title,
@@ -119,6 +127,7 @@ export async function updateStatus(
   issueId: string,
   input: UpdateIssueStatusInput
 ): Promise<Issue> {
+  validateUpdateIssueStatusInput(input);
   return client.patch<Issue>(`/issues/${issueId}/status`, {
     status: input.status,
     reason: input.reason,
@@ -133,6 +142,7 @@ export async function edit(
   issueId: string,
   input: UpdateIssueInput
 ): Promise<Issue> {
+  validateUpdateIssueInput(input);
   return client.patch<Issue>(`/issues/${encodeURIComponent(issueId)}`, {
     title: input.title,
     status: input.status,
@@ -156,6 +166,7 @@ export async function addNote(
   issueId: string,
   input: CreateIssueNoteInput
 ): Promise<IssueNote> {
+  validateCreateIssueNoteInput(input);
   return client.post<IssueNote>(`/issues/${issueId}/notes`, {
     content: input.content,
     note_type: input.noteType,
@@ -190,6 +201,7 @@ export async function bulkUpdateStatus(
   client: OpsHttpClient,
   updates: BulkStatusUpdateItem[]
 ): Promise<StatusUpdateResult[]> {
+  validateBulkStatusUpdateInput({ updates });
   return client.post<StatusUpdateResult[]>('/issues/bulk-status', {
     updates: updates.map((u) => ({
       issue_id: u.issueId,
