@@ -276,23 +276,34 @@ export function registerRunCommands(program: Command): void {
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
-          console.log('Validation Preview:');
-          console.log(`  Would create: ${result.wouldCreate ? 'Yes' : 'No'}`);
-          console.log(`  Would update: ${result.wouldUpdate ? 'Yes' : 'No'}`);
-          console.log(`  Would regress: ${result.wouldRegress ? 'Yes' : 'No'}`);
+          // Handle both camelCase and snake_case responses
+          const res = result as unknown as Record<string, unknown>;
+          const wouldCreate = res.wouldCreate ?? res.would_create;
+          const wouldUpdate = res.wouldUpdate ?? res.would_update;
+          const wouldRegress = res.wouldRegress ?? res.would_regress;
+          const validationErrors = (res.validationErrors ?? res.validation_errors ?? []) as string[];
+          const preview = res.preview as Record<string, unknown> | undefined;
 
-          if (result.validationErrors.length > 0) {
+          console.log('Validation Preview:');
+          console.log(`  Would create: ${wouldCreate ? 'Yes' : 'No'}`);
+          console.log(`  Would update: ${wouldUpdate ? 'Yes' : 'No'}`);
+          console.log(`  Would regress: ${wouldRegress ? 'Yes' : 'No'}`);
+
+          if (validationErrors.length > 0) {
             console.log('\nValidation Errors:');
-            for (const err of result.validationErrors) {
+            for (const err of validationErrors) {
               console.log(`  - ${err}`);
             }
           }
 
-          if (result.preview) {
+          if (preview) {
+            const newIssues = (preview.newIssues ?? preview.new_issues ?? []) as unknown[];
+            const recurringIssues = (preview.recurringIssues ?? preview.recurring_issues ?? []) as unknown[];
+            const regressions = (preview.regressions ?? []) as unknown[];
             console.log('\nCorrelation Preview:');
-            console.log(`  New issues: ${result.preview.newIssues ?? 0}`);
-            console.log(`  Recurring: ${result.preview.recurringIssues ?? 0}`);
-            console.log(`  Regressions: ${result.preview.regressions ?? 0}`);
+            console.log(`  New issues: ${newIssues.length}`);
+            console.log(`  Recurring: ${recurringIssues.length}`);
+            console.log(`  Regressions: ${regressions.length}`);
           }
         }
       } catch (error) {
