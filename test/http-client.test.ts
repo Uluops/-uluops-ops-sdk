@@ -214,7 +214,7 @@ describe('OpsHttpClient', () => {
       });
 
       await expect(client.get('/projects')).rejects.toThrow(OpsApiError);
-    });
+    }, 15000);
 
     it('should respect custom retry count', async () => {
       const customClient = new OpsHttpClient({

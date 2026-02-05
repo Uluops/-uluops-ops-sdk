@@ -5,7 +5,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
-Official TypeScript SDK and CLI for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
+Official TypeScript SDK for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
 ## Quick Start
 
@@ -40,25 +40,6 @@ const result = await client.runs.save({
 console.log(`Run #${result.run.runNumber} saved: ${result.issues.created} issues created`);
 ```
 
-### CLI Usage
-
-```bash
-# Install globally
-npm install -g @uluops/ops-sdk
-
-# Configure API key
-export ULUOPS_API_KEY="ulr_your-api-key-here"
-
-# List projects
-ulu projects list
-
-# Get project summary
-ulu projects summary my-project
-
-# Search issues
-ulu issues search "authentication"
-```
-
 ## Table of Contents
 
 - [Overview](#overview)
@@ -74,7 +55,6 @@ ulu issues search "authentication"
   - [Analytics Operations](#analytics-operations)
   - [Taxonomy Operations](#taxonomy-operations)
   - [Admin Operations](#admin-operations)
-- [CLI Reference](#cli-reference)
 - [Environment Variables](#environment-variables)
 - [Error Handling](#error-handling)
 - [Advanced Usage](#advanced-usage)
@@ -1336,66 +1316,9 @@ const { message } = await client.admin.revokeKey('key-id');
 
 ---
 
-## CLI Reference
+## CLI
 
-The SDK includes a CLI tool available as `ulu`.
-
-```bash
-# Install globally
-npm install -g @uluops/ops-sdk
-
-# Or use npx
-npx @uluops/ops-sdk <command>
-```
-
-### Global Options
-
-| Option | Description |
-|--------|-------------|
-| `--api-key <key>` | API key for authentication |
-| `--base-url <url>` | API base URL |
-| `--json` | Output as JSON |
-| `--debug` | Enable debug logging |
-
-### Commands
-
-```bash
-# Authentication
-ulu auth login              # Login with email/password
-ulu auth logout             # Logout current session
-ulu auth status             # Show auth status
-ulu auth keys list          # List API keys
-ulu auth keys create        # Create new API key
-
-# Projects
-ulu projects list           # List all projects
-ulu projects get <name>     # Get project details
-ulu projects create <name>  # Create new project
-ulu projects summary <name> # Get project summary
-ulu projects trends <name>  # Get trend data
-
-# Runs
-ulu runs list <project>     # List runs for project
-ulu runs latest <project>   # Get latest run
-ulu runs diff <project>     # Compare two runs
-
-# Issues
-ulu issues search <query>   # Search issues
-ulu issues list <project>   # List issues for project
-ulu issues get <id>         # Get issue details
-ulu issues update <id>      # Update issue status
-
-# Analytics
-ulu analytics validators    # Validator performance
-ulu analytics burndown      # Burndown chart data
-ulu analytics velocity      # Velocity metrics
-ulu analytics hotspots      # File hotspots
-
-# Admin (requires admin role)
-ulu admin stats             # Dashboard statistics
-ulu admin users list        # List users
-ulu admin sessions list     # List sessions
-```
+For command-line usage, see the dedicated CLI package: [`@uluops/cli`](https://www.npmjs.com/package/@uluops/cli).
 
 ## Environment Variables
 

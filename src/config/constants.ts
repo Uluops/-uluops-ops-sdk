@@ -103,9 +103,12 @@ export const ERROR_CODES = {
 } as const;
 
 /**
- * SDK version (should match package.json)
+ * SDK version - read from package.json to avoid hardcoded drift
  */
-export const SDK_VERSION = '0.1.0';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json') as { version: string };
+export const SDK_VERSION: string = pkg.version;
 
 /**
  * User agent string for requests
