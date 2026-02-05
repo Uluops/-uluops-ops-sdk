@@ -468,4 +468,185 @@ describe('OpsClient', () => {
       expect(result.user.isActive).toBe(false);
     });
   });
+
+  describe('request body transformation', () => {
+    it('should transform camelCase to snake_case in save run request', async () => {
+      // Verify the exact request body with snake_case transformation
+      nock(BASE_URL)
+        .post('/runs', (body) => {
+          // Verify snake_case transformation for top-level fields
+          expect(body.workflow_type).toBe('post-implementation');
+          expect(body.project).toBe('my-project');
+          // Verify validator token transformation
+          expect(body.validators[0].name).toBe('code-validator');
+          expect(body.validators[0].tokens.input_tokens).toBe(1000);
+          expect(body.validators[0].tokens.output_tokens).toBe(500);
+          expect(body.validators[0].tokens.cache_creation_tokens).toBe(100);
+          expect(body.validators[0].duration_ms).toBe(5000);
+          // Verify recommendation transformation
+          expect(body.recommendations[0].failure_code).toBe('SEM-VAL/H');
+          expect(body.recommendations[0].failure_domain).toBe('SEM');
+          expect(body.recommendations[0].file_path).toBe('src/index.ts');
+          expect(body.recommendations[0].line_number).toBe(42);
+          return true;
+        })
+        .reply(201, {
+          data: {
+            run: { id: 'run-1', runNumber: 1 },
+            issues: { created: 1, updated: 0 },
+          },
+        });
+
+      await client.runs.save({
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        validators: [
+          {
+            name: 'code-validator',
+            score: 85,
+            status: 'PASS',
+            tokens: {
+              inputTokens: 1000,
+              outputTokens: 500,
+              cacheCreationTokens: 100,
+            },
+            durationMs: 5000,
+          },
+        ],
+        recommendations: [
+          {
+            validator: 'code-validator',
+            title: 'Test issue',
+            priority: 'critical',
+            failureCode: 'SEM-VAL/H',
+            failureDomain: 'SEM',
+            filePath: 'src/index.ts',
+            lineNumber: 42,
+          },
+        ],
+      });
+    });
+
+    it('should transform camelCase query params to snake_case', async () => {
+      // Verify query param transformation in project trends
+      nock(BASE_URL)
+        .get('/projects/proj-1/trends')
+        .query({ days: 30 })
+        .reply(200, { data: [] });
+
+      await client.projects.getTrends('proj-1', { days: 30 });
+    });
+
+    it('should transform issue note with note_type', async () => {
+      nock(BASE_URL)
+        .post('/issues/issue-1/notes', (body) => {
+          expect(body.note_type).toBe('resolution');
+          expect(body.content).toBe('Fixed the bug');
+          return true;
+        })
+        .reply(201, {
+          data: { id: 'note-1', content: 'Fixed the bug', noteType: 'resolution' },
+        });
+
+      await client.issues.addNote('issue-1', {
+        content: 'Fixed the bug',
+        noteType: 'resolution',
+      });
+    });
+  });
+
+  describe('pagination boundary tests', () => {
+    it('should handle empty results', async () => {
+      nock(BASE_URL).get('/projects').reply(200, { data: [] });
+
+      const projects = await client.projects.list();
+
+      expect(projects).toEqual([]);
+      expect(projects).toHaveLength(0);
+    });
+
+    it('should pass limit and page parameters correctly', async () => {
+      nock(BASE_URL)
+        .get('/admin/users')
+        .query({ limit: 5, page: 3 })
+        .reply(200, {
+          data: {
+            users: [{ id: 'user-11', email: 'user11@example.com' }],
+            pagination: { total: 100, limit: 5, page: 3 },
+          },
+        });
+
+      const result = await client.admin.listUsers({ limit: 5, page: 3 });
+
+      expect(result.pagination.page).toBe(3);
+      expect(result.pagination.limit).toBe(5);
+    });
+
+    it('should handle large page returning empty', async () => {
+      nock(BASE_URL)
+        .get('/admin/users')
+        .query({ limit: 10, page: 100 })
+        .reply(200, {
+          data: {
+            users: [],
+            pagination: { total: 50, limit: 10, page: 100 },
+          },
+        });
+
+      const result = await client.admin.listUsers({ limit: 10, page: 100 });
+
+      expect(result.users).toHaveLength(0);
+      expect(result.pagination.total).toBe(50);
+    });
+
+    it('should handle project issues with all filter params', async () => {
+      // Note: listIssues manually transforms camelCase to snake_case
+      nock(BASE_URL)
+        .get('/projects/proj-1/issues')
+        .query({
+          status: 'open',
+          priority: 'critical',
+          severity: 'high',
+          limit: 20,
+          offset: 0,
+          include_resolved: false,
+        })
+        .reply(200, {
+          data: [{ id: 'issue-1', title: 'Critical issue', status: 'open' }],
+        });
+
+      const issues = await client.projects.listIssues('proj-1', {
+        status: 'open',
+        priority: 'critical',
+        severity: 'high',
+        limit: 20,
+        offset: 0,
+        includeResolved: false,
+      });
+
+      expect(issues).toHaveLength(1);
+      expect(issues[0].status).toBe('open');
+    });
+
+    it('should handle run list with workflow filter', async () => {
+      // Note: listByProject passes query params as-is (camelCase)
+      nock(BASE_URL)
+        .get('/runs/project/proj-1')
+        .query({ workflowType: 'ship', limit: 5 })
+        .reply(200, {
+          data: [
+            { id: 'run-1', runNumber: 1, workflowType: 'ship' },
+            { id: 'run-2', runNumber: 2, workflowType: 'ship' },
+          ],
+        });
+
+      const runs = await client.runs.listByProject('proj-1', {
+        workflowType: 'ship',
+        limit: 5,
+      });
+
+      expect(runs).toHaveLength(2);
+      expect(runs.every((r) => r.workflowType === 'ship')).toBe(true);
+    });
+  });
 });

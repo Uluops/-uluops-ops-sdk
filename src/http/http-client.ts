@@ -5,6 +5,8 @@ import {
   DEFAULT_RETRY_COUNT,
   BACKOFF_BASE_MS,
   MAX_BACKOFF_MS,
+  JITTER_MIN,
+  JITTER_MAX,
   USER_AGENT,
 } from '../config/constants.js';
 import {
@@ -144,11 +146,12 @@ export class OpsHttpClient {
           continue;
         }
 
-        // Handle 401 with token refresh
+        // Handle 401 with token refresh (only on first attempt to prevent loops)
+        const isFirstAttempt = attempt === 1;
         if (
           lastError instanceof UnauthorizedError &&
           this.authStrategy?.canRefresh() &&
-          attempt === 1
+          isFirstAttempt
         ) {
           try {
             this.logger.debug('Token expired, attempting refresh...');
@@ -287,12 +290,12 @@ export class OpsHttpClient {
   }
 
   /**
-   * Calculate exponential backoff delay
+   * Calculate exponential backoff delay with jitter
    */
   private calculateBackoff(attempt: number): number {
     const delay = BACKOFF_BASE_MS * Math.pow(2, attempt - 1);
-    // Add jitter (10-20% random)
-    const jitter = delay * (0.1 + Math.random() * 0.1);
+    const jitterRange = JITTER_MAX - JITTER_MIN;
+    const jitter = delay * (JITTER_MIN + Math.random() * jitterRange);
     return Math.min(delay + jitter, MAX_BACKOFF_MS);
   }
 }

@@ -16,11 +16,16 @@ import type {
 
 /**
  * Save validation run results (save_features_list)
+ *
+ * Transforms SDK input (camelCase) to API format (snake_case).
+ * The API expects validators with nested token metrics and
+ * recommendations with taxonomy fields.
  */
 export async function save(
   client: OpsHttpClient,
   input: SaveFeaturesListInput
 ): Promise<SaveFeaturesListResponse> {
+  // Transform validators: camelCase -> snake_case, flatten token fields
   return client.post<SaveFeaturesListResponse>('/runs', {
     project: input.project,
     workflow_type: input.workflowType,
@@ -41,6 +46,7 @@ export async function save(
         : undefined,
       duration_ms: v.durationMs,
     })),
+    // Transform recommendations: camelCase -> snake_case for all taxonomy fields
     recommendations: input.recommendations.map((r) => ({
       validator: r.validator,
       title: r.title,
@@ -73,11 +79,16 @@ export async function save(
 
 /**
  * Validate run data without saving (preview)
+ *
+ * Similar to save() but sends minimal fields for validation.
+ * The API validates the data and returns what would be created/updated
+ * without actually persisting anything.
  */
 export async function validate(
   client: OpsHttpClient,
   input: SaveFeaturesListInput
 ): Promise<ValidateFeaturesListResponse> {
+  // Minimal transformation - only required fields for validation
   return client.post<ValidateFeaturesListResponse>('/runs/validate', {
     project: input.project,
     workflow_type: input.workflowType,

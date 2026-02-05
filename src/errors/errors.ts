@@ -158,8 +158,10 @@ export function createErrorFromStatus(
       return new NotFoundError(message);
     case HTTP_STATUS.CONFLICT:
       return new ConflictError(message, details);
-    case HTTP_STATUS.TOO_MANY_REQUESTS:
-      return new RateLimitError(details?.retryAfter as number | undefined);
+    case HTTP_STATUS.TOO_MANY_REQUESTS: {
+      const retryAfter = typeof details?.retryAfter === 'number' ? details.retryAfter : undefined;
+      return new RateLimitError(retryAfter);
+    }
     case HTTP_STATUS.SERVICE_UNAVAILABLE:
     case HTTP_STATUS.BAD_GATEWAY:
     case HTTP_STATUS.GATEWAY_TIMEOUT:

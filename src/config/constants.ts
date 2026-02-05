@@ -24,6 +24,12 @@ export const BACKOFF_BASE_MS = 1000;
 export const MAX_BACKOFF_MS = 30000;
 
 /**
+ * Jitter range for backoff calculation (10-20% of delay)
+ */
+export const JITTER_MIN = 0.1;
+export const JITTER_MAX = 0.2;
+
+/**
  * API key prefix
  */
 export const API_KEY_PREFIX = 'ulr_';

@@ -233,12 +233,20 @@ export function parseFailureCode(code: string): {
 } | null {
   if (!FAILURE_CODE_PATTERN.test(code)) return null;
 
-  const [domainMode, severityCode] = code.split('/');
-  const [domain, mode] = domainMode!.split('-');
+  const slashIndex = code.indexOf('/');
+  const dashIndex = code.indexOf('-');
+
+  // These checks are technically redundant due to regex validation,
+  // but satisfy TypeScript and provide runtime safety
+  if (slashIndex === -1 || dashIndex === -1) return null;
+
+  const domain = code.slice(0, dashIndex);
+  const mode = code.slice(dashIndex + 1, slashIndex);
+  const severityCode = code.slice(slashIndex + 1);
 
   return {
     domain: domain as FailureDomain,
-    mode: mode!,
+    mode,
     severityCode: severityCode as FailureSeverityCode,
   };
 }
