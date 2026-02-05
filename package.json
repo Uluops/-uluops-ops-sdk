@@ -1,13 +1,10 @@
 {
   "name": "@uluops/ops-sdk",
   "version": "0.1.0",
-  "description": "SDK and CLI for the UluOps validation tracker API",
+  "description": "SDK for the UluOps validation tracker API",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "ulu": "dist/cli.js"
-  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -56,14 +53,6 @@
     "./config": {
       "import": "./dist/config/index.js",
       "types": "./dist/config/index.d.ts"
-    },
-    "./cli/utils": {
-      "import": "./dist/cli/utils.js",
-      "types": "./dist/cli/utils.d.ts"
-    },
-    "./cli/formatters/table": {
-      "import": "./dist/cli/formatters/table.js",
-      "types": "./dist/cli/formatters/table.d.ts"
     }
   },
   "files": [
@@ -71,7 +60,6 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -84,16 +72,12 @@
     "validation",
     "tracker",
     "sdk",
-    "cli",
     "api"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@uluops/registry-sdk": "file:../registry-sdk",
-    "commander": "^13.1.0",
     "dotenv": "^16.4.7",
-    "ora": "^8.1.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
