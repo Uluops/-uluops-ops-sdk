@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { config as loadDotenv } from 'dotenv';
 import { ENV_VARS, CONFIG_PATHS, DEFAULT_BASE_URL, API_KEY_PREFIX } from './constants.js';
+import { createLogger } from '../utils/logger.js';
 
 /**
  * Credentials for authentication
@@ -109,7 +110,11 @@ export function loadStoredCredentials(profile = 'default'): Partial<Credentials>
       sessionToken: profileCreds.sessionToken,
       email: profileCreds.email,
     };
-  } catch {
+  } catch (error) {
+    // Log credential loading errors in debug mode for troubleshooting
+    // This helps identify corrupted credential files or permission issues
+    const logger = createLogger('[ops-sdk:config]', false);
+    logger.debug('Failed to load stored credentials:', error instanceof Error ? error.message : String(error));
     return null;
   }
 }
