@@ -9,6 +9,9 @@ import {
   formatDate,
   isUuid,
   truncate,
+  toSnakeCase,
+  toCamelCase,
+  getFlexibleProperty,
 } from '../../src/utils/helpers.js';
 
 describe('Helper Utilities', () => {
@@ -228,6 +231,72 @@ describe('Helper Utilities', () => {
 
     it('should handle very short maxLength', () => {
       expect(truncate('Hello World', 4)).toBe('H...');
+    });
+  });
+
+  describe('toSnakeCase', () => {
+    it('should convert camelCase to snake_case', () => {
+      expect(toSnakeCase('newIssues')).toBe('new_issues');
+      expect(toSnakeCase('wouldCreate')).toBe('would_create');
+      expect(toSnakeCase('falsePositiveRate')).toBe('false_positive_rate');
+    });
+
+    it('should handle strings with no uppercase', () => {
+      expect(toSnakeCase('simple')).toBe('simple');
+    });
+
+    it('should handle consecutive uppercase letters', () => {
+      expect(toSnakeCase('XMLParser')).toBe('_x_m_l_parser');
+    });
+  });
+
+  describe('toCamelCase', () => {
+    it('should convert snake_case to camelCase', () => {
+      expect(toCamelCase('new_issues')).toBe('newIssues');
+      expect(toCamelCase('would_create')).toBe('wouldCreate');
+      expect(toCamelCase('false_positive_rate')).toBe('falsePositiveRate');
+    });
+
+    it('should handle strings with no underscores', () => {
+      expect(toCamelCase('simple')).toBe('simple');
+    });
+  });
+
+  describe('getFlexibleProperty', () => {
+    it('should return camelCase property if it exists', () => {
+      const obj = { newIssues: 5 };
+      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(5);
+    });
+
+    it('should fallback to snake_case if camelCase not found', () => {
+      const obj = { new_issues: 10 };
+      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(10);
+    });
+
+    it('should return default value if neither format found', () => {
+      const obj = { otherField: 'test' };
+      expect(getFlexibleProperty(obj, 'newIssues', 42)).toBe(42);
+    });
+
+    it('should prefer camelCase over snake_case', () => {
+      const obj = { newIssues: 5, new_issues: 10 };
+      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(5);
+    });
+
+    it('should handle undefined values correctly', () => {
+      const obj = { newIssues: undefined, new_issues: 10 };
+      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(10);
+    });
+
+    it('should work with various types', () => {
+      const obj = {
+        isActive: true,
+        validationErrors: ['error1', 'error2'],
+        preview: { nested: 'value' },
+      };
+      expect(getFlexibleProperty(obj, 'isActive', false)).toBe(true);
+      expect(getFlexibleProperty<string[]>(obj, 'validationErrors', [])).toEqual(['error1', 'error2']);
+      expect(getFlexibleProperty(obj, 'preview', null)).toEqual({ nested: 'value' });
     });
   });
 

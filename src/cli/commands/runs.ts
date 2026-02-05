@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
 import { withSpinner, exitWithError } from '../utils.js';
 import { formatRuns, formatRun } from '../formatters/output.js';
+import { getFlexibleProperty } from '../../utils/helpers.js';
 import type { SaveFeaturesListInput } from '../../types/runs.js';
 
 /**
@@ -226,11 +227,10 @@ export function registerRunCommands(program: Command): void {
           console.log(`Run #${result.run.runNumber} saved successfully`);
           console.log('');
           console.log('Correlation:');
-          // Handle both camelCase and snake_case responses
-          const corr = result.correlation as unknown as Record<string, number>;
-          console.log(`  New issues: ${corr.newIssues ?? corr.new_issues ?? 0}`);
-          console.log(`  Recurring: ${corr.recurringIssues ?? corr.recurring_issues ?? 0}`);
-          console.log(`  Regressions: ${corr.regressions ?? 0}`);
+          const corr = result.correlation as Record<string, unknown>;
+          console.log(`  New issues: ${getFlexibleProperty(corr, 'newIssues', 0)}`);
+          console.log(`  Recurring: ${getFlexibleProperty(corr, 'recurringIssues', 0)}`);
+          console.log(`  Regressions: ${getFlexibleProperty(corr, 'regressions', 0)}`);
           if (result.deduplicated) {
             console.log('\n(Deduplicated: run with same idempotency key already existed)');
           }
@@ -273,12 +273,11 @@ export function registerRunCommands(program: Command): void {
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
-          // Handle both camelCase and snake_case responses
-          const res = result as unknown as Record<string, unknown>;
-          const wouldCreate = res.wouldCreate ?? res.would_create;
-          const wouldUpdate = res.wouldUpdate ?? res.would_update;
-          const wouldRegress = res.wouldRegress ?? res.would_regress;
-          const validationErrors = (res.validationErrors ?? res.validation_errors ?? []) as string[];
+          const res = result as Record<string, unknown>;
+          const wouldCreate = getFlexibleProperty(res, 'wouldCreate', false);
+          const wouldUpdate = getFlexibleProperty(res, 'wouldUpdate', false);
+          const wouldRegress = getFlexibleProperty(res, 'wouldRegress', false);
+          const validationErrors = getFlexibleProperty<string[]>(res, 'validationErrors', []);
           const preview = res.preview as Record<string, unknown> | undefined;
 
           console.log('Validation Preview:');
@@ -294,9 +293,9 @@ export function registerRunCommands(program: Command): void {
           }
 
           if (preview) {
-            const newIssues = (preview.newIssues ?? preview.new_issues ?? []) as unknown[];
-            const recurringIssues = (preview.recurringIssues ?? preview.recurring_issues ?? []) as unknown[];
-            const regressions = (preview.regressions ?? []) as unknown[];
+            const newIssues = getFlexibleProperty<unknown[]>(preview, 'newIssues', []);
+            const recurringIssues = getFlexibleProperty<unknown[]>(preview, 'recurringIssues', []);
+            const regressions = getFlexibleProperty<unknown[]>(preview, 'regressions', []);
             console.log('\nCorrelation Preview:');
             console.log(`  New issues: ${newIssues.length}`);
             console.log(`  Recurring: ${recurringIssues.length}`);

@@ -152,3 +152,44 @@ export function truncate(str: string, maxLength: number): string {
   return str.slice(0, maxLength - 3) + '...';
 }
 
+/**
+ * Convert camelCase to snake_case
+ */
+export function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+/**
+ * Convert snake_case to camelCase
+ */
+export function toCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Get a property from an object, trying camelCase first then snake_case
+ * Useful for handling API responses that may use either format
+ *
+ * @example
+ * ```typescript
+ * const count = getFlexibleProperty(response, 'newIssues', 0);
+ * // Tries response.newIssues, then response.new_issues, then returns 0
+ * ```
+ */
+export function getFlexibleProperty<T>(
+  obj: Record<string, unknown>,
+  camelCaseKey: string,
+  defaultValue: T
+): T {
+  // Try camelCase first
+  if (camelCaseKey in obj && obj[camelCaseKey] !== undefined) {
+    return obj[camelCaseKey] as T;
+  }
+  // Try snake_case
+  const snakeKey = toSnakeCase(camelCaseKey);
+  if (snakeKey in obj && obj[snakeKey] !== undefined) {
+    return obj[snakeKey] as T;
+  }
+  return defaultValue;
+}
+

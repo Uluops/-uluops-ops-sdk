@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
-import { withSpinner, formatDate } from '../utils.js';
+import { withSpinner, formatDisplayDate } from '../utils.js';
 import { formatTable, formatKeyValue, type Column } from '../formatters/table.js';
+import { getFlexibleProperty } from '../../utils/helpers.js';
 import type { UserRole, SubscriptionTier } from '../../types/enums.js';
 
 /**
@@ -30,13 +31,11 @@ export function registerAdminCommands(program: Command): void {
         if (ctx.json) {
           console.log(JSON.stringify(stats, null, 2));
         } else {
-          // Handle both API response format (activeSessions) and type definition (totalSessions)
-          const s = stats as unknown as Record<string, number>;
           console.log('Admin Statistics:\n');
           console.log(formatKeyValue({
             'Total Users': stats.totalUsers,
             'Active Users': stats.activeUsers,
-            'Active Sessions': s.activeSessions ?? stats.totalSessions,
+            'Active Sessions': getFlexibleProperty(stats as Record<string, unknown>, 'activeSessions', stats.totalSessions),
             'Total API Keys': stats.totalApiKeys,
           }));
         }
@@ -129,7 +128,7 @@ export function registerAdminCommands(program: Command): void {
             Role: data.user.role,
             'Subscription Tier': data.user.subscriptionTier,
             Active: data.user.isActive ? 'Yes' : 'No',
-            'Created At': formatDate(data.user.createdAt),
+            'Created At': formatDisplayDate(data.user.createdAt),
           }));
 
           if (data.stats) {
@@ -137,7 +136,7 @@ export function registerAdminCommands(program: Command): void {
             console.log(formatKeyValue({
               Sessions: data.stats.sessionCount,
               'API Keys': data.stats.apiKeyCount,
-              'Last Login': data.stats.lastLoginAt ? formatDate(data.stats.lastLoginAt) : 'Never',
+              'Last Login': data.stats.lastLoginAt ? formatDisplayDate(data.stats.lastLoginAt) : 'Never',
             }));
           }
         }
@@ -332,7 +331,7 @@ export function registerAdminCommands(program: Command): void {
             { header: 'ID', accessor: (s) => s.id.slice(0, 8), width: 10 },
             { header: 'USER', accessor: 'userEmail', width: 25 },
             { header: 'IP', accessor: (s) => s.ipAddress ?? '-', width: 15 },
-            { header: 'CREATED', accessor: (s) => formatDate(s.createdAt), width: 20 },
+            { header: 'CREATED', accessor: (s) => formatDisplayDate(s.createdAt), width: 20 },
           ];
           console.log(formatTable(data.sessions, columns));
 
@@ -436,7 +435,7 @@ export function registerAdminCommands(program: Command): void {
             { header: 'ID', accessor: (k) => k.id.slice(0, 8), width: 10 },
             { header: 'NAME', accessor: (k) => k.name ?? '(unnamed)', width: 20 },
             { header: 'USER', accessor: 'userEmail', width: 25 },
-            { header: 'LAST USED', accessor: (k) => k.lastUsedAt ? formatDate(k.lastUsedAt) : 'Never', width: 20 },
+            { header: 'LAST USED', accessor: (k) => k.lastUsedAt ? formatDisplayDate(k.lastUsedAt) : 'Never', width: 20 },
           ];
           console.log(formatTable(data.keys, columns));
 

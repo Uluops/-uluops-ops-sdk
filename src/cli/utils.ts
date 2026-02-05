@@ -59,9 +59,10 @@ export async function withSpinner<T>(
 }
 
 /**
- * Format a date for display
+ * Format a date for human-readable CLI display
+ * Note: For ISO format, use helpers.formatDate instead
  */
-export function formatDate(date: string | Date): string {
+export function formatDisplayDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleString();
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  formatDate,
+  formatDisplayDate,
   truncate,
   formatJson,
   redact,
@@ -9,9 +9,9 @@ import {
 } from '../../src/cli/utils.js';
 
 describe('CLI Utils', () => {
-  describe('formatDate', () => {
+  describe('formatDisplayDate', () => {
     it('should format a date string', () => {
-      const result = formatDate('2024-01-15T10:30:00Z');
+      const result = formatDisplayDate('2024-01-15T10:30:00Z');
       // Result depends on locale, but should be a non-empty string
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
@@ -19,13 +19,13 @@ describe('CLI Utils', () => {
 
     it('should format a Date object', () => {
       const date = new Date('2024-01-15T10:30:00Z');
-      const result = formatDate(date);
+      const result = formatDisplayDate(date);
       expect(result).toBeTruthy();
       expect(typeof result).toBe('string');
     });
 
     it('should handle ISO date strings', () => {
-      const result = formatDate('2024-06-15');
+      const result = formatDisplayDate('2024-06-15');
       expect(result).toBeTruthy();
     });
   });

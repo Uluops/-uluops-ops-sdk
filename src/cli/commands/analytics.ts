@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
 import { withSpinner } from '../utils.js';
 import { formatTable, type Column } from '../formatters/table.js';
+import { getFlexibleProperty } from '../../utils/helpers.js';
 
 /**
  * Register analytics commands
@@ -38,12 +39,11 @@ export function registerAnalyticsCommands(program: Command): void {
         } else if (data.length === 0) {
           console.log('No validator data found');
         } else {
-          // Handle both API response format (averageScore) and type definition (avgScore)
           const columns: Column<(typeof data)[0]>[] = [
             { header: 'VALIDATOR', accessor: 'name', width: 25 },
             { header: 'RUNS', accessor: (v) => String(v.totalRuns), width: 8, align: 'right' },
             { header: 'AVG SCORE', accessor: (v) => {
-              const score = (v as unknown as Record<string, number>).averageScore ?? v.avgScore;
+              const score = getFlexibleProperty(v as Record<string, unknown>, 'averageScore', v.avgScore);
               return score?.toFixed(1) ?? '-';
             }, width: 10, align: 'right' },
             { header: 'PASS RATE', accessor: (v) => `${v.passRate.toFixed(0)}%`, width: 10, align: 'right' },
@@ -82,19 +82,18 @@ export function registerAnalyticsCommands(program: Command): void {
         } else if (data.validators.length === 0) {
           console.log('No reliability data found');
         } else {
-          // Handle both API response format (snake_case, percentages) and type definition
           const columns: Column<(typeof data.validators)[0]>[] = [
             { header: 'VALIDATOR', accessor: 'name', width: 25 },
             { header: 'FALSE POS', accessor: (v) => {
-              const rate = (v as unknown as Record<string, number>).false_positive_rate ?? v.falsePositiveRate;
+              const rate = getFlexibleProperty(v as Record<string, unknown>, 'falsePositiveRate', null as number | null);
               return `${rate?.toFixed(1) ?? '-'}%`;
             }, width: 10, align: 'right' },
             { header: 'RESOLUTION', accessor: (v) => {
-              const rate = (v as unknown as Record<string, number>).resolution_rate ?? v.resolutionRate;
+              const rate = getFlexibleProperty(v as Record<string, unknown>, 'resolutionRate', null as number | null);
               return `${rate?.toFixed(1) ?? '-'}%`;
             }, width: 12, align: 'right' },
             { header: 'RELIABILITY', accessor: (v) => {
-              const score = (v as unknown as Record<string, number>).reliability_score ?? v.reliabilityScore;
+              const score = getFlexibleProperty(v as Record<string, unknown>, 'reliabilityScore', null as number | null);
               return score?.toFixed(1) ?? '-';
             }, width: 12, align: 'right' },
           ];
@@ -132,12 +131,11 @@ export function registerAnalyticsCommands(program: Command): void {
         } else if (data.length === 0) {
           console.log('No hotspots found');
         } else {
-          // Handle both API response format (issueCount) and type definition (totalIssues/openIssues)
           const columns: Column<(typeof data)[0]>[] = [
             { header: 'FILE', accessor: (h) => truncatePath(h.filePath, 45), width: 45 },
             { header: 'ISSUES', accessor: (h) => {
-              const count = (h as unknown as Record<string, number>).issueCount ?? h.totalIssues;
-              return String(count ?? 0);
+              const count = getFlexibleProperty(h as Record<string, unknown>, 'issueCount', h.totalIssues ?? 0);
+              return String(count);
             }, width: 8, align: 'right' },
           ];
           console.log(formatTable(data, columns));

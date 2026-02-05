@@ -3,7 +3,7 @@ import type { Run } from '../../types/runs.js';
 import type { Issue } from '../../types/issues.js';
 import type { PublicApiKey } from '../../types/auth.js';
 import { formatTable, formatKeyValue, type Column } from './table.js';
-import { formatDate, truncate } from '../utils.js';
+import { formatDisplayDate, truncate } from '../utils.js';
 
 /**
  * Output context for formatting decisions
@@ -31,7 +31,7 @@ export function formatProjects(projects: Project[]): string {
   const columns: Column<Project>[] = [
     { header: 'NAME', accessor: 'name', width: 30 },
     { header: 'ID', accessor: (p) => p.id.slice(0, 8), width: 10 },
-    { header: 'CREATED', accessor: (p) => formatDate(p.createdAt), width: 20 },
+    { header: 'CREATED', accessor: (p) => formatDisplayDate(p.createdAt), width: 20 },
   ];
   return formatTable(projects, columns);
 }
@@ -43,8 +43,8 @@ export function formatProject(project: Project): string {
   return formatKeyValue({
     name: project.name,
     id: project.id,
-    createdAt: formatDate(project.createdAt),
-    updatedAt: formatDate(project.updatedAt),
+    createdAt: formatDisplayDate(project.createdAt),
+    updatedAt: formatDisplayDate(project.updatedAt),
   });
 }
 
@@ -75,7 +75,7 @@ export function formatProjectSummary(response: unknown): string {
   );
 
   if (stats.latestRunDate) {
-    lines.push(`  Latest: #${stats.latestRunNumber} on ${formatDate(stats.latestRunDate as string)}`);
+    lines.push(`  Latest: #${stats.latestRunNumber} on ${formatDisplayDate(stats.latestRunDate as string)}`);
   }
 
   return lines.join('\n');
@@ -90,7 +90,7 @@ export function formatRuns(runs: Run[]): string {
     { header: 'WORKFLOW', accessor: 'workflowType', width: 20 },
     { header: 'SCORE', accessor: (r) => r.averageScore?.toFixed(1) ?? '-', width: 7, align: 'right' },
     { header: 'PASSED', accessor: (r) => r.allGatesPassed ? 'Yes' : 'No', width: 7 },
-    { header: 'CREATED', accessor: (r) => formatDate(r.createdAt), width: 20 },
+    { header: 'CREATED', accessor: (r) => formatDisplayDate(r.createdAt), width: 20 },
   ];
   return formatTable(runs, columns);
 }
@@ -105,7 +105,7 @@ export function formatRun(run: Run): string {
     workflowType: run.workflowType,
     averageScore: run.averageScore?.toFixed(1) ?? '-',
     allGatesPassed: run.allGatesPassed ? 'Yes' : 'No',
-    createdAt: formatDate(run.createdAt),
+    createdAt: formatDisplayDate(run.createdAt),
   });
 }
 
@@ -139,7 +139,7 @@ export function formatIssue(issue: Issue): string {
     failureCode: issue.failureCode,
     category: issue.category,
     timesSeen: issue.timesSeen,
-    createdAt: formatDate(issue.createdAt),
+    createdAt: formatDisplayDate(issue.createdAt),
   });
 }
 
@@ -150,8 +150,8 @@ export function formatApiKeys(keys: PublicApiKey[]): string {
   const columns: Column<PublicApiKey>[] = [
     { header: 'ID', accessor: (k) => k.id.slice(0, 8), width: 10 },
     { header: 'NAME', accessor: (k) => k.name ?? '(unnamed)', width: 20 },
-    { header: 'LAST USED', accessor: (k) => k.lastUsedAt ? formatDate(k.lastUsedAt) : 'Never', width: 20 },
-    { header: 'EXPIRES', accessor: (k) => k.expiresAt ? formatDate(k.expiresAt) : 'Never', width: 20 },
+    { header: 'LAST USED', accessor: (k) => k.lastUsedAt ? formatDisplayDate(k.lastUsedAt) : 'Never', width: 20 },
+    { header: 'EXPIRES', accessor: (k) => k.expiresAt ? formatDisplayDate(k.expiresAt) : 'Never', width: 20 },
   ];
   return formatTable(keys, columns);
 }
