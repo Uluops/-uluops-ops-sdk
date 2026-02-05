@@ -1,10 +1,12 @@
 import { vi, beforeEach, afterEach } from 'vitest';
 import nock from 'nock';
+import { resetMockIds } from './contract-helpers.js';
 
 export const BASE_URL = 'http://localhost:3100/api/v1';
 
 beforeEach(() => {
   nock.cleanAll();
+  resetMockIds();
   vi.stubEnv('ULUOPS_API_KEY', 'ulr_test-api-key-12345');
 });
 
@@ -16,6 +18,7 @@ afterEach(() => {
 
 /**
  * Helper to mock an API endpoint
+ * @deprecated Use mockValidatedEndpoint from contract-helpers.ts for schema validation
  */
 export function mockEndpoint(
   method: 'get' | 'post' | 'patch' | 'delete',
@@ -28,6 +31,7 @@ export function mockEndpoint(
 
 /**
  * Helper to mock an error response
+ * @deprecated Use mockValidatedError from contract-helpers.ts for schema validation
  */
 export function mockError(
   method: 'get' | 'post' | 'patch' | 'delete',
@@ -43,3 +47,30 @@ export function mockError(
     },
   });
 }
+
+// Re-export contract helpers for convenience
+export {
+  createMockProject,
+  createMockIssue,
+  createMockRun,
+  createMockValidatorSnapshot,
+  createMockProjectSummary,
+  createMockTrendDataPoint,
+  createMockOccurrence,
+  createMockIssueNote,
+  createMockStatusHistory,
+  createMockIssueDetails,
+  createMockBulkStatusUpdateResult,
+  createMockMergeIssuesResult,
+  createMockStatusUpdateResult,
+  mockValidatedEndpoint,
+  mockValidatedListEndpoint,
+  mockValidatedError,
+  assertMatchesSchema,
+  assertValidApiResponse,
+  integration,
+  INTEGRATION_TEST_CONFIG,
+  ProjectResponseSchema,
+  IssueResponseSchema,
+  RunResponseSchema,
+} from './contract-helpers.js';

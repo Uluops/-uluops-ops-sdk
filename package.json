@@ -90,6 +90,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@uluops/registry-sdk": "file:../registry-sdk",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "ora": "^8.1.1",

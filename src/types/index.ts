@@ -13,5 +13,8 @@ export * from './analytics.js';
 // Response types
 export * from './responses.js';
 
-// Zod schemas
+// Zod schemas (input validation)
 export * from './schemas.js';
+
+// Response schemas (contract validation)
+export * from './response-schemas.js';

@@ -2,7 +2,25 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as issueOps from '../../src/operations/issues.js';
-import { BASE_URL } from '../setup.js';
+import {
+  BASE_URL,
+  createMockIssue,
+  createMockIssueDetails,
+  createMockIssueNote,
+  createMockStatusHistory,
+  createMockStatusUpdateResult,
+  createMockBulkStatusUpdateResult,
+  mockValidatedEndpoint,
+  mockValidatedListEndpoint,
+  IssueResponseSchema,
+} from '../setup.js';
+import {
+  IssueDetailsResponseSchema,
+  IssueNoteResponseSchema,
+  StatusHistoryResponseSchema,
+  StatusUpdateResultResponseSchema,
+  BulkStatusUpdateResultResponseSchema,
+} from '../contract-helpers.js';
 
 describe('Issue Operations', () => {
   let client: OpsHttpClient;
@@ -16,20 +34,19 @@ describe('Issue Operations', () => {
 
   describe('create', () => {
     it('should create a user-submitted issue', async () => {
+      const mockIssue = createMockIssue({
+        title: 'Manual bug report',
+        priority: 'critical',
+        validator: 'user-submitted',
+      });
+
       nock(BASE_URL)
         .post('/issues', {
           project: 'proj-1',
           title: 'Manual bug report',
           priority: 'critical',
         })
-        .reply(201, {
-          data: {
-            id: 'issue-1',
-            title: 'Manual bug report',
-            priority: 'critical',
-            validator: 'user-submitted',
-          },
-        });
+        .reply(201, { data: mockIssue });
 
       const issue = await issueOps.create(client, {
         project: 'proj-1',
@@ -42,6 +59,13 @@ describe('Issue Operations', () => {
     });
 
     it('should create issue with full metadata', async () => {
+      const mockIssue = createMockIssue({
+        title: 'Security vulnerability',
+        severity: 'critical',
+        failureCode: 'SEM-VAL/C',
+        filePath: 'src/auth.ts',
+      });
+
       nock(BASE_URL)
         .post('/issues', (body) => {
           return (
@@ -52,13 +76,7 @@ describe('Issue Operations', () => {
             body.file_path === 'src/auth.ts'
           );
         })
-        .reply(201, {
-          data: {
-            id: 'issue-2',
-            title: 'Security vulnerability',
-            severity: 'critical',
-          },
-        });
+        .reply(201, { data: mockIssue });
 
       const issue = await issueOps.create(client, {
         project: 'proj-1',
@@ -77,15 +95,15 @@ describe('Issue Operations', () => {
 
   describe('search', () => {
     it('should search issues by query', async () => {
+      const mockIssues = [
+        createMockIssue({ title: 'Auth token validation' }),
+        createMockIssue({ title: 'Authentication flow bug' }),
+      ];
+
       nock(BASE_URL)
         .get('/issues/search')
         .query({ query: 'authentication' })
-        .reply(200, {
-          data: [
-            { id: 'issue-1', title: 'Auth token validation' },
-            { id: 'issue-2', title: 'Authentication flow bug' },
-          ],
-        });
+        .reply(200, { data: mockIssues });
 
       const issues = await issueOps.search(client, { query: 'authentication' });
 
@@ -93,6 +111,8 @@ describe('Issue Operations', () => {
     });
 
     it('should search with filters', async () => {
+      const mockIssues = [createMockIssue({ title: 'Critical bug' })];
+
       nock(BASE_URL)
         .get('/issues/search')
         .query({
@@ -101,9 +121,7 @@ describe('Issue Operations', () => {
           status: 'open',
           priority: 'critical',
         })
-        .reply(200, {
-          data: [{ id: 'issue-1', title: 'Critical bug' }],
-        });
+        .reply(200, { data: mockIssues });
 
       const issues = await issueOps.search(client, {
         query: 'bug',
@@ -118,16 +136,12 @@ describe('Issue Operations', () => {
 
   describe('getByFingerprint', () => {
     it('should get issue by fingerprint', async () => {
+      const mockIssue = createMockIssue({ fingerprint: 'abc123def456', title: 'Found issue' });
+
       nock(BASE_URL)
         .get('/issues/by-fingerprint/abc123def456')
         .query({ project: 'proj-1' })
-        .reply(200, {
-          data: {
-            id: 'issue-1',
-            fingerprint: 'abc123def456',
-            title: 'Found issue',
-          },
-        });
+        .reply(200, { data: mockIssue });
 
       const issue = await issueOps.getByFingerprint(client, 'abc123def456', 'proj-1');
 
@@ -137,19 +151,20 @@ describe('Issue Operations', () => {
 
   describe('updateStatusByFingerprint', () => {
     it('should update status by fingerprint', async () => {
+      const mockResult = createMockStatusUpdateResult({
+        previousStatus: 'open',
+        newStatus: 'completed',
+      });
+
       nock(BASE_URL)
         .patch('/issues/by-fingerprint/abc123/status')
         .query({ project: 'proj-1' })
-        .reply(200, {
-          data: { issueId: 'issue-1', previousStatus: 'open', newStatus: 'completed' },
-        });
+        .reply(200, { data: mockResult });
 
-      const result = await issueOps.updateStatusByFingerprint(
-        client,
-        'abc123',
-        'proj-1',
-        { status: 'completed', reason: 'Fixed in latest release' }
-      );
+      const result = await issueOps.updateStatusByFingerprint(client, 'abc123', 'proj-1', {
+        status: 'completed',
+        reason: 'Fixed in latest release',
+      });
 
       expect(result.newStatus).toBe('completed');
     });
@@ -157,38 +172,50 @@ describe('Issue Operations', () => {
 
   describe('get', () => {
     it('should get issue by ID', async () => {
-      nock(BASE_URL)
-        .get('/issues/issue-uuid-123')
-        .reply(200, {
-          data: { id: 'issue-uuid-123', title: 'Some bug', status: 'open' },
-        });
+      const issueId = '11111111-1111-1111-1111-111111111111';
+      const mockIssue = createMockIssue({
+        id: issueId,
+        title: 'Some bug',
+        status: 'open',
+      });
 
-      const issue = await issueOps.get(client, 'issue-uuid-123');
+      mockValidatedEndpoint(
+        BASE_URL,
+        'get',
+        `/issues/${issueId}`,
+        mockIssue,
+        IssueResponseSchema
+      );
 
-      expect(issue.id).toBe('issue-uuid-123');
+      const issue = await issueOps.get(client, issueId);
+
+      expect(issue.id).toBe(issueId);
       expect(issue.status).toBe('open');
     });
   });
 
   describe('getDetails', () => {
     it('should get full issue details', async () => {
-      nock(BASE_URL)
-        .get('/issues/issue-1/details')
-        .reply(200, {
-          data: {
-            issue: { id: 'issue-1', title: 'Bug' },
-            occurrences: [
-              { runId: 'run-1', timestamp: '2024-01-01' },
-              { runId: 'run-5', timestamp: '2024-01-05' },
-            ],
-            notes: [{ id: 'note-1', content: 'Working on it' }],
-            statusHistory: [
-              { from: null, to: 'open', timestamp: '2024-01-01' },
-            ],
-          },
-        });
+      const issueId = '22222222-2222-2222-2222-222222222222';
+      const runId1 = '33333333-3333-3333-3333-333333333331';
+      const runId2 = '33333333-3333-3333-3333-333333333332';
+      const mockDetails = createMockIssueDetails();
+      // Override to ensure we get the expected data with valid UUIDs
+      mockDetails.occurrences = [
+        { ...mockDetails.occurrences[0], runId: runId1 },
+        { ...mockDetails.occurrences[0], runId: runId2 },
+      ];
+      mockDetails.notes = [{ ...mockDetails.notes[0], content: 'Working on it' }];
 
-      const details = await issueOps.getDetails(client, 'issue-1');
+      mockValidatedEndpoint(
+        BASE_URL,
+        'get',
+        `/issues/${issueId}/details`,
+        mockDetails,
+        IssueDetailsResponseSchema
+      );
+
+      const details = await issueOps.getDetails(client, issueId);
 
       expect(details.occurrences).toHaveLength(2);
       expect(details.notes).toHaveLength(1);
@@ -197,16 +224,27 @@ describe('Issue Operations', () => {
 
   describe('getHistory', () => {
     it('should get issue status history', async () => {
-      nock(BASE_URL)
-        .get('/issues/issue-1/history')
-        .reply(200, {
-          data: [
-            { from: null, to: 'open', timestamp: '2024-01-01', reason: null },
-            { from: 'open', to: 'completed', timestamp: '2024-01-10', reason: 'Fixed' },
-          ],
-        });
+      const issueId = '99999999-9999-9999-9999-999999999991';
+      const mockHistory = [
+        createMockStatusHistory({ from: null, to: 'open', reason: null }),
+        createMockStatusHistory({
+          from: 'open',
+          to: 'completed',
+          oldStatus: 'open',
+          newStatus: 'completed',
+          reason: 'Fixed',
+        }),
+      ];
 
-      const history = await issueOps.getHistory(client, 'issue-1');
+      mockValidatedListEndpoint(
+        BASE_URL,
+        'get',
+        `/issues/${issueId}/history`,
+        mockHistory,
+        StatusHistoryResponseSchema
+      );
+
+      const history = await issueOps.getHistory(client, issueId);
 
       expect(history).toHaveLength(2);
       expect(history[1].to).toBe('completed');
@@ -215,16 +253,17 @@ describe('Issue Operations', () => {
 
   describe('updateStatus', () => {
     it('should update issue status', async () => {
+      const issueId = '44444444-4444-4444-4444-444444444441';
+      const mockIssue = createMockIssue({ id: issueId, status: 'completed' });
+
       nock(BASE_URL)
-        .patch('/issues/issue-1/status', {
+        .patch(`/issues/${issueId}/status`, {
           status: 'completed',
           reason: 'Fixed in PR #123',
         })
-        .reply(200, {
-          data: { id: 'issue-1', status: 'completed' },
-        });
+        .reply(200, { data: mockIssue });
 
-      const issue = await issueOps.updateStatus(client, 'issue-1', {
+      const issue = await issueOps.updateStatus(client, issueId, {
         status: 'completed',
         reason: 'Fixed in PR #123',
       });
@@ -233,13 +272,14 @@ describe('Issue Operations', () => {
     });
 
     it('should update status without reason', async () => {
-      nock(BASE_URL)
-        .patch('/issues/issue-1/status', { status: 'wontfix' })
-        .reply(200, {
-          data: { id: 'issue-1', status: 'wontfix' },
-        });
+      const issueId = '44444444-4444-4444-4444-444444444442';
+      const mockIssue = createMockIssue({ id: issueId, status: 'wontfix' });
 
-      const issue = await issueOps.updateStatus(client, 'issue-1', {
+      nock(BASE_URL)
+        .patch(`/issues/${issueId}/status`, { status: 'wontfix' })
+        .reply(200, { data: mockIssue });
+
+      const issue = await issueOps.updateStatus(client, issueId, {
         status: 'wontfix',
       });
 
@@ -249,16 +289,21 @@ describe('Issue Operations', () => {
 
   describe('edit', () => {
     it('should edit issue metadata', async () => {
+      const issueId = '55555555-5555-5555-5555-555555555551';
+      const mockIssue = createMockIssue({
+        id: issueId,
+        title: 'Updated title',
+        severity: 'high',
+      });
+
       nock(BASE_URL)
-        .patch('/issues/issue-1', {
+        .patch(`/issues/${issueId}`, {
           title: 'Updated title',
           severity: 'high',
         })
-        .reply(200, {
-          data: { id: 'issue-1', title: 'Updated title', severity: 'high' },
-        });
+        .reply(200, { data: mockIssue });
 
-      const issue = await issueOps.edit(client, 'issue-1', {
+      const issue = await issueOps.edit(client, issueId, {
         title: 'Updated title',
         severity: 'high',
       });
@@ -268,16 +313,21 @@ describe('Issue Operations', () => {
     });
 
     it('should update file location', async () => {
+      const issueId = '55555555-5555-5555-5555-555555555552';
+      const mockIssue = createMockIssue({
+        id: issueId,
+        filePath: 'src/new-location.ts',
+        lineNumber: 100,
+      });
+
       nock(BASE_URL)
-        .patch('/issues/issue-1', {
+        .patch(`/issues/${issueId}`, {
           file_path: 'src/new-location.ts',
           line_number: 100,
         })
-        .reply(200, {
-          data: { id: 'issue-1', filePath: 'src/new-location.ts', lineNumber: 100 },
-        });
+        .reply(200, { data: mockIssue });
 
-      const issue = await issueOps.edit(client, 'issue-1', {
+      const issue = await issueOps.edit(client, issueId, {
         filePath: 'src/new-location.ts',
         lineNumber: 100,
       });
@@ -288,21 +338,20 @@ describe('Issue Operations', () => {
 
   describe('addNote', () => {
     it('should add note to issue', async () => {
+      const issueId = '66666666-6666-6666-6666-666666666661';
+      const mockNote = createMockIssueNote({
+        content: 'Investigation notes here',
+        noteType: 'context',
+      });
+
       nock(BASE_URL)
-        .post('/issues/issue-1/notes', {
+        .post(`/issues/${issueId}/notes`, {
           content: 'Investigation notes here',
           note_type: 'context',
         })
-        .reply(201, {
-          data: {
-            id: 'note-1',
-            content: 'Investigation notes here',
-            noteType: 'context',
-            createdAt: '2024-01-15',
-          },
-        });
+        .reply(201, { data: mockNote });
 
-      const note = await issueOps.addNote(client, 'issue-1', {
+      const note = await issueOps.addNote(client, issueId, {
         content: 'Investigation notes here',
         noteType: 'context',
       });
@@ -311,21 +360,21 @@ describe('Issue Operations', () => {
     });
 
     it('should add resolution note', async () => {
+      const issueId = '66666666-6666-6666-6666-666666666662';
+      const mockNote = createMockIssueNote({
+        content: 'Fixed by updating validation logic',
+        noteType: 'resolution',
+      });
+
       nock(BASE_URL)
-        .post('/issues/issue-1/notes', {
+        .post(`/issues/${issueId}/notes`, {
           content: 'Fixed by updating validation logic',
           note_type: 'resolution',
           created_by: 'developer@example.com',
         })
-        .reply(201, {
-          data: {
-            id: 'note-2',
-            content: 'Fixed by updating validation logic',
-            noteType: 'resolution',
-          },
-        });
+        .reply(201, { data: mockNote });
 
-      const note = await issueOps.addNote(client, 'issue-1', {
+      const note = await issueOps.addNote(client, issueId, {
         content: 'Fixed by updating validation logic',
         noteType: 'resolution',
         createdBy: 'developer@example.com',
@@ -337,13 +386,12 @@ describe('Issue Operations', () => {
 
   describe('restore', () => {
     it('should restore deleted issue', async () => {
-      nock(BASE_URL)
-        .post('/issues/issue-1/restore')
-        .reply(200, {
-          data: { id: 'issue-1', status: 'open', deletedAt: null },
-        });
+      const issueId = '77777777-7777-7777-7777-777777777771';
+      const mockIssue = createMockIssue({ id: issueId, status: 'open', deletedAt: null });
 
-      const issue = await issueOps.restore(client, 'issue-1');
+      mockValidatedEndpoint(BASE_URL, 'post', `/issues/${issueId}/restore`, mockIssue, IssueResponseSchema);
+
+      const issue = await issueOps.restore(client, issueId);
 
       expect(issue.deletedAt).toBeNull();
     });
@@ -351,13 +399,12 @@ describe('Issue Operations', () => {
 
   describe('undoLastChange', () => {
     it('should undo last status change', async () => {
-      nock(BASE_URL)
-        .post('/issues/issue-1/undo')
-        .reply(200, {
-          data: { id: 'issue-1', status: 'open' },
-        });
+      const issueId = '88888888-8888-8888-8888-888888888881';
+      const mockIssue = createMockIssue({ id: issueId, status: 'open' });
 
-      const issue = await issueOps.undoLastChange(client, 'issue-1');
+      mockValidatedEndpoint(BASE_URL, 'post', `/issues/${issueId}/undo`, mockIssue, IssueResponseSchema);
+
+      const issue = await issueOps.undoLastChange(client, issueId);
 
       expect(issue.status).toBe('open');
     });
@@ -365,23 +412,25 @@ describe('Issue Operations', () => {
 
   describe('bulkUpdateStatus', () => {
     it('should bulk update issue statuses', async () => {
+      const issueId1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+      const issueId2 = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+      const mockResults = [
+        createMockBulkStatusUpdateResult({ issueId: issueId1, success: true }),
+        createMockBulkStatusUpdateResult({ issueId: issueId2, success: true }),
+      ];
+
       nock(BASE_URL)
         .post('/issues/bulk-status', {
           updates: [
-            { issue_id: 'issue-1', status: 'completed', reason: 'Fixed' },
-            { issue_id: 'issue-2', status: 'wontfix', reason: 'By design' },
+            { issue_id: issueId1, status: 'completed', reason: 'Fixed' },
+            { issue_id: issueId2, status: 'wontfix', reason: 'By design' },
           ],
         })
-        .reply(200, {
-          data: [
-            { issueId: 'issue-1', success: true },
-            { issueId: 'issue-2', success: true },
-          ],
-        });
+        .reply(200, { data: mockResults });
 
       const results = await issueOps.bulkUpdateStatus(client, [
-        { issueId: 'issue-1', status: 'completed', reason: 'Fixed' },
-        { issueId: 'issue-2', status: 'wontfix', reason: 'By design' },
+        { issueId: issueId1, status: 'completed', reason: 'Fixed' },
+        { issueId: issueId2, status: 'wontfix', reason: 'By design' },
       ]);
 
       expect(results).toHaveLength(2);
@@ -391,14 +440,18 @@ describe('Issue Operations', () => {
 
   describe('listByProject', () => {
     it('should list issues in a project', async () => {
-      nock(BASE_URL)
-        .get('/projects/proj-1/issues')
-        .reply(200, {
-          data: [
-            { id: 'issue-1', title: 'Bug 1' },
-            { id: 'issue-2', title: 'Bug 2' },
-          ],
-        });
+      const mockIssues = [
+        createMockIssue({ title: 'Bug 1' }),
+        createMockIssue({ title: 'Bug 2' }),
+      ];
+
+      mockValidatedListEndpoint(
+        BASE_URL,
+        'get',
+        '/projects/proj-1/issues',
+        mockIssues,
+        IssueResponseSchema
+      );
 
       const issues = await issueOps.listByProject(client, 'proj-1');
 
@@ -406,6 +459,14 @@ describe('Issue Operations', () => {
     });
 
     it('should list issues with filters', async () => {
+      const mockIssues = [
+        createMockIssue({
+          title: 'Critical semantic issue',
+          priority: 'critical',
+          failureDomain: 'SEM',
+        }),
+      ];
+
       nock(BASE_URL)
         .get('/projects/proj-1/issues')
         .query({
@@ -414,9 +475,7 @@ describe('Issue Operations', () => {
           failure_domain: 'SEM',
           limit: 10,
         })
-        .reply(200, {
-          data: [{ id: 'issue-1', title: 'Critical semantic issue' }],
-        });
+        .reply(200, { data: mockIssues });
 
       const issues = await issueOps.listByProject(client, 'proj-1', {
         status: 'open',

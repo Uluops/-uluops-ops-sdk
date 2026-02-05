@@ -9,6 +9,7 @@ import { registerRunCommands } from './cli/commands/runs.js';
 import { registerIssueCommands } from './cli/commands/issues.js';
 import { registerAnalyticsCommands } from './cli/commands/analytics.js';
 import { registerAdminCommands } from './cli/commands/admin.js';
+import { registerDefinitionCommands, registerModelCommands } from '@uluops/registry-sdk/cli/commands';
 
 // Get package.json for version
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,10 @@ registerRunCommands(program);
 registerIssueCommands(program);
 registerAnalyticsCommands(program);
 registerAdminCommands(program);
+
+// Registry commands (from @uluops/registry-sdk)
+registerDefinitionCommands(program);
+registerModelCommands(program);
 
 // Default action when no command is provided
 program.action(() => {
