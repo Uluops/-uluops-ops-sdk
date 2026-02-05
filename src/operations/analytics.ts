@@ -166,20 +166,6 @@ export async function getTrendSummary(
 }
 
 /**
- * Get analytics by metric name (generic endpoint)
- */
-export async function getByMetric(
-  client: OpsHttpClient,
-  metric: string,
-  query?: AnalyticsQuery
-): Promise<unknown> {
-  return client.get<unknown>(
-    `/analytics/${metric}`,
-    query as Record<string, unknown> | undefined
-  );
-}
-
-/**
  * Valid metric names for getByMetric
  */
 export const ANALYTICS_METRICS = [
@@ -195,3 +181,31 @@ export const ANALYTICS_METRICS = [
 ] as const;
 
 export type AnalyticsMetric = (typeof ANALYTICS_METRICS)[number];
+
+/**
+ * Check if a string is a valid analytics metric
+ */
+export function isValidMetric(metric: string): metric is AnalyticsMetric {
+  return ANALYTICS_METRICS.includes(metric as AnalyticsMetric);
+}
+
+/**
+ * Get analytics by metric name (generic endpoint)
+ * @throws Error if metric is not a valid analytics metric
+ */
+export async function getByMetric(
+  client: OpsHttpClient,
+  metric: AnalyticsMetric,
+  query?: AnalyticsQuery
+): Promise<unknown> {
+  // Runtime validation for string inputs that bypass type checking
+  if (!isValidMetric(metric)) {
+    throw new Error(
+      `Invalid analytics metric: "${metric}". Valid metrics: ${ANALYTICS_METRICS.join(', ')}`
+    );
+  }
+  return client.get<unknown>(
+    `/analytics/${metric}`,
+    query as Record<string, unknown> | undefined
+  );
+}

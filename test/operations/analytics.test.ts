@@ -381,5 +381,39 @@ describe('Analytics Operations', () => {
         days: 30,
       });
     });
+
+    it('should throw error for invalid metric', async () => {
+      // Use type assertion to test runtime validation for string inputs that bypass TypeScript
+      const invalidMetric = 'invalid_metric' as analyticsOps.AnalyticsMetric;
+
+      await expect(analyticsOps.getByMetric(client, invalidMetric)).rejects.toThrow(
+        'Invalid analytics metric: "invalid_metric"'
+      );
+    });
+  });
+
+  describe('isValidMetric', () => {
+    it('should return true for valid metrics', () => {
+      expect(analyticsOps.isValidMetric('validator_performance')).toBe(true);
+      expect(analyticsOps.isValidMetric('resolution_rates')).toBe(true);
+      expect(analyticsOps.isValidMetric('cost_analysis')).toBe(true);
+    });
+
+    it('should return false for invalid metrics', () => {
+      expect(analyticsOps.isValidMetric('invalid')).toBe(false);
+      expect(analyticsOps.isValidMetric('')).toBe(false);
+      expect(analyticsOps.isValidMetric('VALIDATOR_PERFORMANCE')).toBe(false);
+    });
+  });
+
+  describe('ANALYTICS_METRICS', () => {
+    it('should contain all expected metrics', () => {
+      expect(analyticsOps.ANALYTICS_METRICS).toContain('validator_performance');
+      expect(analyticsOps.ANALYTICS_METRICS).toContain('resolution_rates');
+      expect(analyticsOps.ANALYTICS_METRICS).toContain('file_hotspots');
+      expect(analyticsOps.ANALYTICS_METRICS).toContain('trend_summary');
+      expect(analyticsOps.ANALYTICS_METRICS).toContain('cost_analysis');
+      expect(analyticsOps.ANALYTICS_METRICS).toHaveLength(9);
+    });
   });
 });

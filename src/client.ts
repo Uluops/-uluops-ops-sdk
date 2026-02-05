@@ -401,7 +401,7 @@ export class OpsClient {
     getTrendSummary: (query?: AnalyticsQuery): Promise<TrendSummary[]> =>
       analyticsOps.getTrendSummary(this.httpClient, query),
 
-    getByMetric: (metric: string, query?: AnalyticsQuery): Promise<unknown> =>
+    getByMetric: (metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery): Promise<unknown> =>
       analyticsOps.getByMetric(this.httpClient, metric, query),
   };
 
