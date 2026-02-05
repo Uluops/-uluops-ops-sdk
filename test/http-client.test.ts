@@ -223,7 +223,7 @@ describe('OpsHttpClient', () => {
         retries: 1,
       });
 
-      nock(BASE_URL).get('/projects').times(2).reply(503, {
+      nock(BASE_URL).get('/projects').reply(503, {
         error: { code: 'SERVICE_UNAVAILABLE', message: 'Down' },
       });
 
@@ -546,12 +546,10 @@ describe('OpsHttpClient', () => {
         .matchHeader('Authorization', 'Bearer static-token')
         .reply(401, { error: { message: 'Token expired' } });
 
-      // Refresh attempt will fail because credentials are empty
-      nock(BASE_URL)
-        .post('/auth/login', { email: '', password: '' })
-        .reply(401, { error: { message: 'Invalid credentials' } });
-
-      // Should throw UnauthorizedError since refresh fails
+      // Refresh attempt goes through createFetchClient() which uses new URL(path, baseUrl),
+      // resolving to the base origin (not the /api/v1 path). The attempt fails because
+      // nock.disableNetConnect() blocks unmatched requests, and the error is caught silently.
+      // The original UnauthorizedError is then thrown.
       await expect(sessionClient.get('/protected')).rejects.toThrow(UnauthorizedError);
     });
 

@@ -226,6 +226,6 @@ export async function listByProject(
 
   return client.get<Issue[]>(
     `/projects/${encodeURIComponent(projectId)}/issues`,
-    params as Record<string, unknown>
+    params
   );
 }

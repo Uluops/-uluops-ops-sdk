@@ -6,14 +6,26 @@ export const BASE_URL = 'http://localhost:3100/api/v1';
 
 beforeEach(() => {
   nock.cleanAll();
+  nock.disableNetConnect();
   resetMockIds();
   vi.stubEnv('ULUOPS_API_KEY', 'ulr_test-api-key-12345');
 });
 
 afterEach(() => {
+  // Capture unconsumed interceptors before cleanup.
+  // If a mock was registered but not called, it means the SDK sent a different
+  // request than expected (wrong URL, method, query params, or body).
+  const pending = nock.pendingMocks();
+
   vi.unstubAllEnvs();
   nock.cleanAll();
   nock.enableNetConnect();
+
+  if (pending.length > 0) {
+    throw new Error(
+      `Unconsumed nock interceptors (request mismatch?):\n  ${pending.join('\n  ')}`
+    );
+  }
 });
 
 /**

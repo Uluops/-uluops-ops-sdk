@@ -220,7 +220,7 @@ export async function listByProject(
 ): Promise<Run[]> {
   return client.get<Run[]>(
     `/runs/project/${encodeURIComponent(projectId)}`,
-    query as Record<string, unknown>
+    query
   );
 }
 

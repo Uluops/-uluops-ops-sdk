@@ -28,7 +28,7 @@ export async function getValidatorPerformance(
 ): Promise<ValidatorPerformance[]> {
   return client.get<ValidatorPerformance[]>(
     '/analytics/validators/performance',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -41,7 +41,7 @@ export async function getValidatorReliability(
 ): Promise<{ validators: ValidatorReliability[] }> {
   return client.get<{ validators: ValidatorReliability[] }>(
     '/analytics/validators/reliability',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -54,7 +54,7 @@ export async function getResolutionRates(
 ): Promise<ResolutionRate[]> {
   return client.get<ResolutionRate[]>(
     '/analytics/projects/resolution-rates',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -67,7 +67,7 @@ export async function getFileHotspots(
 ): Promise<FileHotspot[]> {
   return client.get<FileHotspot[]>(
     '/analytics/files/hotspots',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -80,7 +80,7 @@ export async function getTaxonomyDistribution(
 ): Promise<TaxonomyDistribution[]> {
   return client.get<TaxonomyDistribution[]>(
     '/analytics/taxonomy/distribution',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -93,7 +93,7 @@ export async function getFullTaxonomy(
 ): Promise<{ data: FullTaxonomyAnalytics; computedAt: string }> {
   return client.get<{ data: FullTaxonomyAnalytics; computedAt: string }>(
     '/analytics/taxonomy/full',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -106,7 +106,7 @@ export async function getBurndown(
 ): Promise<BurndownResult> {
   return client.get<BurndownResult>(
     '/analytics/taxonomy/burndown',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -161,7 +161,7 @@ export async function getTrendSummary(
 ): Promise<TrendSummary[]> {
   return client.get<TrendSummary[]>(
     '/analytics/trends/summary',
-    query as Record<string, unknown> | undefined
+    query
   );
 }
 
@@ -206,6 +206,6 @@ export async function getByMetric(
   }
   return client.get<unknown>(
     `/analytics/${metric}`,
-    query as Record<string, unknown> | undefined
+    query
   );
 }

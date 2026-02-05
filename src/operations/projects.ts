@@ -125,7 +125,7 @@ export async function getTrends(
 ): Promise<TrendDataPoint[]> {
   return client.get<TrendDataPoint[]>(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
-    query as Record<string, unknown>
+    query
   );
 }
 
@@ -155,7 +155,7 @@ export async function listIssues(
 
   return client.get<Issue[]>(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
-    params as Record<string, unknown>
+    params
   );
 }
 

@@ -106,7 +106,7 @@ export async function updateProfile(
   client: OpsHttpClient,
   input: UpdateProfileInput
 ): Promise<{ user: PublicUser }> {
-  return client.patch<{ user: PublicUser }>('/auth/profile', input as Record<string, unknown>);
+  return client.patch<{ user: PublicUser }>('/auth/profile', input);
 }
 
 /**
