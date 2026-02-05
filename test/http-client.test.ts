@@ -289,6 +289,19 @@ describe('OpsHttpClient', () => {
       await unauthClient.get('/public');
     });
 
+    it('should fail with UnauthorizedError when accessing protected endpoint without auth', async () => {
+      const unauthClient = new OpsHttpClient({ baseUrl: BASE_URL });
+
+      nock(BASE_URL)
+        .get('/projects')
+        .matchHeader('Authorization', (val) => val === undefined)
+        .reply(401, {
+          error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+        });
+
+      await expect(unauthClient.get('/projects')).rejects.toThrow(UnauthorizedError);
+    });
+
     it('should include Content-Type header on all requests', async () => {
       nock(BASE_URL)
         .get('/projects')
