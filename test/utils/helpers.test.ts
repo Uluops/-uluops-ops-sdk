@@ -32,6 +32,12 @@ describe('Helper Utilities', () => {
   });
 
   describe('retry', () => {
+    // Named constants for retry test configuration
+    const FAST_BASE_DELAY_MS = 10;
+    const FAST_MAX_DELAY_MS = 20;
+    const CAPPED_BASE_DELAY_MS = 100;
+    const CAPPED_MAX_DELAY_MS = 50; // Intentionally lower than base to test cap
+
     afterEach(() => {
       vi.useRealTimers(); // Ensure timers are reset after each test
     });
@@ -49,19 +55,19 @@ describe('Helper Utilities', () => {
         .mockRejectedValueOnce(new Error('fail'))
         .mockResolvedValue('success');
 
-      const result = await retry(fn, { maxRetries: 3, baseDelayMs: 10 });
+      const result = await retry(fn, { maxRetries: 3, baseDelayMs: FAST_BASE_DELAY_MS });
 
       expect(result).toBe('success');
       expect(fn).toHaveBeenCalledTimes(2);
     });
 
     it('should throw after max retries', async () => {
-      vi.useRealTimers(); // Use real timers for this test
+      vi.useRealTimers();
       const error = new Error('always fails');
       const fn = vi.fn().mockRejectedValue(error);
 
       await expect(
-        retry(fn, { maxRetries: 2, baseDelayMs: 10, maxDelayMs: 20 })
+        retry(fn, { maxRetries: 2, baseDelayMs: FAST_BASE_DELAY_MS, maxDelayMs: FAST_MAX_DELAY_MS })
       ).rejects.toThrow('always fails');
 
       expect(fn).toHaveBeenCalledTimes(2);
@@ -92,8 +98,8 @@ describe('Helper Utilities', () => {
 
       const result = await retry(fn, {
         maxRetries: 4,
-        baseDelayMs: 100,
-        maxDelayMs: 50, // Cap should limit delay
+        baseDelayMs: CAPPED_BASE_DELAY_MS,
+        maxDelayMs: CAPPED_MAX_DELAY_MS,
       });
 
       expect(result).toBe('success');

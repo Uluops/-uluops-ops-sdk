@@ -359,6 +359,53 @@ describe('OpsHttpClient', () => {
       await expect(timeoutClient.get('/slow')).rejects.toThrow(TimeoutError);
     });
 
+    it('should succeed when response arrives before timeout', async () => {
+      const timeoutClient = new OpsHttpClient({
+        baseUrl: BASE_URL,
+        apiKey: 'ulr_test-key',
+        timeout: 500,
+        retries: 1,
+      });
+
+      nock(BASE_URL).get('/fast').delay(50).reply(200, { data: { ok: true } });
+
+      const result = await timeoutClient.get('/fast');
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('should throw TimeoutError with very small timeout', async () => {
+      const tinyTimeoutClient = new OpsHttpClient({
+        baseUrl: BASE_URL,
+        apiKey: 'ulr_test-key',
+        timeout: 1,
+        retries: 1,
+      });
+
+      nock(BASE_URL).get('/tiny-timeout').delay(100).reply(200, { data: [] });
+
+      await expect(tinyTimeoutClient.get('/tiny-timeout')).rejects.toThrow(TimeoutError);
+    });
+
+    it('should include timeout value in TimeoutError details', async () => {
+      const timeoutMs = 150;
+      const timeoutClient = new OpsHttpClient({
+        baseUrl: BASE_URL,
+        apiKey: 'ulr_test-key',
+        timeout: timeoutMs,
+        retries: 1,
+      });
+
+      nock(BASE_URL).get('/timeout-details').delay(300).reply(200, { data: [] });
+
+      try {
+        await timeoutClient.get('/timeout-details');
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(TimeoutError);
+        expect((error as TimeoutError).message).toContain(`${timeoutMs}ms`);
+      }
+    });
+
     it('should throw NetworkError on connection refused', async () => {
       const badClient = new OpsHttpClient({
         baseUrl: 'http://localhost:59999', // Port that nothing listens on

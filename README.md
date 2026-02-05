@@ -7,6 +7,8 @@
 
 Official TypeScript SDK for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
+**Current version: 0.1.0** | [Changelog](./CHANGELOG.md)
+
 ## Quick Start
 
 ### Programmatic Usage
@@ -1339,6 +1341,8 @@ ULUOPS_BASE_URL=https://api.uluops.com/api/v1
 
 Or configure globally in `~/.uluops/.env`.
 
+> **Note:** The SDK defaults to `http://localhost:3100/api/v1` for local development. For production use, always set `ULUOPS_BASE_URL` or pass `baseUrl` to the constructor.
+
 ## Error Handling
 
 The SDK provides typed error classes for precise error handling:
@@ -1400,6 +1404,24 @@ const client = new OpsClient({
   timeout: 30000,    // Request timeout in ms (default: 30000)
 });
 ```
+
+## Input Validation
+
+The SDK includes Zod-based runtime validators for all mutating operations. Import them from `@uluops/ops-sdk/config`:
+
+```typescript
+import { validateCreateProjectInput, InputValidationError } from '@uluops/ops-sdk/config';
+
+try {
+  const validated = validateCreateProjectInput({ name: '' }); // throws
+} catch (error) {
+  if (error instanceof InputValidationError) {
+    console.log('Validation errors:', error.errors);
+  }
+}
+```
+
+Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCreateProjectInput`, `validateSaveFeaturesListInput`, `validateCreateUserIssueInput`, `validateUpdateIssueStatusInput`, `validateBulkStatusUpdateInput`, and more. See [`src/config/validators.ts`](./src/config/validators.ts) for the full list.
 
 ## Advanced Usage
 
