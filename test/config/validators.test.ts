@@ -271,6 +271,14 @@ describe('Config Validators', () => {
       expect(validatePositiveInt(5, 'count')).toBe(5);
     });
 
+    it('should accept 1 (boundary condition)', () => {
+      expect(validatePositiveInt(1, 'count')).toBe(1);
+    });
+
+    it('should reject -1 (boundary condition)', () => {
+      expect(() => validatePositiveInt(-1, 'count')).toThrow(InputValidationError);
+    });
+
     it('should accept numeric string', () => {
       expect(validatePositiveInt('10', 'count')).toBe(10);
     });

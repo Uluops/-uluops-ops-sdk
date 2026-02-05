@@ -241,6 +241,39 @@ describe('OpsHttpClient', () => {
     });
   });
 
+  describe('malformed response handling', () => {
+    it('should handle response without data wrapper gracefully', async () => {
+      // Some endpoints return data directly without { data: ... } wrapper
+      nock(BASE_URL).get('/direct').reply(200, { id: '1', name: 'test' });
+
+      // requestRaw handles this - returns the raw response
+      const result = await client.requestRaw('GET', '/direct');
+      expect(result).toEqual({ id: '1', name: 'test' });
+    });
+
+    it('should handle 200 with empty data wrapper', async () => {
+      nock(BASE_URL).delete('/resource/1').reply(200, { data: undefined });
+
+      const result = await client.delete('/resource/1');
+      expect(result).toBeUndefined();
+    });
+
+    it('should handle null data in response', async () => {
+      nock(BASE_URL).get('/nullable').reply(200, { data: null });
+
+      const result = await client.get('/nullable');
+      expect(result).toBeNull();
+    });
+
+    it('should throw on invalid JSON response', async () => {
+      nock(BASE_URL).get('/invalid').reply(200, 'not json', {
+        'Content-Type': 'text/plain',
+      });
+
+      await expect(client.get('/invalid')).rejects.toThrow();
+    });
+  });
+
   describe('authentication header consistency', () => {
     it('should include Authorization header on POST requests', async () => {
       nock(BASE_URL)

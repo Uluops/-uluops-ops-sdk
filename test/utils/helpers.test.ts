@@ -32,6 +32,10 @@ describe('Helper Utilities', () => {
   });
 
   describe('retry', () => {
+    afterEach(() => {
+      vi.useRealTimers(); // Ensure timers are reset after each test
+    });
+
     it('should return result on first success', async () => {
       const fn = vi.fn().mockResolvedValue('success');
       const result = await retry(fn);
