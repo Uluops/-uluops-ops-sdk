@@ -1,4 +1,4 @@
-import type { Project, ProjectSummary } from '../../types/projects.js';
+import type { Project } from '../../types/projects.js';
 import type { Run } from '../../types/runs.js';
 import type { Issue } from '../../types/issues.js';
 import type { PublicApiKey } from '../../types/auth.js';
@@ -50,26 +50,32 @@ export function formatProject(project: Project): string {
 
 /**
  * Format project summary
+ * Note: API returns { project, stats } structure
  */
-export function formatProjectSummary(summary: ProjectSummary): string {
-  const lines = [
-    'Issues:',
-    `  Open: ${summary.openIssues}`,
-    `  Completed: ${summary.completedIssues}`,
-    `  Deferred: ${summary.deferredIssues}`,
-    `  Won't Fix: ${summary.wontfixIssues}`,
-    `  Total: ${summary.totalIssues}`,
-    '',
-    'Runs:',
-    `  Total: ${summary.totalRuns}`,
-  ];
+export function formatProjectSummary(response: unknown): string {
+  // Handle both flat and nested response structures
+  const data = response as { project?: Project; stats?: Record<string, unknown> };
+  const stats = (data.stats ?? data) as Record<string, unknown>;
+  const project = data.project;
 
-  if (summary.lastRunAt) {
-    lines.push(`  Last Run: ${formatDate(summary.lastRunAt)}`);
+  const lines: string[] = [];
+
+  if (project) {
+    lines.push(`Project: ${project.name}`, '');
   }
 
-  if (summary.averageScore !== null) {
-    lines.push(`  Avg Score: ${summary.averageScore.toFixed(1)}`);
+  lines.push(
+    'Issues:',
+    `  Open: ${stats.openIssues ?? 0}`,
+    `  Critical: ${stats.criticalIssues ?? 0}`,
+    `  Total: ${stats.totalIssues ?? 0}`,
+    '',
+    'Runs:',
+    `  Total: ${stats.totalRuns ?? 0}`,
+  );
+
+  if (stats.latestRunDate) {
+    lines.push(`  Latest: #${stats.latestRunNumber} on ${formatDate(stats.latestRunDate as string)}`);
   }
 
   return lines.join('\n');

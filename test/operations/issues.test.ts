@@ -392,7 +392,7 @@ describe('Issue Operations', () => {
   describe('listByProject', () => {
     it('should list issues in a project', async () => {
       nock(BASE_URL)
-        .get('/issues/project/proj-1')
+        .get('/projects/proj-1/issues')
         .reply(200, {
           data: [
             { id: 'issue-1', title: 'Bug 1' },
@@ -407,7 +407,7 @@ describe('Issue Operations', () => {
 
     it('should list issues with filters', async () => {
       nock(BASE_URL)
-        .get('/issues/project/proj-1')
+        .get('/projects/proj-1/issues')
         .query({
           status: 'open',
           priority: 'critical',

@@ -225,7 +225,7 @@ export async function listByProject(
     : undefined;
 
   return client.get<Issue[]>(
-    `/issues/project/${encodeURIComponent(projectId)}`,
+    `/projects/${encodeURIComponent(projectId)}/issues`,
     params as Record<string, unknown>
   );
 }

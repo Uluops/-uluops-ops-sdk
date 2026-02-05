@@ -227,9 +227,11 @@ export function registerRunCommands(program: Command): void {
           console.log(`Run #${result.run.runNumber} saved successfully`);
           console.log('');
           console.log('Correlation:');
-          console.log(`  New issues: ${result.correlation.newIssues}`);
-          console.log(`  Recurring: ${result.correlation.recurringIssues}`);
-          console.log(`  Regressions: ${result.correlation.regressions}`);
+          // Handle both camelCase and snake_case responses
+          const corr = result.correlation as unknown as Record<string, number>;
+          console.log(`  New issues: ${corr.newIssues ?? corr.new_issues ?? 0}`);
+          console.log(`  Recurring: ${corr.recurringIssues ?? corr.recurring_issues ?? 0}`);
+          console.log(`  Regressions: ${corr.regressions ?? 0}`);
           if (result.deduplicated) {
             console.log('\n(Deduplicated: run with same idempotency key already existed)');
           }
