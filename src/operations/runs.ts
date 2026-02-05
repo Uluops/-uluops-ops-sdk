@@ -12,7 +12,97 @@ import type {
   UpdateRunByNumberInput,
   ListRunsQuery,
   RunDetails,
+  ValidatorInput,
+  RecommendationInput,
 } from '../types/runs.js';
+
+/**
+ * Options for validator transformation
+ */
+interface TransformValidatorOptions {
+  /** Include all token fields (for save). If false, only input/output tokens (for validate). */
+  includeAllTokens?: boolean;
+}
+
+/**
+ * Transform a validator from SDK format (camelCase) to API format (snake_case)
+ */
+function transformValidator(
+  v: ValidatorInput,
+  options: TransformValidatorOptions = {}
+): Record<string, unknown> {
+  const { includeAllTokens = true } = options;
+
+  const result: Record<string, unknown> = {
+    name: v.name,
+    score: v.score,
+    max_score: v.maxScore,
+    status: v.status,
+    model: v.model,
+    duration_ms: v.durationMs,
+  };
+
+  if (v.tokens) {
+    result.tokens = includeAllTokens
+      ? {
+          input_tokens: v.tokens.inputTokens,
+          output_tokens: v.tokens.outputTokens,
+          cache_creation_tokens: v.tokens.cacheCreationTokens,
+          cache_read_tokens: v.tokens.cacheReadTokens,
+          total_effective_tokens: v.tokens.totalEffectiveTokens,
+        }
+      : {
+          input_tokens: v.tokens.inputTokens,
+          output_tokens: v.tokens.outputTokens,
+        };
+  }
+
+  return result;
+}
+
+/**
+ * Options for recommendation transformation
+ */
+interface TransformRecommendationOptions {
+  /** Include all taxonomy fields (for save). If false, only essential fields (for validate). */
+  includeAllFields?: boolean;
+}
+
+/**
+ * Transform a recommendation from SDK format (camelCase) to API format (snake_case)
+ */
+function transformRecommendation(
+  r: RecommendationInput,
+  options: TransformRecommendationOptions = {}
+): Record<string, unknown> {
+  const { includeAllFields = true } = options;
+
+  // Essential fields always included
+  const result: Record<string, unknown> = {
+    validator: r.validator,
+    title: r.title,
+    priority: r.priority,
+    severity: r.severity,
+    failure_code: r.failureCode,
+    failure_domain: r.failureDomain,
+    file_path: r.filePath,
+  };
+
+  // Additional fields for full save
+  if (includeAllFields) {
+    result.type = r.type;
+    result.failure_mode = r.failureMode;
+    result.category = r.category;
+    result.line_number = r.lineNumber;
+    result.description = r.description;
+    result.classification_confidence = r.classificationConfidence;
+    result.classified_by = r.classifiedBy;
+    result.secondary_failure_codes = r.secondaryFailureCodes;
+    result.taxonomy_version = r.taxonomyVersion;
+  }
+
+  return result;
+}
 
 /**
  * Save validation run results (save_features_list)
@@ -25,46 +115,11 @@ export async function save(
   client: OpsHttpClient,
   input: SaveFeaturesListInput
 ): Promise<SaveFeaturesListResponse> {
-  // Transform validators: camelCase -> snake_case, flatten token fields
   return client.post<SaveFeaturesListResponse>('/runs', {
     project: input.project,
     workflow_type: input.workflowType,
-    validators: input.validators.map((v) => ({
-      name: v.name,
-      score: v.score,
-      max_score: v.maxScore,
-      status: v.status,
-      model: v.model,
-      tokens: v.tokens
-        ? {
-            input_tokens: v.tokens.inputTokens,
-            output_tokens: v.tokens.outputTokens,
-            cache_creation_tokens: v.tokens.cacheCreationTokens,
-            cache_read_tokens: v.tokens.cacheReadTokens,
-            total_effective_tokens: v.tokens.totalEffectiveTokens,
-          }
-        : undefined,
-      duration_ms: v.durationMs,
-    })),
-    // Transform recommendations: camelCase -> snake_case for all taxonomy fields
-    recommendations: input.recommendations.map((r) => ({
-      validator: r.validator,
-      title: r.title,
-      priority: r.priority,
-      type: r.type,
-      severity: r.severity,
-      failure_code: r.failureCode,
-      failure_domain: r.failureDomain,
-      failure_mode: r.failureMode,
-      category: r.category,
-      file_path: r.filePath,
-      line_number: r.lineNumber,
-      description: r.description,
-      classification_confidence: r.classificationConfidence,
-      classified_by: r.classifiedBy,
-      secondary_failure_codes: r.secondaryFailureCodes,
-      taxonomy_version: r.taxonomyVersion,
-    })),
+    validators: input.validators.map((v) => transformValidator(v, { includeAllTokens: true })),
+    recommendations: input.recommendations.map((r) => transformRecommendation(r, { includeAllFields: true })),
     timestamp: input.timestamp,
     raw_markdown: input.rawMarkdown,
     summary: input.summary
@@ -88,33 +143,11 @@ export async function validate(
   client: OpsHttpClient,
   input: SaveFeaturesListInput
 ): Promise<ValidateFeaturesListResponse> {
-  // Minimal transformation - only required fields for validation
   return client.post<ValidateFeaturesListResponse>('/runs/validate', {
     project: input.project,
     workflow_type: input.workflowType,
-    validators: input.validators.map((v) => ({
-      name: v.name,
-      score: v.score,
-      max_score: v.maxScore,
-      status: v.status,
-      model: v.model,
-      tokens: v.tokens
-        ? {
-            input_tokens: v.tokens.inputTokens,
-            output_tokens: v.tokens.outputTokens,
-          }
-        : undefined,
-      duration_ms: v.durationMs,
-    })),
-    recommendations: input.recommendations.map((r) => ({
-      validator: r.validator,
-      title: r.title,
-      priority: r.priority,
-      severity: r.severity,
-      failure_code: r.failureCode,
-      failure_domain: r.failureDomain,
-      file_path: r.filePath,
-    })),
+    validators: input.validators.map((v) => transformValidator(v, { includeAllTokens: false })),
+    recommendations: input.recommendations.map((r) => transformRecommendation(r, { includeAllFields: false })),
   });
 }
 

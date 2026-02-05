@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { readFileSync, existsSync } from 'node:fs';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
-import { createSpinner, exitWithError } from '../utils.js';
+import { withSpinner, exitWithError } from '../utils.js';
 import { formatRuns, formatRun } from '../formatters/output.js';
 import type { SaveFeaturesListInput } from '../../types/runs.js';
 
@@ -55,15 +55,16 @@ export function registerRunCommands(program: Command): void {
     .action(async (project: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching runs...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.runs.listByProject(project, {
-          workflowType: options.workflow,
-          limit: parseInt(options.limit, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching runs...', failure: 'Failed to fetch runs' },
+          () => ctx.client.runs.listByProject(project, {
+            workflowType: options.workflow,
+            limit: parseInt(options.limit, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -73,7 +74,6 @@ export function registerRunCommands(program: Command): void {
           console.log(formatRuns(data));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch runs');
         handleError(error, ctx);
       }
     });
@@ -85,12 +85,13 @@ export function registerRunCommands(program: Command): void {
     .action(async (runId: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching run...');
 
       try {
-        spinner?.start();
-        const run = await ctx.client.runs.get(runId);
-        spinner?.succeed();
+        const run = await withSpinner(
+          ctx,
+          { start: 'Fetching run...', failure: 'Failed to fetch run' },
+          () => ctx.client.runs.get(runId)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(run, null, 2));
@@ -98,7 +99,6 @@ export function registerRunCommands(program: Command): void {
           console.log(formatRun(run));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch run');
         handleError(error, ctx);
       }
     });
@@ -111,12 +111,13 @@ export function registerRunCommands(program: Command): void {
     .action(async (project: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching latest run...');
 
       try {
-        spinner?.start();
-        const run = await ctx.client.runs.getLatest(project, options.workflow);
-        spinner?.succeed();
+        const run = await withSpinner(
+          ctx,
+          { start: 'Fetching latest run...', failure: 'Failed to fetch latest run' },
+          () => ctx.client.runs.getLatest(project, options.workflow)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(run, null, 2));
@@ -124,7 +125,6 @@ export function registerRunCommands(program: Command): void {
           console.log(formatRun(run));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch latest run');
         handleError(error, ctx);
       }
     });
@@ -137,13 +137,14 @@ export function registerRunCommands(program: Command): void {
     .action(async (project: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching run details...');
 
       try {
-        spinner?.start();
         const runNumber = options.number ? parseInt(options.number, 10) : undefined;
-        const details = await ctx.client.runs.getDetails(project, runNumber);
-        spinner?.succeed();
+        const details = await withSpinner(
+          ctx,
+          { start: 'Fetching run details...', failure: 'Failed to fetch run details' },
+          () => ctx.client.runs.getDetails(project, runNumber)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(details, null, 2));
@@ -174,7 +175,6 @@ export function registerRunCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch run details');
         handleError(error, ctx);
       }
     });
@@ -195,11 +195,7 @@ export function registerRunCommands(program: Command): void {
         exitWithError('Either --file or --stdin is required');
       }
 
-      const spinner = ctx.quiet ? null : createSpinner('Saving run...');
-
       try {
-        spinner?.start();
-
         // Read and parse input
         const input = (await readJsonInput(options)) as SaveFeaturesListInput;
 
@@ -218,8 +214,11 @@ export function registerRunCommands(program: Command): void {
           exitWithError('Missing required field: validators (must be an array)');
         }
 
-        const result = await ctx.client.runs.save(input);
-        spinner?.succeed('Run saved');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Saving run...', success: 'Run saved', failure: 'Failed to save run' },
+          () => ctx.client.runs.save(input)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -237,7 +236,6 @@ export function registerRunCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to save run');
         handleError(error, ctx);
       }
     });
@@ -258,11 +256,7 @@ export function registerRunCommands(program: Command): void {
         exitWithError('Either --file or --stdin is required');
       }
 
-      const spinner = ctx.quiet ? null : createSpinner('Validating...');
-
       try {
-        spinner?.start();
-
         // Read and parse input
         const input = (await readJsonInput(options)) as SaveFeaturesListInput;
 
@@ -270,8 +264,11 @@ export function registerRunCommands(program: Command): void {
         if (options.project) input.project = options.project;
         if (options.workflow) input.workflowType = options.workflow;
 
-        const result = await ctx.client.runs.validate(input);
-        spinner?.succeed('Validation complete');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Validating...', success: 'Validation complete', failure: 'Validation failed' },
+          () => ctx.client.runs.validate(input)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -307,7 +304,6 @@ export function registerRunCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Validation failed');
         handleError(error, ctx);
       }
     });
@@ -321,16 +317,17 @@ export function registerRunCommands(program: Command): void {
     .action(async (project: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Comparing runs...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.runs.diff({
-          project,
-          baseRun: parseInt(options.base, 10),
-          compareRun: parseInt(options.compare, 10),
-        });
-        spinner?.succeed();
+        const result = await withSpinner(
+          ctx,
+          { start: 'Comparing runs...', failure: 'Failed to compare runs' },
+          () => ctx.client.runs.diff({
+            project,
+            baseRun: parseInt(options.base, 10),
+            compareRun: parseInt(options.compare, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -362,7 +359,6 @@ export function registerRunCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to compare runs');
         handleError(error, ctx);
       }
     });
@@ -383,18 +379,18 @@ export function registerRunCommands(program: Command): void {
         exitWithError('One of --before-run, --before-date, or --keep-last is required');
       }
 
-      const spinner = ctx.quiet ? null : createSpinner('Archiving runs...');
-
       try {
-        spinner?.start();
-        const result = await ctx.client.runs.archive({
-          project,
-          beforeRunNumber: options.beforeRun ? parseInt(options.beforeRun, 10) : undefined,
-          beforeDate: options.beforeDate,
-          keepLast: options.keepLast ? parseInt(options.keepLast, 10) : undefined,
-          reason: options.reason,
-        });
-        spinner?.succeed('Runs archived');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Archiving runs...', success: 'Runs archived', failure: 'Failed to archive runs' },
+          () => ctx.client.runs.archive({
+            project,
+            beforeRunNumber: options.beforeRun ? parseInt(options.beforeRun, 10) : undefined,
+            beforeDate: options.beforeDate,
+            keepLast: options.keepLast ? parseInt(options.keepLast, 10) : undefined,
+            reason: options.reason,
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -402,7 +398,6 @@ export function registerRunCommands(program: Command): void {
           console.log(`Archived ${result.archivedCount} runs`);
         }
       } catch (error) {
-        spinner?.fail('Failed to archive runs');
         handleError(error, ctx);
       }
     });

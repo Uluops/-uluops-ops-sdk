@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
-import { createSpinner } from '../utils.js';
+import { withSpinner } from '../utils.js';
 import {
   formatProjects,
   formatProject,
@@ -22,12 +22,13 @@ export function registerProjectCommands(program: Command): void {
     .action(async (_, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching projects...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.projects.list();
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching projects...', failure: 'Failed to fetch projects' },
+          () => ctx.client.projects.list()
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -37,7 +38,6 @@ export function registerProjectCommands(program: Command): void {
           console.log(formatProjects(data));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch projects');
         handleError(error, ctx);
       }
     });
@@ -49,12 +49,13 @@ export function registerProjectCommands(program: Command): void {
     .action(async (name: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching project...');
 
       try {
-        spinner?.start();
-        const project = await ctx.client.projects.get(name);
-        spinner?.succeed();
+        const project = await withSpinner(
+          ctx,
+          { start: 'Fetching project...', failure: 'Failed to fetch project' },
+          () => ctx.client.projects.get(name)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(project, null, 2));
@@ -62,7 +63,6 @@ export function registerProjectCommands(program: Command): void {
           console.log(formatProject(project));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch project');
         handleError(error, ctx);
       }
     });
@@ -74,12 +74,13 @@ export function registerProjectCommands(program: Command): void {
     .action(async (name: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Creating project...');
 
       try {
-        spinner?.start();
-        const project = await ctx.client.projects.create({ name });
-        spinner?.succeed('Project created');
+        const project = await withSpinner(
+          ctx,
+          { start: 'Creating project...', success: 'Project created', failure: 'Failed to create project' },
+          () => ctx.client.projects.create({ name })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(project, null, 2));
@@ -87,7 +88,6 @@ export function registerProjectCommands(program: Command): void {
           console.log(formatProject(project));
         }
       } catch (error) {
-        spinner?.fail('Failed to create project');
         handleError(error, ctx);
       }
     });
@@ -109,23 +109,19 @@ export function registerProjectCommands(program: Command): void {
         process.exit(0);
       }
 
-      const spinner = ctx.quiet ? null : createSpinner('Deleting project...');
-
       try {
-        spinner?.start();
-
         if (options.force) {
-          await ctx.client.projects.delete(name, {
-            confirm: true,
-            confirmationPhrase: name,
-          });
-          spinner?.succeed('Project permanently deleted');
+          await withSpinner(
+            ctx,
+            { start: 'Deleting project...', success: 'Project permanently deleted', failure: 'Failed to delete project' },
+            () => ctx.client.projects.delete(name, { confirm: true, confirmationPhrase: name })
+          );
         } else {
-          await ctx.client.projects.softDelete(name, {
-            confirm: true,
-            confirmationPhrase: name,
-          });
-          spinner?.succeed('Project soft-deleted');
+          await withSpinner(
+            ctx,
+            { start: 'Deleting project...', success: 'Project soft-deleted', failure: 'Failed to delete project' },
+            () => ctx.client.projects.softDelete(name, { confirm: true, confirmationPhrase: name })
+          );
         }
 
         if (ctx.json) {
@@ -134,7 +130,6 @@ export function registerProjectCommands(program: Command): void {
           console.log('Use "ulu projects restore" to recover this project');
         }
       } catch (error) {
-        spinner?.fail('Failed to delete project');
         handleError(error, ctx);
       }
     });
@@ -146,12 +141,13 @@ export function registerProjectCommands(program: Command): void {
     .action(async (name: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Restoring project...');
 
       try {
-        spinner?.start();
-        const project = await ctx.client.projects.restore(name);
-        spinner?.succeed('Project restored');
+        const project = await withSpinner(
+          ctx,
+          { start: 'Restoring project...', success: 'Project restored', failure: 'Failed to restore project' },
+          () => ctx.client.projects.restore(name)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(project, null, 2));
@@ -159,7 +155,6 @@ export function registerProjectCommands(program: Command): void {
           console.log(formatProject(project));
         }
       } catch (error) {
-        spinner?.fail('Failed to restore project');
         handleError(error, ctx);
       }
     });
@@ -171,12 +166,13 @@ export function registerProjectCommands(program: Command): void {
     .action(async (name: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching summary...');
 
       try {
-        spinner?.start();
-        const summary = await ctx.client.projects.getSummary(name);
-        spinner?.succeed();
+        const summary = await withSpinner(
+          ctx,
+          { start: 'Fetching summary...', failure: 'Failed to fetch summary' },
+          () => ctx.client.projects.getSummary(name)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(summary, null, 2));
@@ -184,7 +180,6 @@ export function registerProjectCommands(program: Command): void {
           console.log(formatProjectSummary(summary));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch summary');
         handleError(error, ctx);
       }
     });
@@ -197,14 +192,13 @@ export function registerProjectCommands(program: Command): void {
     .action(async (name: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching trends...');
 
       try {
-        spinner?.start();
-        const trends = await ctx.client.projects.getTrends(name, {
-          days: parseInt(options.days, 10),
-        });
-        spinner?.succeed();
+        const trends = await withSpinner(
+          ctx,
+          { start: 'Fetching trends...', failure: 'Failed to fetch trends' },
+          () => ctx.client.projects.getTrends(name, { days: parseInt(options.days, 10) })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(trends, null, 2));
@@ -221,7 +215,6 @@ export function registerProjectCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch trends');
         handleError(error, ctx);
       }
     });

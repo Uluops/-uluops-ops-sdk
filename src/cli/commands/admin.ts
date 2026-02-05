@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
-import { createSpinner, formatDate } from '../utils.js';
+import { withSpinner, formatDate } from '../utils.js';
 import { formatTable, formatKeyValue, type Column } from '../formatters/table.js';
 import type { UserRole, SubscriptionTier } from '../../types/enums.js';
 
@@ -19,12 +19,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (_, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching admin stats...');
 
       try {
-        spinner?.start();
-        const stats = await ctx.client.admin.getStats();
-        spinner?.succeed();
+        const stats = await withSpinner(
+          ctx,
+          { start: 'Fetching admin stats...', failure: 'Failed to fetch admin stats' },
+          () => ctx.client.admin.getStats()
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(stats, null, 2));
@@ -40,7 +41,6 @@ export function registerAdminCommands(program: Command): void {
           }));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch admin stats');
         handleError(error, ctx);
       }
     });
@@ -66,19 +66,20 @@ export function registerAdminCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching users...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.listUsers({
-          search: options.search,
-          role: options.role as UserRole | undefined,
-          subscriptionTier: options.tier as SubscriptionTier | undefined,
-          isActive: options.inactive ? false : undefined,
-          limit: parseInt(options.limit, 10),
-          page: parseInt(options.page, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching users...', failure: 'Failed to fetch users' },
+          () => ctx.client.admin.listUsers({
+            search: options.search,
+            role: options.role as UserRole | undefined,
+            subscriptionTier: options.tier as SubscriptionTier | undefined,
+            isActive: options.inactive ? false : undefined,
+            limit: parseInt(options.limit, 10),
+            page: parseInt(options.page, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -99,7 +100,6 @@ export function registerAdminCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch users');
         handleError(error, ctx);
       }
     });
@@ -111,12 +111,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching user...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.getUser(id);
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching user...', failure: 'Failed to fetch user' },
+          () => ctx.client.admin.getUser(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -141,7 +142,6 @@ export function registerAdminCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch user');
         handleError(error, ctx);
       }
     });
@@ -158,18 +158,19 @@ export function registerAdminCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Creating user...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.createUser({
-          email: options.email,
-          password: options.password,
-          role: options.role as UserRole,
-          subscriptionTier: options.tier as SubscriptionTier,
-          sendWelcomeEmail: options.welcome,
-        });
-        spinner?.succeed('User created');
+        const data = await withSpinner(
+          ctx,
+          { start: 'Creating user...', success: 'User created', failure: 'Failed to create user' },
+          () => ctx.client.admin.createUser({
+            email: options.email,
+            password: options.password,
+            role: options.role as UserRole,
+            subscriptionTier: options.tier as SubscriptionTier,
+            sendWelcomeEmail: options.welcome,
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -181,7 +182,6 @@ export function registerAdminCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to create user');
         handleError(error, ctx);
       }
     });
@@ -196,16 +196,17 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Updating user...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.updateUser(id, {
-          email: options.email,
-          role: options.role as UserRole | undefined,
-          subscriptionTier: options.tier as SubscriptionTier | undefined,
-        });
-        spinner?.succeed('User updated');
+        const data = await withSpinner(
+          ctx,
+          { start: 'Updating user...', success: 'User updated', failure: 'Failed to update user' },
+          () => ctx.client.admin.updateUser(id, {
+            email: options.email,
+            role: options.role as UserRole | undefined,
+            subscriptionTier: options.tier as SubscriptionTier | undefined,
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -213,7 +214,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(`User ${data.user.email} updated`);
         }
       } catch (error) {
-        spinner?.fail('Failed to update user');
         handleError(error, ctx);
       }
     });
@@ -225,12 +225,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Deactivating user...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.deactivateUser(id);
-        spinner?.succeed('User deactivated');
+        const data = await withSpinner(
+          ctx,
+          { start: 'Deactivating user...', success: 'User deactivated', failure: 'Failed to deactivate user' },
+          () => ctx.client.admin.deactivateUser(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -238,7 +239,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(`User ${data.user.email} deactivated`);
         }
       } catch (error) {
-        spinner?.fail('Failed to deactivate user');
         handleError(error, ctx);
       }
     });
@@ -250,12 +250,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Reactivating user...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.reactivateUser(id);
-        spinner?.succeed('User reactivated');
+        const data = await withSpinner(
+          ctx,
+          { start: 'Reactivating user...', success: 'User reactivated', failure: 'Failed to reactivate user' },
+          () => ctx.client.admin.reactivateUser(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -263,7 +264,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(`User ${data.user.email} reactivated`);
         }
       } catch (error) {
-        spinner?.fail('Failed to reactivate user');
         handleError(error, ctx);
       }
     });
@@ -275,12 +275,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Sending password reset...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.admin.resetUserPassword(id);
-        spinner?.succeed('Password reset email sent');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Sending password reset...', success: 'Password reset email sent', failure: 'Failed to send password reset' },
+          () => ctx.client.admin.resetUserPassword(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -288,7 +289,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(result.message);
         }
       } catch (error) {
-        spinner?.fail('Failed to send password reset');
         handleError(error, ctx);
       }
     });
@@ -311,16 +311,17 @@ export function registerAdminCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching sessions...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.listSessions({
-          userId: options.user,
-          limit: parseInt(options.limit, 10),
-          page: parseInt(options.page, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching sessions...', failure: 'Failed to fetch sessions' },
+          () => ctx.client.admin.listSessions({
+            userId: options.user,
+            limit: parseInt(options.limit, 10),
+            page: parseInt(options.page, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -340,7 +341,6 @@ export function registerAdminCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch sessions');
         handleError(error, ctx);
       }
     });
@@ -352,12 +352,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Terminating session...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.admin.terminateSession(id);
-        spinner?.succeed('Session terminated');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Terminating session...', success: 'Session terminated', failure: 'Failed to terminate session' },
+          () => ctx.client.admin.terminateSession(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -365,7 +366,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(result.message);
         }
       } catch (error) {
-        spinner?.fail('Failed to terminate session');
         handleError(error, ctx);
       }
     });
@@ -377,12 +377,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (userId: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Terminating user sessions...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.admin.terminateUserSessions(userId);
-        spinner?.succeed('User sessions terminated');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Terminating user sessions...', success: 'User sessions terminated', failure: 'Failed to terminate user sessions' },
+          () => ctx.client.admin.terminateUserSessions(userId)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -390,7 +391,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(result.message);
         }
       } catch (error) {
-        spinner?.fail('Failed to terminate user sessions');
         handleError(error, ctx);
       }
     });
@@ -414,17 +414,18 @@ export function registerAdminCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching API keys...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.admin.listKeys({
-          userId: options.user,
-          search: options.search,
-          limit: parseInt(options.limit, 10),
-          page: parseInt(options.page, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching API keys...', failure: 'Failed to fetch API keys' },
+          () => ctx.client.admin.listKeys({
+            userId: options.user,
+            search: options.search,
+            limit: parseInt(options.limit, 10),
+            page: parseInt(options.page, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -444,7 +445,6 @@ export function registerAdminCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch API keys');
         handleError(error, ctx);
       }
     });
@@ -456,12 +456,13 @@ export function registerAdminCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Revoking API key...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.admin.revokeKey(id);
-        spinner?.succeed('API key revoked');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Revoking API key...', success: 'API key revoked', failure: 'Failed to revoke API key' },
+          () => ctx.client.admin.revokeKey(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -469,7 +470,6 @@ export function registerAdminCommands(program: Command): void {
           console.log(result.message);
         }
       } catch (error) {
-        spinner?.fail('Failed to revoke API key');
         handleError(error, ctx);
       }
     });

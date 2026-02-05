@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
-import { createSpinner } from '../utils.js';
+import { withSpinner } from '../utils.js';
 import { formatIssues, formatIssue } from '../formatters/output.js';
 import type { Status, Priority, Severity, FailureDomain } from '../../types/enums.js';
 
@@ -26,20 +26,21 @@ export function registerIssueCommands(program: Command): void {
     .action(async (project: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching issues...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.issues.listByProject(project, {
-          status: options.status as Status | undefined,
-          priority: options.priority as Priority | undefined,
-          severity: options.severity as Severity | undefined,
-          validator: options.validator,
-          failureDomain: options.domain as FailureDomain | undefined,
-          limit: parseInt(options.limit, 10),
-          includeResolved: options.includeResolved,
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching issues...', failure: 'Failed to fetch issues' },
+          () => ctx.client.issues.listByProject(project, {
+            status: options.status as Status | undefined,
+            priority: options.priority as Priority | undefined,
+            severity: options.severity as Severity | undefined,
+            validator: options.validator,
+            failureDomain: options.domain as FailureDomain | undefined,
+            limit: parseInt(options.limit, 10),
+            includeResolved: options.includeResolved,
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -49,7 +50,6 @@ export function registerIssueCommands(program: Command): void {
           console.log(formatIssues(data));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch issues');
         handleError(error, ctx);
       }
     });
@@ -62,14 +62,14 @@ export function registerIssueCommands(program: Command): void {
     .action(async (id: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching issue...');
 
       try {
-        spinner?.start();
-
         if (options.full) {
-          const details = await ctx.client.issues.getDetails(id);
-          spinner?.succeed();
+          const details = await withSpinner(
+            ctx,
+            { start: 'Fetching issue...', failure: 'Failed to fetch issue' },
+            () => ctx.client.issues.getDetails(id)
+          );
 
           if (ctx.json) {
             console.log(JSON.stringify(details, null, 2));
@@ -98,8 +98,11 @@ export function registerIssueCommands(program: Command): void {
             }
           }
         } else {
-          const issue = await ctx.client.issues.get(id);
-          spinner?.succeed();
+          const issue = await withSpinner(
+            ctx,
+            { start: 'Fetching issue...', failure: 'Failed to fetch issue' },
+            () => ctx.client.issues.get(id)
+          );
 
           if (ctx.json) {
             console.log(JSON.stringify(issue, null, 2));
@@ -108,7 +111,6 @@ export function registerIssueCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch issue');
         handleError(error, ctx);
       }
     });
@@ -125,18 +127,19 @@ export function registerIssueCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Searching...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.issues.search({
-          query: options.query,
-          projects: options.projects?.split(','),
-          status: options.status as Status | undefined,
-          priority: options.priority as Priority | undefined,
-          limit: parseInt(options.limit, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Searching...', failure: 'Search failed' },
+          () => ctx.client.issues.search({
+            query: options.query,
+            projects: options.projects?.split(','),
+            status: options.status as Status | undefined,
+            priority: options.priority as Priority | undefined,
+            limit: parseInt(options.limit, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -146,7 +149,6 @@ export function registerIssueCommands(program: Command): void {
           console.log(formatIssues(data));
         }
       } catch (error) {
-        spinner?.fail('Search failed');
         handleError(error, ctx);
       }
     });
@@ -160,15 +162,16 @@ export function registerIssueCommands(program: Command): void {
     .action(async (id: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Updating issue...');
 
       try {
-        spinner?.start();
-        const issue = await ctx.client.issues.updateStatus(id, {
-          status: options.status as Status,
-          reason: options.reason,
-        });
-        spinner?.succeed('Issue updated');
+        const issue = await withSpinner(
+          ctx,
+          { start: 'Updating issue...', success: 'Issue updated', failure: 'Failed to update issue' },
+          () => ctx.client.issues.updateStatus(id, {
+            status: options.status as Status,
+            reason: options.reason,
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(issue, null, 2));
@@ -176,7 +179,6 @@ export function registerIssueCommands(program: Command): void {
           console.log(`Issue ${id.slice(0, 8)} status changed to: ${issue.status}`);
         }
       } catch (error) {
-        spinner?.fail('Failed to update issue');
         handleError(error, ctx);
       }
     });
@@ -189,15 +191,16 @@ export function registerIssueCommands(program: Command): void {
     .action(async (id: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Closing issue...');
 
       try {
-        spinner?.start();
-        const issue = await ctx.client.issues.updateStatus(id, {
-          status: 'completed',
-          reason: options.reason ?? 'Closed via CLI',
-        });
-        spinner?.succeed('Issue closed');
+        const issue = await withSpinner(
+          ctx,
+          { start: 'Closing issue...', success: 'Issue closed', failure: 'Failed to close issue' },
+          () => ctx.client.issues.updateStatus(id, {
+            status: 'completed',
+            reason: options.reason ?? 'Closed via CLI',
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(issue, null, 2));
@@ -205,7 +208,6 @@ export function registerIssueCommands(program: Command): void {
           console.log(`Issue ${id.slice(0, 8)} closed`);
         }
       } catch (error) {
-        spinner?.fail('Failed to close issue');
         handleError(error, ctx);
       }
     });
@@ -219,15 +221,16 @@ export function registerIssueCommands(program: Command): void {
     .action(async (id: string, options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Adding note...');
 
       try {
-        spinner?.start();
-        const note = await ctx.client.issues.addNote(id, {
-          content: options.message,
-          noteType: options.type as 'context' | 'resolution' | 'blocker',
-        });
-        spinner?.succeed('Note added');
+        const note = await withSpinner(
+          ctx,
+          { start: 'Adding note...', success: 'Note added', failure: 'Failed to add note' },
+          () => ctx.client.issues.addNote(id, {
+            content: options.message,
+            noteType: options.type as 'context' | 'resolution' | 'blocker',
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(note, null, 2));
@@ -235,7 +238,6 @@ export function registerIssueCommands(program: Command): void {
           console.log(`Note added to issue ${id.slice(0, 8)}`);
         }
       } catch (error) {
-        spinner?.fail('Failed to add note');
         handleError(error, ctx);
       }
     });
@@ -247,12 +249,13 @@ export function registerIssueCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching history...');
 
       try {
-        spinner?.start();
-        const history = await ctx.client.issues.getHistory(id);
-        spinner?.succeed();
+        const history = await withSpinner(
+          ctx,
+          { start: 'Fetching history...', failure: 'Failed to fetch history' },
+          () => ctx.client.issues.getHistory(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(history, null, 2));
@@ -269,7 +272,6 @@ export function registerIssueCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch history');
         handleError(error, ctx);
       }
     });
@@ -281,12 +283,13 @@ export function registerIssueCommands(program: Command): void {
     .action(async (id: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Undoing change...');
 
       try {
-        spinner?.start();
-        const issue = await ctx.client.issues.undoLastChange(id);
-        spinner?.succeed('Change undone');
+        const issue = await withSpinner(
+          ctx,
+          { start: 'Undoing change...', success: 'Change undone', failure: 'Failed to undo change' },
+          () => ctx.client.issues.undoLastChange(id)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(issue, null, 2));
@@ -294,7 +297,6 @@ export function registerIssueCommands(program: Command): void {
           console.log(`Issue ${id.slice(0, 8)} restored to: ${issue.status}`);
         }
       } catch (error) {
-        spinner?.fail('Failed to undo change');
         handleError(error, ctx);
       }
     });

@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   sleep,
   retry,
-  toSnakeCase,
-  toCamelCase,
   deepMerge,
   pick,
   omit,
@@ -11,7 +9,6 @@ import {
   formatDate,
   isUuid,
   truncate,
-  buildQueryString,
 } from '../../src/utils/helpers.js';
 
 describe('Helper Utilities', () => {
@@ -98,57 +95,6 @@ describe('Helper Utilities', () => {
 
       expect(result).toBe('success');
       expect(fn).toHaveBeenCalledTimes(3);
-    });
-  });
-
-  describe('toSnakeCase', () => {
-    it('should convert camelCase keys to snake_case', () => {
-      const input = { firstName: 'John', lastName: 'Doe', createdAt: '2024-01-01' };
-      const result = toSnakeCase(input);
-      expect(result).toEqual({
-        first_name: 'John',
-        last_name: 'Doe',
-        created_at: '2024-01-01',
-      });
-    });
-
-    it('should handle already snake_case keys', () => {
-      const input = { already_snake: 'value' };
-      const result = toSnakeCase(input);
-      expect(result).toEqual({ already_snake: 'value' });
-    });
-
-    it('should handle empty object', () => {
-      expect(toSnakeCase({})).toEqual({});
-    });
-
-    it('should preserve values', () => {
-      const input = { someValue: 123, anotherValue: null };
-      const result = toSnakeCase(input);
-      expect(result.some_value).toBe(123);
-      expect(result.another_value).toBeNull();
-    });
-  });
-
-  describe('toCamelCase', () => {
-    it('should convert snake_case keys to camelCase', () => {
-      const input = { first_name: 'John', last_name: 'Doe', created_at: '2024-01-01' };
-      const result = toCamelCase(input);
-      expect(result).toEqual({
-        firstName: 'John',
-        lastName: 'Doe',
-        createdAt: '2024-01-01',
-      });
-    });
-
-    it('should handle already camelCase keys', () => {
-      const input = { alreadyCamel: 'value' };
-      const result = toCamelCase(input);
-      expect(result).toEqual({ alreadyCamel: 'value' });
-    });
-
-    it('should handle empty object', () => {
-      expect(toCamelCase({})).toEqual({});
     });
   });
 
@@ -285,33 +231,4 @@ describe('Helper Utilities', () => {
     });
   });
 
-  describe('buildQueryString', () => {
-    it('should build query string from params', () => {
-      const params = { name: 'test', limit: 10 };
-      expect(buildQueryString(params)).toBe('?name=test&limit=10');
-    });
-
-    it('should skip undefined and null values', () => {
-      const params = { a: 1, b: undefined, c: null, d: 2 };
-      expect(buildQueryString(params)).toBe('?a=1&d=2');
-    });
-
-    it('should handle array values', () => {
-      const params = { tags: ['a', 'b', 'c'] };
-      expect(buildQueryString(params)).toBe('?tags=a&tags=b&tags=c');
-    });
-
-    it('should encode special characters', () => {
-      const params = { query: 'hello world', filter: 'a&b' };
-      expect(buildQueryString(params)).toBe('?query=hello%20world&filter=a%26b');
-    });
-
-    it('should return empty string for empty params', () => {
-      expect(buildQueryString({})).toBe('');
-    });
-
-    it('should return empty string when all values are undefined/null', () => {
-      expect(buildQueryString({ a: undefined, b: null })).toBe('');
-    });
-  });
 });

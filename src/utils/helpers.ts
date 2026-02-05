@@ -45,34 +45,6 @@ export async function retry<T>(
 }
 
 /**
- * Convert object keys from camelCase to snake_case
- */
-export function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-    result[snakeKey] = value;
-  }
-
-  return result;
-}
-
-/**
- * Convert object keys from snake_case to camelCase
- */
-export function toCamelCase(obj: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
-    result[camelKey] = value;
-  }
-
-  return result;
-}
-
-/**
  * Deep merge objects
  */
 export function deepMerge<T extends Record<string, unknown>>(
@@ -180,23 +152,3 @@ export function truncate(str: string, maxLength: number): string {
   return str.slice(0, maxLength - 3) + '...';
 }
 
-/**
- * Build query string from params object
- */
-export function buildQueryString(params: Record<string, unknown>): string {
-  const entries: string[] = [];
-
-  for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null) continue;
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        entries.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(item))}`);
-      }
-    } else {
-      entries.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
-    }
-  }
-
-  return entries.length > 0 ? `?${entries.join('&')}` : '';
-}

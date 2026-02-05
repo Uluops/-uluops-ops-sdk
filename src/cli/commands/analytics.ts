@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createContext, handleError, type GlobalOptions } from '../context.js';
-import { createSpinner } from '../utils.js';
+import { withSpinner } from '../utils.js';
 import { formatTable, type Column } from '../formatters/table.js';
 
 /**
@@ -21,16 +21,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching validator performance...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getValidatorPerformance({
-          project: options.project,
-          days: parseInt(options.days, 10),
-          limit: parseInt(options.limit, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching validator performance...', failure: 'Failed to fetch validator performance' },
+          () => ctx.client.analytics.getValidatorPerformance({
+            project: options.project,
+            days: parseInt(options.days, 10),
+            limit: parseInt(options.limit, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -50,7 +51,6 @@ export function registerAnalyticsCommands(program: Command): void {
           console.log(formatTable(data, columns));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch validator performance');
         handleError(error, ctx);
       }
     });
@@ -65,16 +65,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching reliability stats...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getValidatorReliability({
-          validator: options.validator,
-          project: options.project,
-          days: parseInt(options.days, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching reliability stats...', failure: 'Failed to fetch reliability stats' },
+          () => ctx.client.analytics.getValidatorReliability({
+            validator: options.validator,
+            project: options.project,
+            days: parseInt(options.days, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -100,7 +101,6 @@ export function registerAnalyticsCommands(program: Command): void {
           console.log(formatTable(data.validators, columns));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch reliability stats');
         handleError(error, ctx);
       }
     });
@@ -115,16 +115,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching file hotspots...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getFileHotspots({
-          project: options.project,
-          days: parseInt(options.days, 10),
-          limit: parseInt(options.limit, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching file hotspots...', failure: 'Failed to fetch hotspots' },
+          () => ctx.client.analytics.getFileHotspots({
+            project: options.project,
+            days: parseInt(options.days, 10),
+            limit: parseInt(options.limit, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -142,7 +143,6 @@ export function registerAnalyticsCommands(program: Command): void {
           console.log(formatTable(data, columns));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch hotspots');
         handleError(error, ctx);
       }
     });
@@ -157,16 +157,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching burndown data...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getBurndown({
-          project: options.project,
-          days: parseInt(options.days, 10),
-          granularity: options.granularity as 'daily' | 'weekly',
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching burndown data...', failure: 'Failed to fetch burndown' },
+          () => ctx.client.analytics.getBurndown({
+            project: options.project,
+            days: parseInt(options.days, 10),
+            granularity: options.granularity as 'daily' | 'weekly',
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -188,7 +189,6 @@ export function registerAnalyticsCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch burndown');
         handleError(error, ctx);
       }
     });
@@ -203,16 +203,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching velocity metrics...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getVelocity({
-          project: options.project,
-          days: parseInt(options.days, 10),
-          alertThreshold: parseFloat(options.threshold),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching velocity metrics...', failure: 'Failed to fetch velocity' },
+          () => ctx.client.analytics.getVelocity({
+            project: options.project,
+            days: parseInt(options.days, 10),
+            alertThreshold: parseFloat(options.threshold),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -238,7 +239,6 @@ export function registerAnalyticsCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch velocity');
         handleError(error, ctx);
       }
     });
@@ -253,16 +253,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching discovery timeline...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getDiscovery({
-          project: options.project,
-          days: parseInt(options.days, 10),
-          groupBy: options.groupBy as 'day' | 'week' | 'month',
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching discovery timeline...', failure: 'Failed to fetch discovery data' },
+          () => ctx.client.analytics.getDiscovery({
+            project: options.project,
+            days: parseInt(options.days, 10),
+            groupBy: options.groupBy as 'day' | 'week' | 'month',
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -282,7 +283,6 @@ export function registerAnalyticsCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch discovery data');
         handleError(error, ctx);
       }
     });
@@ -297,16 +297,17 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching validator matrix...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getValidatorMatrix({
-          project: options.project,
-          days: parseInt(options.days, 10),
-          minIssues: parseInt(options.minIssues, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching validator matrix...', failure: 'Failed to fetch validator matrix' },
+          () => ctx.client.analytics.getValidatorMatrix({
+            project: options.project,
+            days: parseInt(options.days, 10),
+            minIssues: parseInt(options.minIssues, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -332,7 +333,6 @@ export function registerAnalyticsCommands(program: Command): void {
           }
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch validator matrix');
         handleError(error, ctx);
       }
     });
@@ -346,15 +346,16 @@ export function registerAnalyticsCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching resolution rates...');
 
       try {
-        spinner?.start();
-        const data = await ctx.client.analytics.getResolutionRates({
-          days: parseInt(options.days, 10),
-          limit: parseInt(options.limit, 10),
-        });
-        spinner?.succeed();
+        const data = await withSpinner(
+          ctx,
+          { start: 'Fetching resolution rates...', failure: 'Failed to fetch resolution rates' },
+          () => ctx.client.analytics.getResolutionRates({
+            days: parseInt(options.days, 10),
+            limit: parseInt(options.limit, 10),
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(data, null, 2));
@@ -370,7 +371,6 @@ export function registerAnalyticsCommands(program: Command): void {
           console.log(formatTable(data, columns));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch resolution rates');
         handleError(error, ctx);
       }
     });

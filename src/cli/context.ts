@@ -1,6 +1,7 @@
 import { OpsClient } from '../client.js';
 import { loadConfig } from '../config/loaders.js';
 import { OpsApiError } from '../errors/errors.js';
+import { sanitizeForDisplay } from '../utils/logger.js';
 import { exitWithError } from './utils.js';
 
 /**
@@ -92,7 +93,9 @@ export function createUnauthenticatedContext(options: GlobalOptions): Omit<CliCo
 export function handleError(error: unknown, ctx: Pick<CliContext, 'json' | 'debug'>): never {
   if (error instanceof OpsApiError) {
     if (ctx.json) {
-      console.error(JSON.stringify(error.toJSON(), null, 2));
+      // Sanitize error output to prevent accidental credential exposure
+      const safeError = sanitizeForDisplay(error.toJSON());
+      console.error(JSON.stringify(safeError, null, 2));
     } else {
       console.error(`Error: ${error.message}`);
 
@@ -109,7 +112,9 @@ export function handleError(error: unknown, ctx: Pick<CliContext, 'json' | 'debu
       }
 
       if (ctx.debug && error.details) {
-        console.error('\nDetails:', JSON.stringify(error.details, null, 2));
+        // Sanitize details to prevent accidental credential exposure
+        const safeDetails = sanitizeForDisplay(error.details);
+        console.error('\nDetails:', JSON.stringify(safeDetails, null, 2));
       }
 
       if (error.requestId) {

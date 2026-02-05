@@ -10,7 +10,7 @@ import {
   handleError,
   type GlobalOptions,
 } from '../context.js';
-import { createSpinner } from '../utils.js';
+import { withSpinner } from '../utils.js';
 import { formatApiKeys } from '../formatters/output.js';
 
 /**
@@ -75,19 +75,19 @@ export function registerAuthCommands(program: Command): void {
         process.exit(1);
       }
 
-      const spinner = ctx.quiet ? null : createSpinner('Logging in...');
-
       try {
-        spinner?.start();
-
-        const client = new OpsClient({
-          email: options.email,
-          password: options.password,
-          baseUrl: ctx.baseUrl,
-        });
-
-        const result = await client.login(options.email, options.password);
-        spinner?.succeed('Login successful');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Logging in...', success: 'Login successful', failure: 'Login failed' },
+          async () => {
+            const client = new OpsClient({
+              email: options.email,
+              password: options.password,
+              baseUrl: ctx.baseUrl,
+            });
+            return client.login(options.email, options.password);
+          }
+        );
 
         // Save credentials
         const profile = globalOpts.profile ?? 'default';
@@ -105,7 +105,6 @@ export function registerAuthCommands(program: Command): void {
           console.log('You can now use other ulu commands.');
         }
       } catch (error) {
-        spinner?.fail('Login failed');
         handleError(error, ctx);
       }
     });
@@ -117,12 +116,13 @@ export function registerAuthCommands(program: Command): void {
     .action(async (_, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Logging out...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.logout();
-        spinner?.succeed('Logged out');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Logging out...', success: 'Logged out', failure: 'Logout failed' },
+          () => ctx.client.logout()
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -130,7 +130,6 @@ export function registerAuthCommands(program: Command): void {
           console.log(`Revoked ${result.sessionsRevoked} session(s)`);
         }
       } catch (error) {
-        spinner?.fail('Logout failed');
         handleError(error, ctx);
       }
     });
@@ -142,12 +141,13 @@ export function registerAuthCommands(program: Command): void {
     .action(async (_, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching user info...');
 
       try {
-        spinner?.start();
-        const user = await ctx.client.auth.getMe();
-        spinner?.succeed();
+        const user = await withSpinner(
+          ctx,
+          { start: 'Fetching user info...', failure: 'Failed to fetch user info' },
+          () => ctx.client.auth.getMe()
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(user, null, 2));
@@ -160,7 +160,6 @@ export function registerAuthCommands(program: Command): void {
           console.log(`Auth Type: ${ctx.client.getAuthType()}`);
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch user info');
         handleError(error, ctx);
       }
     });
@@ -177,12 +176,13 @@ export function registerAuthCommands(program: Command): void {
     .action(async (_, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Fetching API keys...');
 
       try {
-        spinner?.start();
-        const keys = await ctx.client.auth.listApiKeys();
-        spinner?.succeed();
+        const keys = await withSpinner(
+          ctx,
+          { start: 'Fetching API keys...', failure: 'Failed to fetch API keys' },
+          () => ctx.client.auth.listApiKeys()
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(keys, null, 2));
@@ -192,7 +192,6 @@ export function registerAuthCommands(program: Command): void {
           console.log(formatApiKeys(keys));
         }
       } catch (error) {
-        spinner?.fail('Failed to fetch API keys');
         handleError(error, ctx);
       }
     });
@@ -206,15 +205,16 @@ export function registerAuthCommands(program: Command): void {
     .action(async (options, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Creating API key...');
 
       try {
-        spinner?.start();
-        const result = await ctx.client.auth.createApiKey({
-          name: options.name,
-          expiresAt: options.expires,
-        });
-        spinner?.succeed('API key created');
+        const result = await withSpinner(
+          ctx,
+          { start: 'Creating API key...', success: 'API key created', failure: 'Failed to create API key' },
+          () => ctx.client.auth.createApiKey({
+            name: options.name,
+            expiresAt: options.expires,
+          })
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -228,7 +228,6 @@ export function registerAuthCommands(program: Command): void {
           console.log('\n' + '='.repeat(60));
         }
       } catch (error) {
-        spinner?.fail('Failed to create API key');
         handleError(error, ctx);
       }
     });
@@ -240,12 +239,13 @@ export function registerAuthCommands(program: Command): void {
     .action(async (keyId: string, _, cmd) => {
       const globalOpts = cmd.optsWithGlobals() as GlobalOptions;
       const ctx = createContext(globalOpts);
-      const spinner = ctx.quiet ? null : createSpinner('Revoking API key...');
 
       try {
-        spinner?.start();
-        await ctx.client.auth.revokeApiKey(keyId);
-        spinner?.succeed('API key revoked');
+        await withSpinner(
+          ctx,
+          { start: 'Revoking API key...', success: 'API key revoked', failure: 'Failed to revoke API key' },
+          () => ctx.client.auth.revokeApiKey(keyId)
+        );
 
         if (ctx.json) {
           console.log(JSON.stringify({ success: true, keyId }, null, 2));
@@ -253,7 +253,6 @@ export function registerAuthCommands(program: Command): void {
           console.log(`API key ${keyId} has been revoked`);
         }
       } catch (error) {
-        spinner?.fail('Failed to revoke API key');
         handleError(error, ctx);
       }
     });
