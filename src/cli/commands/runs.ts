@@ -227,10 +227,9 @@ export function registerRunCommands(program: Command): void {
           console.log(`Run #${result.run.runNumber} saved successfully`);
           console.log('');
           console.log('Correlation:');
-          const corr = result.correlation as Record<string, unknown>;
-          console.log(`  New issues: ${getFlexibleProperty(corr, 'newIssues', 0)}`);
-          console.log(`  Recurring: ${getFlexibleProperty(corr, 'recurringIssues', 0)}`);
-          console.log(`  Regressions: ${getFlexibleProperty(corr, 'regressions', 0)}`);
+          console.log(`  New issues: ${getFlexibleProperty(result.correlation, 'newIssues', 0)}`);
+          console.log(`  Recurring: ${getFlexibleProperty(result.correlation, 'recurringIssues', 0)}`);
+          console.log(`  Regressions: ${getFlexibleProperty(result.correlation, 'regressions', 0)}`);
           if (result.deduplicated) {
             console.log('\n(Deduplicated: run with same idempotency key already existed)');
           }
@@ -273,12 +272,11 @@ export function registerRunCommands(program: Command): void {
         if (ctx.json) {
           console.log(JSON.stringify(result, null, 2));
         } else {
-          const res = result as Record<string, unknown>;
-          const wouldCreate = getFlexibleProperty(res, 'wouldCreate', false);
-          const wouldUpdate = getFlexibleProperty(res, 'wouldUpdate', false);
-          const wouldRegress = getFlexibleProperty(res, 'wouldRegress', false);
-          const validationErrors = getFlexibleProperty<string[]>(res, 'validationErrors', []);
-          const preview = res.preview as Record<string, unknown> | undefined;
+          const wouldCreate = getFlexibleProperty(result, 'wouldCreate', false);
+          const wouldUpdate = getFlexibleProperty(result, 'wouldUpdate', false);
+          const wouldRegress = getFlexibleProperty(result, 'wouldRegress', false);
+          const validationErrors = getFlexibleProperty<string[]>(result, 'validationErrors', []);
+          const preview = getFlexibleProperty<Record<string, unknown> | undefined>(result, 'preview', undefined);
 
           console.log('Validation Preview:');
           console.log(`  Would create: ${wouldCreate ? 'Yes' : 'No'}`);

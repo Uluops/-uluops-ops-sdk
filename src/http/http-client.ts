@@ -47,7 +47,7 @@ export class OpsHttpClient {
   private readonly defaultHeaders: Record<string, string>;
 
   constructor(config: HttpClientConfig = {}) {
-    this.logger = createLogger(config.debug ?? false);
+    this.logger = createLogger('[ops-sdk:http]', config.debug ?? false);
     this.retries = config.retries ?? DEFAULT_RETRY_COUNT;
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT;

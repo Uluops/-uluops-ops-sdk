@@ -17,6 +17,38 @@
       "import": "./dist/types/index.js",
       "types": "./dist/types/index.d.ts"
     },
+    "./types/enums": {
+      "import": "./dist/types/enums.js",
+      "types": "./dist/types/enums.d.ts"
+    },
+    "./types/auth": {
+      "import": "./dist/types/auth.js",
+      "types": "./dist/types/auth.d.ts"
+    },
+    "./types/projects": {
+      "import": "./dist/types/projects.js",
+      "types": "./dist/types/projects.d.ts"
+    },
+    "./types/runs": {
+      "import": "./dist/types/runs.js",
+      "types": "./dist/types/runs.d.ts"
+    },
+    "./types/issues": {
+      "import": "./dist/types/issues.js",
+      "types": "./dist/types/issues.d.ts"
+    },
+    "./types/analytics": {
+      "import": "./dist/types/analytics.js",
+      "types": "./dist/types/analytics.d.ts"
+    },
+    "./types/responses": {
+      "import": "./dist/types/responses.js",
+      "types": "./dist/types/responses.d.ts"
+    },
+    "./types/schemas": {
+      "import": "./dist/types/schemas.js",
+      "types": "./dist/types/schemas.d.ts"
+    },
     "./errors": {
       "import": "./dist/errors/index.js",
       "types": "./dist/errors/index.d.ts"
@@ -24,6 +56,14 @@
     "./config": {
       "import": "./dist/config/index.js",
       "types": "./dist/config/index.d.ts"
+    },
+    "./cli/utils": {
+      "import": "./dist/cli/utils.js",
+      "types": "./dist/cli/utils.d.ts"
+    },
+    "./cli/formatters/table": {
+      "import": "./dist/cli/formatters/table.js",
+      "types": "./dist/cli/formatters/table.d.ts"
     }
   },
   "files": [

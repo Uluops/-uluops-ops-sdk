@@ -43,7 +43,7 @@ export function registerAnalyticsCommands(program: Command): void {
             { header: 'VALIDATOR', accessor: 'name', width: 25 },
             { header: 'RUNS', accessor: (v) => String(v.totalRuns), width: 8, align: 'right' },
             { header: 'AVG SCORE', accessor: (v) => {
-              const score = getFlexibleProperty(v as Record<string, unknown>, 'averageScore', v.avgScore);
+              const score = getFlexibleProperty(v, 'averageScore', v.avgScore);
               return score?.toFixed(1) ?? '-';
             }, width: 10, align: 'right' },
             { header: 'PASS RATE', accessor: (v) => `${v.passRate.toFixed(0)}%`, width: 10, align: 'right' },
@@ -85,15 +85,15 @@ export function registerAnalyticsCommands(program: Command): void {
           const columns: Column<(typeof data.validators)[0]>[] = [
             { header: 'VALIDATOR', accessor: 'name', width: 25 },
             { header: 'FALSE POS', accessor: (v) => {
-              const rate = getFlexibleProperty(v as Record<string, unknown>, 'falsePositiveRate', null as number | null);
+              const rate = getFlexibleProperty(v, 'falsePositiveRate', null as number | null);
               return `${rate?.toFixed(1) ?? '-'}%`;
             }, width: 10, align: 'right' },
             { header: 'RESOLUTION', accessor: (v) => {
-              const rate = getFlexibleProperty(v as Record<string, unknown>, 'resolutionRate', null as number | null);
+              const rate = getFlexibleProperty(v, 'resolutionRate', null as number | null);
               return `${rate?.toFixed(1) ?? '-'}%`;
             }, width: 12, align: 'right' },
             { header: 'RELIABILITY', accessor: (v) => {
-              const score = getFlexibleProperty(v as Record<string, unknown>, 'reliabilityScore', null as number | null);
+              const score = getFlexibleProperty(v, 'reliabilityScore', null as number | null);
               return score?.toFixed(1) ?? '-';
             }, width: 12, align: 'right' },
           ];
@@ -134,7 +134,7 @@ export function registerAnalyticsCommands(program: Command): void {
           const columns: Column<(typeof data)[0]>[] = [
             { header: 'FILE', accessor: (h) => truncatePath(h.filePath, 45), width: 45 },
             { header: 'ISSUES', accessor: (h) => {
-              const count = getFlexibleProperty(h as Record<string, unknown>, 'issueCount', h.totalIssues ?? 0);
+              const count = getFlexibleProperty(h, 'issueCount', h.totalIssues ?? 0);
               return String(count);
             }, width: 8, align: 'right' },
           ];

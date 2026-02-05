@@ -11,7 +11,7 @@ export interface Logger {
 /**
  * Create a logger instance
  */
-export function createLogger(enabled: boolean): Logger {
+export function createLogger(prefix: string, enabled: boolean): Logger {
   const noop = () => {};
 
   if (!enabled) {
@@ -22,8 +22,6 @@ export function createLogger(enabled: boolean): Logger {
       error: noop,
     };
   }
-
-  const prefix = '[ops-sdk]';
   const timestamp = () => new Date().toISOString();
 
   return {

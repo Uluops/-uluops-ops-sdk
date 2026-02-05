@@ -177,18 +177,19 @@ export function toCamelCase(str: string): string {
  * ```
  */
 export function getFlexibleProperty<T>(
-  obj: Record<string, unknown>,
+  obj: object,
   camelCaseKey: string,
   defaultValue: T
 ): T {
+  const record = obj as Record<string, unknown>;
   // Try camelCase first
-  if (camelCaseKey in obj && obj[camelCaseKey] !== undefined) {
-    return obj[camelCaseKey] as T;
+  if (camelCaseKey in record && record[camelCaseKey] !== undefined) {
+    return record[camelCaseKey] as T;
   }
   // Try snake_case
   const snakeKey = toSnakeCase(camelCaseKey);
-  if (snakeKey in obj && obj[snakeKey] !== undefined) {
-    return obj[snakeKey] as T;
+  if (snakeKey in record && record[snakeKey] !== undefined) {
+    return record[snakeKey] as T;
   }
   return defaultValue;
 }

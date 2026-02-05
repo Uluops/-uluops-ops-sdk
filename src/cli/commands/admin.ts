@@ -35,7 +35,7 @@ export function registerAdminCommands(program: Command): void {
           console.log(formatKeyValue({
             'Total Users': stats.totalUsers,
             'Active Users': stats.activeUsers,
-            'Active Sessions': getFlexibleProperty(stats as Record<string, unknown>, 'activeSessions', stats.totalSessions),
+            'Active Sessions': getFlexibleProperty(stats, 'activeSessions', stats.totalSessions),
             'Total API Keys': stats.totalApiKeys,
           }));
         }
