@@ -126,8 +126,11 @@ export class OpsHttpClient {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // Check if we should retry
+        // Only auto-retry idempotent methods (GET, PUT, DELETE)
+        // POST/PATCH can have side effects and should not be retried
+        const isIdempotent = method === 'GET' || method === 'PUT' || method === 'DELETE';
         const shouldRetry =
+          isIdempotent &&
           lastError instanceof OpsApiError &&
           lastError.isRetryable() &&
           attempt < maxRetries;
@@ -150,8 +153,8 @@ export class OpsHttpClient {
             this.logger.debug('Token expired, attempting refresh...');
             await this.authStrategy.refresh();
             continue; // Retry the request
-          } catch {
-            // Refresh failed, throw original error
+          } catch (refreshError) {
+            this.logger.debug(`Token refresh failed: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);
           }
         }
 
@@ -219,7 +222,18 @@ export class OpsHttpClient {
         throw this.createHttpError(response.status, errorData, response.headers);
       }
 
-      const responseData = (await response.json()) as { data: T };
+      // Handle empty responses (204 No Content, etc.)
+      const text = await response.text();
+      if (!text) {
+        return undefined as T;
+      }
+
+      let responseData: { data: T };
+      try {
+        responseData = JSON.parse(text) as { data: T };
+      } catch {
+        throw new OpsApiError(response.status, `Invalid JSON response from ${method} ${endpoint}`);
+      }
       return responseData.data;
     } catch (error) {
       // Log error responses
@@ -281,7 +295,69 @@ export class OpsHttpClient {
         throw this.createHttpError(response.status, errorData, response.headers);
       }
 
-      return (await response.json()) as T;
+      const text = await response.text();
+      if (!text) {
+        return undefined as T;
+      }
+
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        throw new OpsApiError(response.status, 'Invalid JSON response');
+      }
+    } catch (error) {
+      throw this.handleFetchError(error);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  /**
+   * Make a request that returns the raw Response object (for binary data, streaming, etc.)
+   */
+  async requestBinary(
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+    endpoint: string,
+    options?: { params?: object; headers?: Record<string, string> }
+  ): Promise<{ data: ArrayBuffer; contentType: string; headers: Headers }> {
+    const url = new URL(this.buildUrl(endpoint));
+    const queryParams = options?.params;
+    if (queryParams) {
+      Object.entries(queryParams).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, String(value));
+        }
+      });
+    }
+
+    const headers: Record<string, string> = {
+      ...this.defaultHeaders,
+      ...options?.headers,
+    };
+    // Don't send Content-Type: application/json for binary requests
+    delete headers['Content-Type'];
+    if (this.authStrategy) {
+      headers['Authorization'] = this.authStrategy.getAuthorizationHeader();
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const response = await fetch(url.toString(), {
+        method,
+        headers,
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw this.createHttpError(response.status, errorData, response.headers);
+      }
+
+      const data = await response.arrayBuffer();
+      const contentType = response.headers.get('content-type') ?? 'application/octet-stream';
+      return { data, contentType, headers: response.headers };
     } catch (error) {
       throw this.handleFetchError(error);
     } finally {

@@ -103,18 +103,19 @@ export class JwtSessionAuth implements AuthStrategy {
       password: this.credentials.password,
     });
 
-    const { sessionToken, expiresAt } = response.data.data as {
-      sessionToken: string;
-      expiresAt: string;
-    };
+    const loginData = (response as { data?: { data?: { sessionToken?: string; expiresAt?: string } } })?.data?.data;
 
-    this.sessionToken = sessionToken;
-    this.expiresAt = new Date(expiresAt);
+    if (!loginData?.sessionToken) {
+      throw new Error('Login response missing sessionToken');
+    }
+
+    this.sessionToken = loginData.sessionToken;
+    this.expiresAt = loginData.expiresAt ? new Date(loginData.expiresAt) : null;
 
     // Notify listeners of new token
-    this.onTokenRefresh?.(sessionToken);
+    this.onTokenRefresh?.(loginData.sessionToken);
 
-    return sessionToken;
+    return loginData.sessionToken;
   }
 
   getAuthorizationHeader(): string {

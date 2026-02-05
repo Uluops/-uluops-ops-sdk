@@ -53,7 +53,7 @@ export async function getUser(
   client: OpsHttpClient,
   userId: string
 ): Promise<{ user: PublicUser; stats: UserStats }> {
-  return client.get<{ user: PublicUser; stats: UserStats }>(`/admin/users/${userId}`);
+  return client.get<{ user: PublicUser; stats: UserStats }>(`/admin/users/${encodeURIComponent(userId)}`);
 }
 
 /**
@@ -80,7 +80,7 @@ export async function updateUser(
   userId: string,
   input: AdminUpdateUserInput
 ): Promise<{ user: PublicUser }> {
-  return client.patch<{ user: PublicUser }>(`/admin/users/${userId}`, {
+  return client.patch<{ user: PublicUser }>(`/admin/users/${encodeURIComponent(userId)}`, {
     email: input.email,
     role: input.role,
     subscription_tier: input.subscriptionTier,
@@ -94,7 +94,7 @@ export async function deactivateUser(
   client: OpsHttpClient,
   userId: string
 ): Promise<{ user: PublicUser }> {
-  return client.delete<{ user: PublicUser }>(`/admin/users/${userId}`);
+  return client.delete<{ user: PublicUser }>(`/admin/users/${encodeURIComponent(userId)}`);
 }
 
 /**
@@ -156,7 +156,7 @@ export async function terminateSession(
   client: OpsHttpClient,
   sessionId: string
 ): Promise<{ message: string }> {
-  return client.delete<{ message: string }>(`/admin/sessions/${sessionId}`);
+  return client.delete<{ message: string }>(`/admin/sessions/${encodeURIComponent(sessionId)}`);
 }
 
 /**
@@ -166,7 +166,7 @@ export async function terminateUserSessions(
   client: OpsHttpClient,
   userId: string
 ): Promise<{ message: string }> {
-  return client.delete<{ message: string }>(`/admin/sessions/user/${userId}`);
+  return client.delete<{ message: string }>(`/admin/sessions/user/${encodeURIComponent(userId)}`);
 }
 
 // ============================================
@@ -197,5 +197,5 @@ export async function revokeKey(
   client: OpsHttpClient,
   keyId: string
 ): Promise<{ message: string }> {
-  return client.delete<{ message: string }>(`/admin/keys/${keyId}`);
+  return client.delete<{ message: string }>(`/admin/keys/${encodeURIComponent(keyId)}`);
 }

@@ -114,12 +114,11 @@ export async function updateProfile(
  */
 export async function getAvatar(
   client: OpsHttpClient
-): Promise<{ data: Buffer; contentType: string }> {
-  // This needs special handling for binary response
-  const response = await client.requestRaw<ArrayBuffer>('GET', '/auth/avatar');
+): Promise<{ data: ArrayBuffer; contentType: string }> {
+  const response = await client.requestBinary('GET', '/auth/avatar');
   return {
-    data: Buffer.from(response),
-    contentType: 'image/png', // API should return content-type header
+    data: response.data,
+    contentType: response.contentType,
   };
 }
 
@@ -156,7 +155,7 @@ export async function revokeApiKey(
   client: OpsHttpClient,
   keyId: string
 ): Promise<void> {
-  await client.delete(`/auth/keys/${keyId}`);
+  await client.delete(`/auth/keys/${encodeURIComponent(keyId)}`);
 }
 
 /**
@@ -175,5 +174,5 @@ export async function revokeSession(
   client: OpsHttpClient,
   sessionId: string
 ): Promise<void> {
-  await client.delete(`/auth/sessions/${sessionId}`);
+  await client.delete(`/auth/sessions/${encodeURIComponent(sessionId)}`);
 }

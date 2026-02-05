@@ -65,7 +65,7 @@ export async function getByFingerprint(
   fingerprint: string,
   project: string
 ): Promise<Issue> {
-  return client.get<Issue>(`/issues/by-fingerprint/${fingerprint}`, { project });
+  return client.get<Issue>(`/issues/by-fingerprint/${encodeURIComponent(fingerprint)}`, { project });
 }
 
 /**
@@ -88,7 +88,7 @@ export async function updateStatusByFingerprint(
  * Get an issue by ID
  */
 export async function get(client: OpsHttpClient, issueId: string): Promise<Issue> {
-  return client.get<Issue>(`/issues/${issueId}`);
+  return client.get<Issue>(`/issues/${encodeURIComponent(issueId)}`);
 }
 
 /**
@@ -133,7 +133,7 @@ export async function edit(
   issueId: string,
   input: UpdateIssueInput
 ): Promise<Issue> {
-  return client.patch<Issue>(`/issues/${issueId}`, {
+  return client.patch<Issue>(`/issues/${encodeURIComponent(issueId)}`, {
     title: input.title,
     status: input.status,
     priority: input.priority,

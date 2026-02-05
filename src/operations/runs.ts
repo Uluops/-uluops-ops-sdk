@@ -256,7 +256,7 @@ export async function getDetails(
  * Get a run by ID
  */
 export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
-  return client.get<Run>(`/runs/${runId}`);
+  return client.get<Run>(`/runs/${encodeURIComponent(runId)}`);
 }
 
 /**
@@ -267,7 +267,7 @@ export async function updateById(
   runId: string,
   input: UpdateRunInput
 ): Promise<Run> {
-  return client.patch<Run>(`/runs/${runId}`, {
+  return client.patch<Run>(`/runs/${encodeURIComponent(runId)}`, {
     workflow_type: input.workflowType,
     all_gates_passed: input.allGatesPassed,
     average_score: input.averageScore,
@@ -294,7 +294,7 @@ export async function deleteRun(
   client: OpsHttpClient,
   runId: string
 ): Promise<void> {
-  await client.request('DELETE', `/runs/${runId}`, undefined, {
+  await client.request('DELETE', `/runs/${encodeURIComponent(runId)}`, undefined, {
     headers: { 'X-Confirm-Delete': runId },
   });
 }
