@@ -1,4 +1,4 @@
-import type { AxiosInstance } from 'axios';
+import type { FetchClient } from './fetch-adapter.js';
 import { API_KEY_PREFIX } from '../config/constants.js';
 import { UnauthorizedError } from '../errors/errors.js';
 
@@ -40,7 +40,7 @@ export interface AuthConfig {
   email?: string;
   password?: string;
   sessionToken?: string;
-  httpClient?: AxiosInstance;
+  httpClient?: FetchClient;
   onTokenRefresh?: (token: string) => void;
 }
 
@@ -86,7 +86,7 @@ export class JwtSessionAuth implements AuthStrategy {
   private expiresAt: Date | null = null;
 
   constructor(
-    private readonly httpClient: AxiosInstance,
+    private readonly httpClient: FetchClient,
     private readonly credentials: { email: string; password: string },
     private readonly onTokenRefresh?: (token: string) => void,
     initialToken?: string
