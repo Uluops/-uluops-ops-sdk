@@ -52,6 +52,9 @@ describe('Project Operations', () => {
 
       expect(projects).toHaveLength(2);
       expect(projects[0].name).toBe('Project A');
+      expect(projects[0].id).toBeDefined();
+      expect(projects[0].ownerId).toBeDefined();
+      expect(projects[1].name).toBe('Project B');
     });
   });
 
@@ -229,6 +232,10 @@ describe('Project Operations', () => {
 
       expect(summary.totalRuns).toBe(50);
       expect(summary.openIssues).toBe(25);
+      expect(summary.totalIssues).toBe(100);
+      expect(summary.completedIssues).toBe(50);
+      expect(summary.averageScore).toBe(85);
+      expect(summary.project).toBeDefined();
     });
   });
 
@@ -250,7 +257,11 @@ describe('Project Operations', () => {
       const trends = await projectOps.getTrends(client, 'proj-1');
 
       expect(trends).toHaveLength(2);
+      expect(trends[0].date).toBe('2024-01-01');
       expect(trends[0].openIssues).toBe(10);
+      expect(trends[0].completedIssues).toBe(5);
+      expect(trends[1].openIssues).toBe(8);
+      expect(trends[1].completedIssues).toBe(7);
     });
 
     it('should get project trends with query parameters', async () => {
@@ -285,6 +296,10 @@ describe('Project Operations', () => {
       const issues = await projectOps.listIssues(client, 'proj-1');
 
       expect(issues).toHaveLength(2);
+      expect(issues[0].title).toBe('Bug 1');
+      expect(issues[0].priority).toBe('critical');
+      expect(issues[1].title).toBe('Bug 2');
+      expect(issues[1].priority).toBe('suggested');
     });
 
     it('should list issues with filters', async () => {
@@ -336,6 +351,10 @@ describe('Project Operations', () => {
 
       expect(results).toHaveLength(2);
       expect(results[0].success).toBe(true);
+      expect(results[0].issueId).toBe(issueId1);
+      expect(results[1].issueId).toBe(issueId2);
+      expect(results[0].previousStatus).toBe('open');
+      expect(results[0].newStatus).toBe('completed');
     });
   });
 
@@ -358,6 +377,8 @@ describe('Project Operations', () => {
       });
 
       expect(result.mergedCount).toBe(2);
+      expect(result.migratedOccurrences).toBe(5);
+      expect(result.targetIssue).toBeDefined();
     });
   });
 });

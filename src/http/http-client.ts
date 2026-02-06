@@ -31,6 +31,24 @@ export type QueryParamValue = string | number | boolean | undefined | null;
 export type QueryParams = Record<string, QueryParamValue>;
 
 /**
+ * Convert a typed query object to QueryParams.
+ *
+ * TypeScript doesn't implicitly widen specific interfaces (e.g. `{ project?: string }`)
+ * to `Record<string, QueryParamValue>` even when all property types match.
+ * This utility centralizes that conversion so operation files don't need `as QueryParams`.
+ */
+export function toQuery(query: object | undefined): QueryParams | undefined {
+  if (!query) return undefined;
+  const params: QueryParams = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) {
+      params[key] = value as QueryParamValue;
+    }
+  }
+  return params;
+}
+
+/**
  * HTTP client configuration
  */
 export interface HttpClientConfig {
@@ -43,6 +61,27 @@ export interface HttpClientConfig {
   password?: string;
   sessionToken?: string;
   onTokenRefresh?: (token: string) => void;
+}
+
+/**
+ * Safely extract error fields from an unknown API response body.
+ * Narrows `data.error` through runtime type checks instead of type assertions.
+ */
+function extractErrorBody(
+  data: unknown
+): { code?: string; message?: string; details?: Record<string, unknown> } | undefined {
+  if (typeof data !== 'object' || data === null || !('error' in data)) return undefined;
+  const error = (data as Record<string, unknown>).error;
+  if (typeof error !== 'object' || error === null) return undefined;
+  const err = error as Record<string, unknown>;
+  return {
+    code: typeof err.code === 'string' ? err.code : undefined,
+    message: typeof err.message === 'string' ? err.message : undefined,
+    details:
+      typeof err.details === 'object' && err.details !== null
+        ? (err.details as Record<string, unknown>)
+        : undefined,
+  };
 }
 
 /**
@@ -432,7 +471,7 @@ export class OpsHttpClient {
     data: unknown,
     headers: Headers
   ): OpsApiError {
-    const apiError = (data as { error?: { code?: string; message?: string; details?: Record<string, unknown> } })?.error;
+    const apiError = extractErrorBody(data);
     const requestId = headers.get('x-request-id') ?? undefined;
 
     return createErrorFromStatus(

@@ -30,6 +30,10 @@ describe('Analytics Operations', () => {
       expect(perf).toHaveLength(2);
       expect(perf[0].validator).toBe('code-validator');
       expect(perf[0].avgScore).toBe(85.5);
+      expect(perf[0].runCount).toBe(100);
+      expect(perf[0].passRate).toBe(0.92);
+      expect(perf[1].validator).toBe('test-architect');
+      expect(perf[1].avgScore).toBe(78.2);
     });
 
     it('should filter by project', async () => {
@@ -66,6 +70,9 @@ describe('Analytics Operations', () => {
       const result = await analyticsOps.getValidatorReliability(client);
 
       expect(result.validators).toHaveLength(1);
+      expect(result.validators[0].validator).toBe('code-validator');
+      expect(result.validators[0].falsePositiveRate).toBe(0.05);
+      expect(result.validators[0].resolutionRate).toBe(0.75);
       expect(result.validators[0].reliabilityScore).toBe(0.92);
     });
 
@@ -101,7 +108,11 @@ describe('Analytics Operations', () => {
       const rates = await analyticsOps.getResolutionRates(client);
 
       expect(rates).toHaveLength(2);
+      expect(rates[0].project).toBe('proj-1');
+      expect(rates[0].resolvedCount).toBe(50);
+      expect(rates[0].totalCount).toBe(100);
       expect(rates[0].rate).toBe(0.5);
+      expect(rates[1].rate).toBe(0.8);
     });
   });
 
@@ -121,6 +132,9 @@ describe('Analytics Operations', () => {
       expect(hotspots).toHaveLength(2);
       expect(hotspots[0].filePath).toBe('src/auth.ts');
       expect(hotspots[0].issueCount).toBe(15);
+      expect(hotspots[0].severity).toBe('high');
+      expect(hotspots[1].filePath).toBe('src/api/client.ts');
+      expect(hotspots[1].issueCount).toBe(10);
     });
 
     it('should filter by days', async () => {
@@ -184,6 +198,12 @@ describe('Analytics Operations', () => {
       const result = await analyticsOps.getFullTaxonomy(client);
 
       expect(result.data.byDomain).toHaveLength(2);
+      expect(result.data.byDomain[0].domain).toBe('STR');
+      expect(result.data.byDomain[0].percentage).toBe(0.28);
+      expect(result.data.byMode).toHaveLength(2);
+      expect(result.data.byMode[0].mode).toBe('STR-OMI');
+      expect(result.data.bySeverity).toHaveLength(2);
+      expect(result.data.bySeverity[0].severity).toBe('critical');
       expect(result.computedAt).toBe('2024-01-15T12:00:00Z');
     });
   });
@@ -209,7 +229,12 @@ describe('Analytics Operations', () => {
       const burndown = await analyticsOps.getBurndown(client);
 
       expect(burndown.timeSeries).toHaveLength(2);
+      expect(burndown.timeSeries[0].date).toBe('2024-01-01');
+      expect(burndown.timeSeries[0].STR).toBe(50);
       expect(burndown.trends.STR.direction).toBe('declining');
+      expect(burndown.trends.STR.rate).toBe(-0.05);
+      expect(burndown.trends.SEM.direction).toBe('declining');
+      expect(burndown.diagnostics.dataPoints).toBe(2);
     });
 
     it('should accept query parameters', async () => {
@@ -244,7 +269,13 @@ describe('Analytics Operations', () => {
       const velocity = await analyticsOps.getVelocity(client);
 
       expect(velocity.modes).toHaveLength(2);
+      expect(velocity.modes[0].mode).toBe('STR-OMI');
+      expect(velocity.modes[0].velocity).toBe(-5);
       expect(velocity.modes[0].trend).toBe('improving');
+      expect(velocity.modes[0].sparkline).toEqual([10, 8, 6, 5]);
+      expect(velocity.modes[1].trend).toBe('degrading');
+      expect(velocity.alerts).toHaveLength(1);
+      expect(velocity.alerts[0].mode).toBe('SEM-VAL');
     });
 
     it('should accept alert threshold', async () => {
@@ -280,6 +311,11 @@ describe('Analytics Operations', () => {
       const discovery = await analyticsOps.getDiscovery(client);
 
       expect(discovery.timeline).toHaveLength(2);
+      expect(discovery.timeline[0].date).toBe('2024-01-01');
+      expect(discovery.timeline[0].new).toBe(5);
+      expect(discovery.timeline[0].recurring).toBe(10);
+      expect(discovery.summary.totalNew).toBe(8);
+      expect(discovery.summary.totalRecurring).toBe(22);
       expect(discovery.summary.newRate).toBe(0.27);
     });
 
@@ -317,7 +353,11 @@ describe('Analytics Operations', () => {
       const matrix = await analyticsOps.getValidatorMatrix(client);
 
       expect(matrix.matrix['code-validator'].STR).toBe(30);
+      expect(matrix.matrix['code-validator'].SEM).toBe(50);
+      expect(matrix.matrix['test-architect'].PRA).toBe(40);
       expect(matrix.blindSpots).toContain('EPI');
+      expect(matrix.singlePoints).toContain('STR-OMI');
+      expect(matrix.highOverlap).toContain('SEM-VAL');
     });
 
     it('should filter by minimum issues', async () => {
@@ -346,7 +386,12 @@ describe('Analytics Operations', () => {
       const trends = await analyticsOps.getTrendSummary(client);
 
       expect(trends).toHaveLength(2);
+      expect(trends[0].metric).toBe('total_issues');
+      expect(trends[0].value).toBe(180);
+      expect(trends[0].change).toBe(-10);
       expect(trends[0].trend).toBe('improving');
+      expect(trends[1].metric).toBe('avg_score');
+      expect(trends[1].value).toBe(85);
     });
   });
 

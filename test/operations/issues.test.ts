@@ -109,6 +109,8 @@ describe('Issue Operations', () => {
       const issues = await issueOps.search(client, { query: 'authentication' });
 
       expect(issues).toHaveLength(2);
+      expect(issues[0].title).toBe('Auth token validation');
+      expect(issues[1].title).toBe('Authentication flow bug');
     });
 
     it('should search with filters', async () => {
@@ -219,7 +221,11 @@ describe('Issue Operations', () => {
       const details = await issueOps.getDetails(client, issueId);
 
       expect(details.occurrences).toHaveLength(2);
+      expect(details.occurrences[0].runId).toBe(runId1);
+      expect(details.occurrences[1].runId).toBe(runId2);
       expect(details.notes).toHaveLength(1);
+      expect(details.notes[0].content).toBe('Working on it');
+      expect(details.issue).toBeDefined();
     });
   });
 
@@ -248,7 +254,11 @@ describe('Issue Operations', () => {
       const history = await issueOps.getHistory(client, issueId);
 
       expect(history).toHaveLength(2);
+      expect(history[0].from).toBeNull();
+      expect(history[0].to).toBe('open');
+      expect(history[1].from).toBe('open');
       expect(history[1].to).toBe('completed');
+      expect(history[1].reason).toBe('Fixed');
     });
   });
 
@@ -436,6 +446,8 @@ describe('Issue Operations', () => {
 
       expect(results).toHaveLength(2);
       expect(results.every((r) => r.success)).toBe(true);
+      expect(results[0].issueId).toBe(issueId1);
+      expect(results[1].issueId).toBe(issueId2);
     });
   });
 
@@ -457,6 +469,8 @@ describe('Issue Operations', () => {
       const issues = await issueOps.listByProject(client, 'proj-1');
 
       expect(issues).toHaveLength(2);
+      expect(issues[0].title).toBe('Bug 1');
+      expect(issues[1].title).toBe('Bug 2');
     });
 
     it('should list issues with filters', async () => {

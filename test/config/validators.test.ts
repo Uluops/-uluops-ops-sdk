@@ -789,6 +789,120 @@ describe('Config Validators', () => {
     });
   });
 
+  describe('validateSaveFeaturesListInput - complex boundary values', () => {
+    it('should accept recommendation title at max length (500 chars)', () => {
+      const result = validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [{ validator: 'v', title: 'x'.repeat(500), priority: 'suggested' }],
+      });
+      expect(result.recommendations[0].title).toHaveLength(500);
+    });
+
+    it('should reject recommendation title exceeding max length (501 chars)', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [{ validator: 'v', title: 'x'.repeat(501), priority: 'suggested' }],
+      })).toThrow(InputValidationError);
+    });
+
+    it('should accept description at max length (10000 chars)', () => {
+      const result = validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [{
+          validator: 'v', title: 'Issue', priority: 'suggested',
+          description: 'x'.repeat(10000),
+        }],
+      });
+      expect(result.recommendations[0].description).toHaveLength(10000);
+    });
+
+    it('should reject description exceeding max length (10001 chars)', () => {
+      expect(() => validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [{
+          validator: 'v', title: 'Issue', priority: 'suggested',
+          description: 'x'.repeat(10001),
+        }],
+      })).toThrow(InputValidationError);
+    });
+
+    it('should accept filePath at max length (1000 chars)', () => {
+      const result = validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [{
+          validator: 'v', title: 'Issue', priority: 'suggested',
+          filePath: 'x'.repeat(1000),
+        }],
+      });
+      expect(result.recommendations[0].filePath).toHaveLength(1000);
+    });
+
+    it('should accept project name at max length (200 chars)', () => {
+      const result = validateSaveFeaturesListInput({
+        project: 'p'.repeat(200), workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [],
+      });
+      expect(result.project).toHaveLength(200);
+    });
+
+    it('should accept multiple validators and recommendations', () => {
+      const validators = Array.from({ length: 20 }, (_, i) => ({
+        name: `validator-${i}`, score: i * 5, status: 'PASS',
+      }));
+      const recommendations = Array.from({ length: 50 }, (_, i) => ({
+        validator: `validator-${i % 20}`, title: `Issue ${i}`, priority: 'suggested' as const,
+      }));
+      const result = validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w', validators, recommendations,
+      });
+      expect(result.validators).toHaveLength(20);
+      expect(result.recommendations).toHaveLength(50);
+    });
+
+    it('should accept empty recommendations array', () => {
+      const result = validateSaveFeaturesListInput({
+        project: 'p', workflowType: 'w',
+        validators: [{ name: 'v', score: 50, status: 'PASS' }],
+        recommendations: [],
+      });
+      expect(result.recommendations).toHaveLength(0);
+    });
+  });
+
+  describe('validateCreateUserIssueInput - boundary values', () => {
+    it('should accept title at max length (500 chars)', () => {
+      const result = validateCreateUserIssueInput({
+        project: 'p', title: 'x'.repeat(500), priority: 'suggested',
+      });
+      expect(result.title).toHaveLength(500);
+    });
+
+    it('should reject title exceeding max length', () => {
+      expect(() => validateCreateUserIssueInput({
+        project: 'p', title: 'x'.repeat(501), priority: 'suggested',
+      })).toThrow(InputValidationError);
+    });
+
+    it('should accept lineNumber at zero boundary', () => {
+      const result = validateCreateUserIssueInput({
+        project: 'p', title: 'Issue', priority: 'suggested', lineNumber: 0,
+      });
+      expect(result.lineNumber).toBe(0);
+    });
+
+    it('should reject negative lineNumber', () => {
+      expect(() => validateCreateUserIssueInput({
+        project: 'p', title: 'Issue', priority: 'suggested', lineNumber: -1,
+      })).toThrow(InputValidationError);
+    });
+  });
+
   describe('validateUuid', () => {
     it('should accept valid UUID', () => {
       expect(() =>

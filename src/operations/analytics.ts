@@ -1,4 +1,5 @@
-import type { OpsHttpClient, QueryParams } from '../http/http-client.js';
+import type { OpsHttpClient } from '../http/http-client.js';
+import { toQuery } from '../http/http-client.js';
 import type {
   AnalyticsQuery,
   ValidatorPerformance,
@@ -28,7 +29,7 @@ export async function getValidatorPerformance(
 ): Promise<ValidatorPerformance[]> {
   return client.get<ValidatorPerformance[]>(
     '/analytics/validators/performance',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -41,7 +42,7 @@ export async function getValidatorReliability(
 ): Promise<{ validators: ValidatorReliability[] }> {
   return client.get<{ validators: ValidatorReliability[] }>(
     '/analytics/validators/reliability',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -54,7 +55,7 @@ export async function getResolutionRates(
 ): Promise<ResolutionRate[]> {
   return client.get<ResolutionRate[]>(
     '/analytics/projects/resolution-rates',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -67,7 +68,7 @@ export async function getFileHotspots(
 ): Promise<FileHotspot[]> {
   return client.get<FileHotspot[]>(
     '/analytics/files/hotspots',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -80,7 +81,7 @@ export async function getTaxonomyDistribution(
 ): Promise<TaxonomyDistribution[]> {
   return client.get<TaxonomyDistribution[]>(
     '/analytics/taxonomy/distribution',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -93,7 +94,7 @@ export async function getFullTaxonomy(
 ): Promise<{ data: FullTaxonomyAnalytics; computedAt: string }> {
   return client.get<{ data: FullTaxonomyAnalytics; computedAt: string }>(
     '/analytics/taxonomy/full',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -106,7 +107,7 @@ export async function getBurndown(
 ): Promise<BurndownResult> {
   return client.get<BurndownResult>(
     '/analytics/taxonomy/burndown',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -161,7 +162,7 @@ export async function getTrendSummary(
 ): Promise<TrendSummary[]> {
   return client.get<TrendSummary[]>(
     '/analytics/trends/summary',
-    query as QueryParams
+    toQuery(query)
   );
 }
 
@@ -222,6 +223,6 @@ export async function getByMetric<M extends AnalyticsMetric>(
   }
   return client.get<AnalyticsMetricResultMap[M]>(
     `/analytics/${metric}`,
-    query as QueryParams
+    toQuery(query)
   );
 }

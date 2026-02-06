@@ -1,4 +1,5 @@
-import type { OpsHttpClient, QueryParams } from '../http/http-client.js';
+import type { OpsHttpClient } from '../http/http-client.js';
+import { toQuery } from '../http/http-client.js';
 import type {
   Project,
   CreateProjectInput,
@@ -135,7 +136,7 @@ export async function getTrends(
 ): Promise<TrendDataPoint[]> {
   return client.get<TrendDataPoint[]>(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
-    query as QueryParams
+    toQuery(query)
   );
 }
 

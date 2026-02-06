@@ -42,6 +42,33 @@ const result = await client.runs.save({
 console.log(`Run #${result.run.runNumber} saved: ${result.issues.created} issues created`);
 ```
 
+### Search Issues
+
+```typescript
+const issues = await client.issues.search({
+  query: 'authentication',
+  status: 'open',
+  priority: 'critical',
+});
+
+for (const issue of issues) {
+  console.log(`[${issue.severity}] ${issue.title} — ${issue.filePath}:${issue.lineNumber}`);
+}
+```
+
+### Project Analytics
+
+```typescript
+const burndown = await client.analytics.getBurndown({
+  project: 'my-project',
+  days: 30,
+});
+
+for (const [domain, trend] of Object.entries(burndown.trends)) {
+  console.log(`${domain}: ${trend.direction} (rate: ${trend.rate})`);
+}
+```
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -195,6 +222,21 @@ import { loadCredentials, DEFAULT_BASE_URL } from '@uluops/ops-sdk/config';
 | `@uluops/ops-sdk/types` | All TypeScript types and Zod schemas |
 | `@uluops/ops-sdk/errors` | Error classes and utilities |
 | `@uluops/ops-sdk/config` | Configuration loaders and constants |
+
+#### Granular Type Imports
+
+For minimal bundle size, import only the type modules you need:
+
+```typescript
+import type { Project } from '@uluops/ops-sdk/types/projects';
+import type { Issue } from '@uluops/ops-sdk/types/issues';
+import type { Run } from '@uluops/ops-sdk/types/runs';
+import type { BurndownResult } from '@uluops/ops-sdk/types/analytics';
+import type { Priority, Status, Severity } from '@uluops/ops-sdk/types/enums';
+import type { ApiResponse } from '@uluops/ops-sdk/types/responses';
+import type { SaveFeaturesListInput } from '@uluops/ops-sdk/types/schemas';
+import type { Credentials } from '@uluops/ops-sdk/types/auth';
+```
 
 ## API Reference
 

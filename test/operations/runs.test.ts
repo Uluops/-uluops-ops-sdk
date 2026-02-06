@@ -184,8 +184,14 @@ describe('Run Operations', () => {
       });
 
       expect(result.fixed).toHaveLength(1);
+      expect(result.fixed[0].title).toBe('Fixed bug');
       expect(result.new).toHaveLength(1);
+      expect(result.new[0].title).toBe('New issue');
       expect(result.unchanged).toHaveLength(1);
+      expect(result.validatorChanges).toHaveLength(1);
+      expect(result.validatorChanges[0].validator).toBe('code-validator');
+      expect(result.validatorChanges[0].baseScore).toBe(75);
+      expect(result.validatorChanges[0].compareScore).toBe(85);
     });
   });
 
@@ -209,6 +215,7 @@ describe('Run Operations', () => {
       });
 
       expect(result.archivedCount).toBe(9);
+      expect(result.archivedRunNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     });
 
     it('should archive runs keeping last N', async () => {
@@ -271,6 +278,8 @@ describe('Run Operations', () => {
       const runs = await runOps.listByProject(client, 'proj-1');
 
       expect(runs).toHaveLength(2);
+      expect(runs[0].runNumber).toBe(1);
+      expect(runs[1].runNumber).toBe(2);
     });
 
     it('should list runs with query params', async () => {
@@ -343,7 +352,10 @@ describe('Run Operations', () => {
       const details = await runOps.getDetails(client, 'proj-1');
 
       expect(details.recommendations).toHaveLength(1);
+      expect(details.recommendations[0].correlation).toBe('new');
       expect(details.summary.newIssues).toBe(1);
+      expect(details.summary.fixedIssues).toBe(2);
+      expect(details.run.runNumber).toBe(10);
     });
 
     it('should get details for specific run number', async () => {

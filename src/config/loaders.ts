@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { config as loadDotenv } from 'dotenv';
 import { ENV_VARS, CONFIG_PATHS, DEFAULT_BASE_URL, API_KEY_PREFIX } from './constants.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -61,6 +60,28 @@ export function getCredentialsPath(): string {
 }
 
 /**
+ * Parse a .env file and set variables on process.env (without overriding existing values).
+ * Handles KEY=VALUE, quoted values, comments, and blank lines.
+ */
+function parseEnvFile(filePath: string, override = false): void {
+  const content = readFileSync(filePath, 'utf-8');
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    // Strip surrounding quotes (single or double)
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    if (!override && process.env[key] !== undefined) continue;
+    process.env[key] = value;
+  }
+}
+
+/**
  * Load environment variables from .env files
  * Priority: local .env > global ~/.uluops/.env
  */
@@ -68,13 +89,13 @@ export function loadEnvFiles(): void {
   // Load local .env first (lower priority, will be overwritten)
   const localEnvPath = CONFIG_PATHS.LOCAL_ENV;
   if (existsSync(localEnvPath)) {
-    loadDotenv({ path: localEnvPath, override: false });
+    parseEnvFile(localEnvPath);
   }
 
   // Load global .env (even lower priority)
   const globalEnvPath = join(homedir(), CONFIG_PATHS.GLOBAL_ENV);
   if (existsSync(globalEnvPath)) {
-    loadDotenv({ path: globalEnvPath, override: false });
+    parseEnvFile(globalEnvPath);
   }
 }
 
