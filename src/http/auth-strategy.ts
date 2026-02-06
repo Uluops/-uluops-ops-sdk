@@ -79,6 +79,18 @@ export class ApiKeyAuth implements AuthStrategy {
 }
 
 /**
+ * Shape of the login endpoint response used internally for token extraction
+ */
+interface LoginApiResponse {
+  data?: {
+    data?: {
+      sessionToken?: string;
+      expiresAt?: string;
+    };
+  };
+}
+
+/**
  * JWT session authentication strategy
  */
 export class JwtSessionAuth implements AuthStrategy {
@@ -103,7 +115,7 @@ export class JwtSessionAuth implements AuthStrategy {
       password: this.credentials.password,
     });
 
-    const loginData = (response as { data?: { data?: { sessionToken?: string; expiresAt?: string } } })?.data?.data;
+    const loginData = (response as LoginApiResponse)?.data?.data;
 
     if (!loginData?.sessionToken) {
       throw new Error('Login response missing sessionToken');

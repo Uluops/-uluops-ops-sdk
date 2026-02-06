@@ -244,6 +244,9 @@ export function parseFailureCode(code: string): {
   const mode = code.slice(dashIndex + 1, slashIndex);
   const severityCode = code.slice(slashIndex + 1);
 
+  if (!FAILURE_DOMAINS.includes(domain as FailureDomain)) return null;
+  if (!FAILURE_SEVERITY_CODES.includes(severityCode as FailureSeverityCode)) return null;
+
   return {
     domain: domain as FailureDomain,
     mode,

@@ -64,7 +64,12 @@ export function getCredentialsPath(): string {
  * Handles KEY=VALUE, quoted values, comments, and blank lines.
  */
 function parseEnvFile(filePath: string, override = false): void {
-  const content = readFileSync(filePath, 'utf-8');
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch {
+    return; // File unreadable (permissions, race condition) — skip silently
+  }
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;

@@ -625,6 +625,51 @@ describe('OpsHttpClient', () => {
       expect(strategy?.getType()).toBe('session');
       expect(strategy?.canRefresh()).toBe(true);
     });
+
+    it('should deduplicate concurrent token refresh attempts', async () => {
+      const sessionClient = new OpsHttpClient({
+        baseUrl: BASE_URL,
+        email: 'user@test.com',
+        password: 'pass123',
+        retries: 2,
+      });
+
+      // Replace the auth strategy with a spy-able mock.
+      // Refresh must take non-zero time so concurrent callers see the shared promise.
+      const refreshSpy = vi.fn().mockImplementation(
+        () => new Promise<void>(resolve => setTimeout(resolve, 10))
+      );
+      const mockStrategy = {
+        getAuthorizationHeader: () => 'Bearer mock-token',
+        canRefresh: () => true,
+        refresh: refreshSpy,
+        isAuthenticated: () => true,
+        getType: () => 'session' as const,
+      };
+      (sessionClient as any).authStrategy = mockStrategy;
+
+      // All 3 concurrent requests get 401 on first attempt
+      nock(BASE_URL).get('/race1').reply(401, { error: { message: 'Token expired' } });
+      nock(BASE_URL).get('/race2').reply(401, { error: { message: 'Token expired' } });
+      nock(BASE_URL).get('/race3').reply(401, { error: { message: 'Token expired' } });
+
+      // Retry after refresh: all 3 succeed
+      nock(BASE_URL).get('/race1').reply(200, { data: { id: 1 } });
+      nock(BASE_URL).get('/race2').reply(200, { data: { id: 2 } });
+      nock(BASE_URL).get('/race3').reply(200, { data: { id: 3 } });
+
+      const [r1, r2, r3] = await Promise.all([
+        sessionClient.get('/race1'),
+        sessionClient.get('/race2'),
+        sessionClient.get('/race3'),
+      ]);
+
+      expect(r1).toEqual({ id: 1 });
+      expect(r2).toEqual({ id: 2 });
+      expect(r3).toEqual({ id: 3 });
+      // Key assertion: refresh called exactly once despite 3 concurrent 401s
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+    });
   });
 });
 
