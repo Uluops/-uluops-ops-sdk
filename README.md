@@ -19,7 +19,7 @@ import { OpsClient } from '@uluops/ops-sdk';
 // Defaults to http://localhost:3100/api/v1 for local dev.
 // For production, set ULUOPS_BASE_URL env var or pass baseUrl below.
 const client = new OpsClient({
-  apiKey: 'ulr_your-api-key-here',
+  apiKey: 'ulr_your-api-key-here', // Create via client.auth.createApiKey() or admin dashboard
 });
 
 // Save a validation run
@@ -1428,7 +1428,8 @@ try {
   await client.projects.get('non-existent');
 } catch (error) {
   if (error instanceof NotFoundError) {
-    console.log('Project not found');
+    console.log(error.message); // "Project 'non-existent' not found"
+    console.log(error.details); // { id: 'non-existent' }
   } else if (error instanceof UnauthorizedError) {
     console.log('Please authenticate');
   } else if (error instanceof RateLimitError) {

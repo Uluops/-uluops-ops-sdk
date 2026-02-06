@@ -54,6 +54,13 @@ export async function retry<T>(
 }
 
 /**
+ * Check if a value is a plain object suitable for deep merging
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
  * Deep merge two objects, recursively merging nested objects
  * @param target - Base object to merge into
  * @param source - Object with values to overlay
@@ -69,20 +76,8 @@ export function deepMerge<T extends Record<string, unknown>>(
     const sourceValue = source[key];
     const targetValue = result[key];
 
-    if (
-      sourceValue !== undefined &&
-      sourceValue !== null &&
-      typeof sourceValue === 'object' &&
-      !Array.isArray(sourceValue) &&
-      targetValue !== undefined &&
-      targetValue !== null &&
-      typeof targetValue === 'object' &&
-      !Array.isArray(targetValue)
-    ) {
-      result[key] = deepMerge(
-        targetValue as Record<string, unknown>,
-        sourceValue as Record<string, unknown>
-      ) as T[keyof T];
+    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+      result[key] = deepMerge(targetValue, sourceValue as Partial<Record<string, unknown>>) as T[keyof T];
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue as T[keyof T];
     }
