@@ -16,7 +16,7 @@ import {
   JwtSessionAuth,
   createAuthStrategy,
 } from '../src/http/auth-strategy.js';
-import { BASE_URL } from './setup.js';
+import { BASE_URL, TEST_API_KEY, TEST_API_KEY_SHORT } from './setup.js';
 
 describe('OpsHttpClient', () => {
   let client: OpsHttpClient;
@@ -24,7 +24,7 @@ describe('OpsHttpClient', () => {
   beforeEach(() => {
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
-      apiKey: 'ulr_test-api-key-12345',
+      apiKey: TEST_API_KEY,
     });
   });
 
@@ -32,7 +32,7 @@ describe('OpsHttpClient', () => {
     it('should create client with API key', () => {
       const c = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
       });
       const authStrategy = c.getAuthStrategy();
       expect(authStrategy?.isAuthenticated()).toBe(true);
@@ -106,7 +106,7 @@ describe('OpsHttpClient', () => {
     it('should include Authorization header', async () => {
       nock(BASE_URL)
         .get('/projects')
-        .matchHeader('Authorization', 'Bearer ulr_test-api-key-12345')
+        .matchHeader('Authorization', `Bearer ${TEST_API_KEY}`)
         .reply(200, { data: [] });
 
       await client.get('/projects');
@@ -150,35 +150,56 @@ describe('OpsHttpClient', () => {
   });
 
   describe('error handling', () => {
-    it('should throw ValidationError for 400', async () => {
+    it('should throw ValidationError for 400 with message', async () => {
       nock(BASE_URL).get('/projects').reply(400, {
         error: { code: 'VALIDATION_ERROR', message: 'Invalid input' },
       });
 
-      await expect(client.get('/projects')).rejects.toThrow(ValidationError);
+      try {
+        await client.get('/projects');
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(ValidationError);
+        expect((error as ValidationError).message).toContain('Invalid input');
+        expect((error as ValidationError).statusCode).toBe(400);
+      }
     });
 
-    it('should throw UnauthorizedError for 401', async () => {
+    it('should throw UnauthorizedError for 401 with message', async () => {
       nock(BASE_URL).get('/projects').reply(401, {
         error: { code: 'UNAUTHORIZED', message: 'Invalid token' },
       });
 
-      await expect(client.get('/projects')).rejects.toThrow(UnauthorizedError);
+      try {
+        await client.get('/projects');
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(UnauthorizedError);
+        expect((error as UnauthorizedError).message).toContain('Invalid token');
+        expect((error as UnauthorizedError).statusCode).toBe(401);
+      }
     });
 
-    it('should throw NotFoundError for 404', async () => {
+    it('should throw NotFoundError for 404 with message', async () => {
       nock(BASE_URL).get('/projects/999').reply(404, {
         error: { code: 'NOT_FOUND', message: 'Project not found' },
       });
 
-      await expect(client.get('/projects/999')).rejects.toThrow(NotFoundError);
+      try {
+        await client.get('/projects/999');
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(NotFoundError);
+        expect((error as NotFoundError).message).toContain('Project not found');
+        expect((error as NotFoundError).statusCode).toBe(404);
+      }
     });
 
     it('should throw RateLimitError for 429', async () => {
       // Use a client with 1 retry since 429 is retryable (1 means only 1 attempt)
       const noRetryClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-api-key-12345',
+        apiKey: TEST_API_KEY,
         retries: 1,
       });
 
@@ -224,6 +245,8 @@ describe('OpsHttpClient', () => {
       const result = await client.get('/projects');
 
       expect(result).toEqual([]);
+      // Verify both interceptors were consumed (1 retry + 1 success = 2 requests)
+      expect(nock.isDone()).toBe(true);
     });
 
     it('should not retry on 400 errors', async () => {
@@ -232,29 +255,36 @@ describe('OpsHttpClient', () => {
       });
 
       await expect(client.get('/projects')).rejects.toThrow(ValidationError);
+      // Verify only 1 request was made (no retry for 400)
+      expect(nock.isDone()).toBe(true);
     });
 
     it('should give up after max retries', async () => {
-      // All requests fail with 503
+      // All requests fail with 503 — default client has 3 retries
       nock(BASE_URL).get('/projects').times(3).reply(503, {
         error: { code: 'SERVICE_UNAVAILABLE', message: 'Down' },
       });
 
       await expect(client.get('/projects')).rejects.toThrow(OpsApiError);
+      // Verify all 3 retry attempts were made
+      expect(nock.isDone()).toBe(true);
     }, 15000);
 
     it('should respect custom retry count', async () => {
       const customClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         retries: 1,
       });
 
+      // Only 1 interceptor — retries: 1 means only 1 attempt total
       nock(BASE_URL).get('/projects').reply(503, {
         error: { code: 'SERVICE_UNAVAILABLE', message: 'Down' },
       });
 
       await expect(customClient.get('/projects')).rejects.toThrow(OpsApiError);
+      // Verify exactly 1 request was made (retries: 1 = 1 attempt)
+      expect(nock.isDone()).toBe(true);
     });
   });
 
@@ -305,7 +335,7 @@ describe('OpsHttpClient', () => {
     it('should include Authorization header on POST requests', async () => {
       nock(BASE_URL)
         .post('/projects')
-        .matchHeader('Authorization', 'Bearer ulr_test-api-key-12345')
+        .matchHeader('Authorization', `Bearer ${TEST_API_KEY}`)
         .reply(201, { data: { id: '1' } });
 
       await client.post('/projects', { name: 'test' });
@@ -314,7 +344,7 @@ describe('OpsHttpClient', () => {
     it('should include Authorization header on PATCH requests', async () => {
       nock(BASE_URL)
         .patch('/projects/1')
-        .matchHeader('Authorization', 'Bearer ulr_test-api-key-12345')
+        .matchHeader('Authorization', `Bearer ${TEST_API_KEY}`)
         .reply(200, { data: { id: '1' } });
 
       await client.patch('/projects/1', { name: 'updated' });
@@ -323,7 +353,7 @@ describe('OpsHttpClient', () => {
     it('should include Authorization header on PUT requests', async () => {
       nock(BASE_URL)
         .put('/projects/1')
-        .matchHeader('Authorization', 'Bearer ulr_test-api-key-12345')
+        .matchHeader('Authorization', `Bearer ${TEST_API_KEY}`)
         .reply(200, { data: { id: '1' } });
 
       await client.put('/projects/1', { name: 'replaced' });
@@ -332,7 +362,7 @@ describe('OpsHttpClient', () => {
     it('should include Authorization header on DELETE requests', async () => {
       nock(BASE_URL)
         .delete('/projects/1')
-        .matchHeader('Authorization', 'Bearer ulr_test-api-key-12345')
+        .matchHeader('Authorization', `Bearer ${TEST_API_KEY}`)
         .reply(200, { data: { deleted: true } });
 
       await client.delete('/projects/1');
@@ -376,7 +406,7 @@ describe('OpsHttpClient', () => {
     it('should throw TimeoutError when request times out', async () => {
       const timeoutClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         timeout: 100,
         retries: 1,
       });
@@ -389,7 +419,7 @@ describe('OpsHttpClient', () => {
     it('should succeed when response arrives before timeout', async () => {
       const timeoutClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         timeout: 500,
         retries: 1,
       });
@@ -403,7 +433,7 @@ describe('OpsHttpClient', () => {
     it('should throw TimeoutError with very small timeout', async () => {
       const tinyTimeoutClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         timeout: 1,
         retries: 1,
       });
@@ -417,7 +447,7 @@ describe('OpsHttpClient', () => {
       const timeoutMs = 150;
       const timeoutClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         timeout: timeoutMs,
         retries: 1,
       });
@@ -436,7 +466,7 @@ describe('OpsHttpClient', () => {
     it('should throw NetworkError on connection refused', async () => {
       const badClient = new OpsHttpClient({
         baseUrl: 'http://localhost:59999', // Port that nothing listens on
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         retries: 1,
       });
 
@@ -446,7 +476,7 @@ describe('OpsHttpClient', () => {
     it('should throw ServiceUnavailableError for 502 Bad Gateway', async () => {
       const noRetryClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         retries: 1,
       });
 
@@ -460,7 +490,7 @@ describe('OpsHttpClient', () => {
     it('should throw ServiceUnavailableError for 504 Gateway Timeout', async () => {
       const noRetryClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         retries: 1,
       });
 
@@ -481,6 +511,7 @@ describe('OpsHttpClient', () => {
 
       const result = await client.get('/retry502');
       expect(result).toEqual({ ok: true });
+      expect(nock.isDone()).toBe(true);
     });
 
     it('should retry on 504 errors', async () => {
@@ -491,6 +522,7 @@ describe('OpsHttpClient', () => {
 
       const result = await client.get('/retry504');
       expect(result).toEqual({ ok: true });
+      expect(nock.isDone()).toBe(true);
     });
 
     it('should retry on 429 rate limit errors', async () => {
@@ -501,13 +533,14 @@ describe('OpsHttpClient', () => {
 
       const result = await client.get('/rate');
       expect(result).toEqual({ ok: true });
+      expect(nock.isDone()).toBe(true);
     });
 
     it('should not retry on 401 Unauthorized', async () => {
       // Client without refreshable auth
       const staticClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         retries: 3,
       });
 
@@ -546,7 +579,7 @@ describe('OpsHttpClient', () => {
     it('should exhaust all retries before failing', async () => {
       const twoRetryClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        apiKey: 'ulr_test-key',
+        apiKey: TEST_API_KEY_SHORT,
         retries: 2,
       });
 
@@ -555,6 +588,8 @@ describe('OpsHttpClient', () => {
       });
 
       await expect(twoRetryClient.get('/fail')).rejects.toThrow(OpsApiError);
+      // Verify all 2 attempts were consumed
+      expect(nock.isDone()).toBe(true);
     });
   });
 

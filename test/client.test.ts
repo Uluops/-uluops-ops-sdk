@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
 import { OpsClient } from '../src/client.js';
-import { BASE_URL } from './setup.js';
+import { BASE_URL, TEST_API_KEY } from './setup.js';
 
 describe('OpsClient', () => {
   let client: OpsClient;
@@ -9,7 +9,7 @@ describe('OpsClient', () => {
   beforeEach(() => {
     client = new OpsClient({
       baseUrl: BASE_URL,
-      apiKey: 'ulr_test-api-key-12345',
+      apiKey: TEST_API_KEY,
     });
   });
 

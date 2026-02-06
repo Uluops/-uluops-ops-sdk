@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as adminOps from '../../src/operations/admin.js';
-import { BASE_URL } from '../setup.js';
+import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import {
   createMockAdminStats,
   createMockAdminUser,
@@ -20,7 +20,7 @@ describe('Admin Operations', () => {
     resetMockIds();
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
-      apiKey: 'ulr_test-api-key-12345',
+      apiKey: TEST_API_KEY,
     });
   });
 

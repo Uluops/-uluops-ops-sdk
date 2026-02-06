@@ -4,6 +4,7 @@ import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as issueOps from '../../src/operations/issues.js';
 import {
   BASE_URL,
+  TEST_API_KEY,
   createMockIssue,
   createMockIssueDetails,
   createMockIssueNote,
@@ -28,7 +29,7 @@ describe('Issue Operations', () => {
   beforeEach(() => {
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
-      apiKey: 'ulr_test-api-key-12345',
+      apiKey: TEST_API_KEY,
     });
   });
 
