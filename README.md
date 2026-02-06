@@ -16,6 +16,8 @@ Official TypeScript SDK with Zod runtime validation for the UluOps validation tr
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
 
+// Defaults to http://localhost:3100/api/v1 for local dev.
+// For production, set ULUOPS_BASE_URL env var or pass baseUrl below.
 const client = new OpsClient({
   apiKey: 'ulr_your-api-key-here',
 });

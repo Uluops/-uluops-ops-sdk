@@ -233,7 +233,8 @@ describe('Error Classes', () => {
       const error = new NetworkError('ECONNREFUSED');
       expect(error.statusCode).toBe(0);
       expect(error.code).toBe(ERROR_CODES.NETWORK_ERROR);
-      expect(error.message).toBe('ECONNREFUSED');
+      expect(error.message).toContain('ECONNREFUSED');
+      expect(error.message).toContain('Check your connection and baseUrl configuration');
       expect(error.name).toBe('NetworkError');
     });
 
@@ -245,7 +246,8 @@ describe('Error Classes', () => {
   describe('TimeoutError', () => {
     it('should format message with timeout value', () => {
       const error = new TimeoutError(30000);
-      expect(error.message).toBe('Request timed out after 30000ms');
+      expect(error.message).toContain('Request timed out after 30000ms');
+      expect(error.message).toContain('Consider increasing timeout');
       expect(error.statusCode).toBe(0);
       expect(error.code).toBe(ERROR_CODES.TIMEOUT);
       expect(error.details).toEqual({ timeoutMs: 30000 });

@@ -37,10 +37,19 @@ export class InputValidationError extends Error {
 /**
  * Generic validation function
  */
+function formatZodError(e: z.ZodIssue): string {
+  const field = e.path.join('.') || '(root)';
+  if (e.code === 'invalid_enum_value') {
+    const opts = (e as z.ZodInvalidEnumValueIssue).options.join(', ');
+    return `${field} must be one of: ${opts} (got '${(e as z.ZodInvalidEnumValueIssue).received}')`;
+  }
+  return `${field}: ${e.message}`;
+}
+
 function validate<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const messages = result.error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+    const messages = result.error.errors.map(formatZodError).join(', ');
     throw new InputValidationError(`Invalid ${context}: ${messages}`, result.error.errors);
   }
   return result.data;

@@ -499,7 +499,7 @@ export class OpsHttpClient {
 
     // Network errors (fetch throws TypeError for network issues)
     if (error instanceof TypeError) {
-      return new NetworkError(error.message);
+      return new NetworkError(error.message, this.baseUrl);
     }
 
     if (error instanceof Error) {

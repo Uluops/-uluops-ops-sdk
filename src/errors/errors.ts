@@ -124,8 +124,11 @@ export class ServiceUnavailableError extends OpsApiError {
  * Network/connection error
  */
 export class NetworkError extends OpsApiError {
-  constructor(message: string) {
-    super(0, message, ERROR_CODES.NETWORK_ERROR);
+  constructor(message: string, baseUrl?: string) {
+    const hint = baseUrl
+      ? `Failed to connect to ${baseUrl}. Verify the API server is running and the URL is correct.`
+      : 'Network request failed. Check your connection and baseUrl configuration.';
+    super(0, `${hint} (${message})`, ERROR_CODES.NETWORK_ERROR, baseUrl ? { baseUrl } : undefined);
     this.name = 'NetworkError';
   }
 }
@@ -135,7 +138,12 @@ export class NetworkError extends OpsApiError {
  */
 export class TimeoutError extends OpsApiError {
   constructor(timeoutMs: number) {
-    super(0, `Request timed out after ${timeoutMs}ms`, ERROR_CODES.TIMEOUT, { timeoutMs });
+    super(
+      0,
+      `Request timed out after ${timeoutMs}ms. Consider increasing timeout with { timeout: ${Math.max(timeoutMs * 2, 60000)} } or check network connectivity.`,
+      ERROR_CODES.TIMEOUT,
+      { timeoutMs }
+    );
     this.name = 'TimeoutError';
   }
 }

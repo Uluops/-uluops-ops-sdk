@@ -53,7 +53,10 @@ export class ApiKeyAuth implements AuthStrategy {
       throw new Error('API key is required');
     }
     if (!apiKey.startsWith(API_KEY_PREFIX)) {
-      throw new Error(`Invalid API key format. Expected prefix: ${API_KEY_PREFIX}`);
+      throw new Error(
+        `Invalid API key format. Expected prefix: ${API_KEY_PREFIX}. ` +
+        'Set ULUOPS_API_KEY env var or pass a valid key to the constructor.'
+      );
     }
   }
 
@@ -132,7 +135,9 @@ export class JwtSessionAuth implements AuthStrategy {
 
   getAuthorizationHeader(): string {
     if (!this.sessionToken) {
-      throw new UnauthorizedError('Not authenticated. Call login() first.');
+      throw new UnauthorizedError(
+        'Session expired or not authenticated. Call client.auth.login({ email, password }) to obtain a new session.'
+      );
     }
     return `Bearer ${this.sessionToken}`;
   }
@@ -209,6 +214,8 @@ export function createAuthStrategy(config: AuthConfig): AuthStrategy {
   }
 
   throw new Error(
-    'No valid credentials provided. Supply apiKey, sessionToken, or email/password.'
+    'No valid credentials provided. ' +
+    'Set ULUOPS_API_KEY env var, or pass one of: apiKey, sessionToken, or email/password to the constructor. ' +
+    'Priority: apiKey > sessionToken > email/password.'
   );
 }
