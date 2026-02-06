@@ -60,7 +60,7 @@ export class ValidationError extends OpsApiError {
  * 401 Unauthorized - Authentication required
  */
 export class UnauthorizedError extends OpsApiError {
-  constructor(message = 'Authentication required') {
+  constructor(message = 'Authentication required. Set ULUOPS_API_KEY env var or pass apiKey to the OpsClient constructor.') {
     super(HTTP_STATUS.UNAUTHORIZED, message, ERROR_CODES.UNAUTHORIZED);
     this.name = 'UnauthorizedError';
   }
@@ -161,8 +161,11 @@ export function createErrorFromStatus(
   switch (statusCode) {
     case HTTP_STATUS.BAD_REQUEST:
       return new ValidationError(message, details);
-    case HTTP_STATUS.UNAUTHORIZED:
-      return new UnauthorizedError(message);
+    case HTTP_STATUS.UNAUTHORIZED: {
+      const hint = 'Set ULUOPS_API_KEY env var or pass apiKey to the OpsClient constructor.';
+      const fullMessage = message.includes('ULUOPS_API_KEY') ? message : `${message}. ${hint}`;
+      return new UnauthorizedError(fullMessage);
+    }
     case HTTP_STATUS.FORBIDDEN:
       return new ForbiddenError(message);
     case HTTP_STATUS.NOT_FOUND:

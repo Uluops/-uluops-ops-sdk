@@ -41,7 +41,7 @@ const result = await client.runs.save({
   ],
 });
 
-console.log(`Run #${result.run.runNumber} saved: ${result.issues.created} issues created`);
+console.log(`Run #${result.run.runNumber} saved: ${result.correlation.newIssues} new issues`);
 ```
 
 ### Search Issues
@@ -670,7 +670,7 @@ const result = await client.runs.save({
 });
 
 console.log(`Run #${result.run.runNumber} saved`);
-console.log(`Issues: ${result.issues.created} created, ${result.issues.updated} updated`);
+console.log(`Issues: ${result.correlation.newIssues} new, ${result.correlation.recurringIssues} recurring`);
 ```
 
 #### `client.runs.validate(input)`

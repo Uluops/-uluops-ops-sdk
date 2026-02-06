@@ -127,7 +127,8 @@ describe('Error Classes', () => {
   describe('UnauthorizedError', () => {
     it('should use default message', () => {
       const error = new UnauthorizedError();
-      expect(error.message).toBe('Authentication required');
+      expect(error.message).toContain('Authentication required');
+      expect(error.message).toContain('ULUOPS_API_KEY');
       expect(error.statusCode).toBe(HTTP_STATUS.UNAUTHORIZED);
       expect(error.code).toBe(ERROR_CODES.UNAUTHORIZED);
       expect(error.name).toBe('UnauthorizedError');
