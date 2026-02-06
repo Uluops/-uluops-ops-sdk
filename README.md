@@ -56,6 +56,7 @@ console.log(`Run #${result.run.runNumber} saved: ${result.issues.created} issues
   - [Issue Operations](#issue-operations)
   - [Analytics Operations](#analytics-operations)
   - [Taxonomy Operations](#taxonomy-operations)
+  - [Health Check](#health-check)
   - [Admin Operations](#admin-operations)
 - [Environment Variables](#environment-variables)
 - [Error Handling](#error-handling)
@@ -1147,6 +1148,23 @@ console.log('Severities:', taxonomy.severities);
 
 console.log('Priorities:', taxonomy.priorities);
 // ['critical', 'suggested', 'backlog']
+```
+
+---
+
+### Health Check
+
+Check API server status. This endpoint does not require authentication.
+
+```typescript
+import { OpsHttpClient } from '@uluops/ops-sdk';
+import type { HealthResponse } from '@uluops/ops-sdk/types';
+
+const http = new OpsHttpClient({ baseUrl: 'http://localhost:3100/api/v1' });
+const health = await http.get<HealthResponse>('/health');
+console.log(health.status);   // 'ok' | 'degraded' | 'unhealthy'
+console.log(health.version);  // API version
+console.log(health.database); // { connected: boolean, latencyMs: number }
 ```
 
 ---

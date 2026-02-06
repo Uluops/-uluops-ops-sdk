@@ -20,6 +20,7 @@ import {
   validateCreateIssueNoteInput,
   validateBulkStatusUpdateInput,
 } from '../config/validators.js';
+import { buildIssueListParams } from './query-utils.js';
 
 /**
  * Create a user-submitted issue
@@ -220,24 +221,8 @@ export async function listByProject(
   projectId: string,
   query?: ListIssuesQuery
 ): Promise<Issue[]> {
-  const params = query
-    ? {
-        status: query.status,
-        priority: query.priority,
-        severity: query.severity,
-        failureDomain: query.failureDomain,
-        validator: query.validator,
-        limit: query.limit,
-        offset: query.offset,
-        includeResolved: query.includeResolved,
-        minTimesSeen: query.minTimesSeen,
-        dateStart: query.dateStart,
-        dateEnd: query.dateEnd,
-      }
-    : undefined;
-
   return client.get<Issue[]>(
     `/projects/${encodeURIComponent(projectId)}/issues`,
-    params
+    buildIssueListParams(query)
   );
 }

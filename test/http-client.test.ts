@@ -52,6 +52,33 @@ describe('OpsHttpClient', () => {
         });
       }).toThrow('Invalid API key format');
     });
+
+    it('should reject API key with wrong prefix', () => {
+      expect(() => {
+        new OpsHttpClient({
+          baseUrl: BASE_URL,
+          apiKey: 'api_some-key',
+        });
+      }).toThrow('Invalid API key format');
+    });
+
+    it('should reject whitespace-only API key', () => {
+      expect(() => {
+        new OpsHttpClient({
+          baseUrl: BASE_URL,
+          apiKey: '   ',
+        });
+      }).toThrow();
+    });
+
+    it('should reject API key with prefix as substring but not at start', () => {
+      expect(() => {
+        new OpsHttpClient({
+          baseUrl: BASE_URL,
+          apiKey: 'xulr_some-key',
+        });
+      }).toThrow('Invalid API key format');
+    });
   });
 
   describe('GET requests', () => {

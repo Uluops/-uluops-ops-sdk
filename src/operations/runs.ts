@@ -1,4 +1,4 @@
-import type { OpsHttpClient } from '../http/http-client.js';
+import type { OpsHttpClient, QueryParams } from '../http/http-client.js';
 import type {
   Run,
   SaveFeaturesListInput,
@@ -119,7 +119,7 @@ export async function listByProject(
 ): Promise<Run[]> {
   return client.get<Run[]>(
     `/runs/project/${encodeURIComponent(projectId)}`,
-    query
+    query as QueryParams
   );
 }
 

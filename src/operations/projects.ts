@@ -1,4 +1,4 @@
-import type { OpsHttpClient } from '../http/http-client.js';
+import type { OpsHttpClient, QueryParams } from '../http/http-client.js';
 import type {
   Project,
   CreateProjectInput,
@@ -20,6 +20,7 @@ import {
   validateDeleteProjectInput,
   validateRenameProjectInput,
 } from '../config/validators.js';
+import { buildIssueListParams } from './query-utils.js';
 
 /**
  * List all projects for the current user
@@ -134,7 +135,7 @@ export async function getTrends(
 ): Promise<TrendDataPoint[]> {
   return client.get<TrendDataPoint[]>(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
-    query
+    query as QueryParams
   );
 }
 
@@ -146,25 +147,9 @@ export async function listIssues(
   idOrName: string,
   query?: ListProjectIssuesQuery
 ): Promise<Issue[]> {
-  const params = query
-    ? {
-        status: query.status,
-        priority: query.priority,
-        severity: query.severity,
-        failureDomain: query.failureDomain,
-        validator: query.validator,
-        limit: query.limit,
-        offset: query.offset,
-        includeResolved: query.includeResolved,
-        minTimesSeen: query.minTimesSeen,
-        dateStart: query.dateStart,
-        dateEnd: query.dateEnd,
-      }
-    : undefined;
-
   return client.get<Issue[]>(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
-    params
+    buildIssueListParams(query)
   );
 }
 

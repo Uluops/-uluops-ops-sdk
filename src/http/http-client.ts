@@ -21,6 +21,16 @@ import { createLogger, type Logger } from '../utils/logger.js';
 import { sleep } from '../utils/helpers.js';
 
 /**
+ * Allowed types for query parameter values
+ */
+export type QueryParamValue = string | number | boolean | undefined | null;
+
+/**
+ * Query parameters for HTTP requests
+ */
+export type QueryParams = Record<string, QueryParamValue>;
+
+/**
  * HTTP client configuration
  */
 export interface HttpClientConfig {
@@ -115,8 +125,8 @@ export class OpsHttpClient {
   async request<T>(
     method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     endpoint: string,
-    data?: object,
-    options?: { params?: object; retries?: number; headers?: Record<string, string> }
+    data?: QueryParams | object,
+    options?: { params?: QueryParams; retries?: number; headers?: Record<string, string> }
   ): Promise<T> {
     const maxRetries = options?.retries ?? this.retries;
     let lastError: Error | null = null;
@@ -178,8 +188,8 @@ export class OpsHttpClient {
   private async doFetch<T>(
     method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     endpoint: string,
-    data?: object,
-    options?: { params?: object; headers?: Record<string, string> }
+    data?: QueryParams | object,
+    options?: { params?: QueryParams; headers?: Record<string, string> }
   ): Promise<T> {
     // Build URL with query params
     // Concatenate baseUrl and endpoint like axios does
@@ -259,8 +269,8 @@ export class OpsHttpClient {
   async requestRaw<T>(
     method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     endpoint: string,
-    data?: object,
-    options?: { params?: object; headers?: Record<string, string> }
+    data?: QueryParams | object,
+    options?: { params?: QueryParams; headers?: Record<string, string> }
   ): Promise<T> {
     // Build URL with query params
     const url = new URL(this.buildUrl(endpoint));
@@ -325,7 +335,7 @@ export class OpsHttpClient {
   async requestBinary(
     method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
     endpoint: string,
-    options?: { params?: object; headers?: Record<string, string> }
+    options?: { params?: QueryParams; headers?: Record<string, string> }
   ): Promise<{ data: ArrayBuffer; contentType: string; headers: Headers }> {
     const url = new URL(this.buildUrl(endpoint));
     const queryParams = options?.params;
@@ -375,7 +385,7 @@ export class OpsHttpClient {
   /**
    * GET request helper
    */
-  async get<T>(endpoint: string, params?: object): Promise<T> {
+  async get<T>(endpoint: string, params?: QueryParams): Promise<T> {
     return this.request<T>('GET', endpoint, params);
   }
 
@@ -389,7 +399,7 @@ export class OpsHttpClient {
   /**
    * PATCH request helper
    */
-  async patch<T>(endpoint: string, data?: object, options?: { params?: object }): Promise<T> {
+  async patch<T>(endpoint: string, data?: object, options?: { params?: QueryParams }): Promise<T> {
     return this.request<T>('PATCH', endpoint, data, options);
   }
 

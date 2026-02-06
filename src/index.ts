@@ -2,7 +2,7 @@
 export { OpsClient, type OpsClientConfig } from './client.js';
 
 // HTTP client (for advanced usage)
-export { OpsHttpClient, type HttpClientConfig } from './http/http-client.js';
+export { OpsHttpClient, type HttpClientConfig, type QueryParams, type QueryParamValue } from './http/http-client.js';
 export { ApiKeyAuth, JwtSessionAuth, createAuthStrategy, type AuthStrategy, type AuthConfig } from './http/auth-strategy.js';
 
 // Errors
