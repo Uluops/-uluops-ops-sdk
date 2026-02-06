@@ -3,11 +3,21 @@ import nock from 'nock';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as adminOps from '../../src/operations/admin.js';
 import { BASE_URL } from '../setup.js';
+import {
+  createMockAdminStats,
+  createMockAdminUser,
+  createMockAdminSession,
+  createMockAdminApiKey,
+  createMockPagination,
+  createMockMessage,
+  resetMockIds,
+} from '../contract-helpers.js';
 
 describe('Admin Operations', () => {
   let client: OpsHttpClient;
 
   beforeEach(() => {
+    resetMockIds();
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
       apiKey: 'ulr_test-api-key-12345',
@@ -16,18 +26,15 @@ describe('Admin Operations', () => {
 
   describe('getStats', () => {
     it('should get admin dashboard stats', async () => {
+      const mockStats = createMockAdminStats({
+        totalUsers: 150,
+        activeUsers: 120,
+        totalProjects: 75,
+      });
+
       nock(BASE_URL)
         .get('/admin/stats')
-        .reply(200, {
-          data: {
-            totalUsers: 150,
-            activeUsers: 120,
-            totalProjects: 75,
-            totalRuns: 5000,
-            totalIssues: 15000,
-            storageUsedMb: 2500,
-          },
-        });
+        .reply(200, { data: mockStats });
 
       const stats = await adminOps.getStats(client);
 
@@ -39,15 +46,16 @@ describe('Admin Operations', () => {
 
   describe('listUsers', () => {
     it('should list all users', async () => {
+      const user1 = createMockAdminUser({ email: 'user1@example.com', role: 'developer' });
+      const user2 = createMockAdminUser({ email: 'admin@example.com', role: 'admin' });
+      const pagination = createMockPagination({ total: 2, page: 1, limit: 20, totalPages: 1 });
+
       nock(BASE_URL)
         .get('/admin/users')
         .reply(200, {
           data: {
-            users: [
-              { id: 'user-1', email: 'user1@example.com', role: 'user' },
-              { id: 'user-2', email: 'admin@example.com', role: 'admin' },
-            ],
-            pagination: { total: 2, page: 1, limit: 20, totalPages: 1 },
+            users: [user1, user2],
+            pagination,
           },
         });
 
@@ -58,13 +66,16 @@ describe('Admin Operations', () => {
     });
 
     it('should filter users by role', async () => {
+      const adminUser = createMockAdminUser({ email: 'admin@example.com', role: 'admin' });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
+
       nock(BASE_URL)
         .get('/admin/users')
         .query({ role: 'admin' })
         .reply(200, {
           data: {
-            users: [{ id: 'user-2', email: 'admin@example.com', role: 'admin' }],
-            pagination: { total: 1, page: 1, limit: 20 },
+            users: [adminUser],
+            pagination,
           },
         });
 
@@ -75,13 +86,16 @@ describe('Admin Operations', () => {
     });
 
     it('should search users', async () => {
+      const user = createMockAdminUser({ email: 'john@example.com' });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 10 });
+
       nock(BASE_URL)
         .get('/admin/users')
         .query({ search: 'john', limit: 10 })
         .reply(200, {
           data: {
-            users: [{ id: 'user-3', email: 'john@example.com' }],
-            pagination: { total: 1, page: 1, limit: 10 },
+            users: [user],
+            pagination,
           },
         });
 
@@ -91,13 +105,16 @@ describe('Admin Operations', () => {
     });
 
     it('should paginate results', async () => {
+      const user = createMockAdminUser({ email: 'user6@example.com' });
+      const pagination = createMockPagination({ total: 10, page: 2, limit: 5, totalPages: 2 });
+
       nock(BASE_URL)
         .get('/admin/users')
         .query({ page: 2, limit: 5 })
         .reply(200, {
           data: {
-            users: [{ id: 'user-6', email: 'user6@example.com' }],
-            pagination: { total: 10, page: 2, limit: 5, totalPages: 2 },
+            users: [user],
+            pagination,
           },
         });
 
@@ -109,17 +126,18 @@ describe('Admin Operations', () => {
 
   describe('getUser', () => {
     it('should get user by ID with stats', async () => {
+      const mockUser = createMockAdminUser({
+        id: 'user-1',
+        email: 'user@example.com',
+        role: 'developer',
+        subscriptionTier: 'pro',
+      });
+
       nock(BASE_URL)
         .get('/admin/users/user-1')
         .reply(200, {
           data: {
-            user: {
-              id: 'user-1',
-              email: 'user@example.com',
-              role: 'user',
-              subscriptionTier: 'pro',
-              createdAt: '2024-01-01',
-            },
+            user: mockUser,
             stats: {
               projectCount: 5,
               runCount: 100,
@@ -138,6 +156,11 @@ describe('Admin Operations', () => {
 
   describe('createUser', () => {
     it('should create user with password', async () => {
+      const mockUser = createMockAdminUser({
+        email: 'newuser@example.com',
+        role: 'developer',
+      });
+
       nock(BASE_URL)
         .post('/admin/users', {
           email: 'newuser@example.com',
@@ -146,9 +169,7 @@ describe('Admin Operations', () => {
           subscriptionTier: 'free',
         })
         .reply(201, {
-          data: {
-            user: { id: 'user-new', email: 'newuser@example.com', role: 'developer' },
-          },
+          data: { user: mockUser },
         });
 
       const result = await adminOps.createUser(client, {
@@ -162,6 +183,8 @@ describe('Admin Operations', () => {
     });
 
     it('should create user with welcome email', async () => {
+      const mockUser = createMockAdminUser({ email: 'invited@example.com' });
+
       nock(BASE_URL)
         .post('/admin/users', {
           email: 'invited@example.com',
@@ -171,7 +194,7 @@ describe('Admin Operations', () => {
         })
         .reply(201, {
           data: {
-            user: { id: 'user-invited', email: 'invited@example.com' },
+            user: mockUser,
             temporaryPassword: 'tempPass123',
           },
         });
@@ -189,10 +212,12 @@ describe('Admin Operations', () => {
 
   describe('updateUser', () => {
     it('should update user role', async () => {
+      const mockUser = createMockAdminUser({ id: 'user-1', role: 'admin' });
+
       nock(BASE_URL)
         .patch('/admin/users/user-1', { role: 'admin' })
         .reply(200, {
-          data: { user: { id: 'user-1', role: 'admin' } },
+          data: { user: mockUser },
         });
 
       const result = await adminOps.updateUser(client, 'user-1', { role: 'admin' });
@@ -201,10 +226,12 @@ describe('Admin Operations', () => {
     });
 
     it('should update subscription tier', async () => {
+      const mockUser = createMockAdminUser({ id: 'user-1', subscriptionTier: 'enterprise' });
+
       nock(BASE_URL)
         .patch('/admin/users/user-1', { subscriptionTier: 'enterprise' })
         .reply(200, {
-          data: { user: { id: 'user-1', subscriptionTier: 'enterprise' } },
+          data: { user: mockUser },
         });
 
       const result = await adminOps.updateUser(client, 'user-1', {
@@ -217,10 +244,12 @@ describe('Admin Operations', () => {
 
   describe('deactivateUser', () => {
     it('should deactivate user', async () => {
+      const mockUser = createMockAdminUser({ id: 'user-1', isActive: false });
+
       nock(BASE_URL)
         .delete('/admin/users/user-1')
         .reply(200, {
-          data: { user: { id: 'user-1', isActive: false, deactivatedAt: '2024-01-15' } },
+          data: { user: mockUser },
         });
 
       const result = await adminOps.deactivateUser(client, 'user-1');
@@ -231,10 +260,12 @@ describe('Admin Operations', () => {
 
   describe('reactivateUser', () => {
     it('should reactivate user', async () => {
+      const mockUser = createMockAdminUser({ id: 'user-1', isActive: true, deactivatedAt: null });
+
       nock(BASE_URL)
         .post('/admin/users/user-1/reactivate')
         .reply(200, {
-          data: { user: { id: 'user-1', isActive: true, deactivatedAt: null } },
+          data: { user: mockUser },
         });
 
       const result = await adminOps.reactivateUser(client, 'user-1');
@@ -245,11 +276,11 @@ describe('Admin Operations', () => {
 
   describe('resetUserPassword', () => {
     it('should trigger password reset', async () => {
+      const mockResponse = createMockMessage('Password reset email sent');
+
       nock(BASE_URL)
         .post('/admin/users/user-1/reset-password')
-        .reply(200, {
-          data: { message: 'Password reset email sent' },
-        });
+        .reply(200, { data: mockResponse });
 
       const result = await adminOps.resetUserPassword(client, 'user-1');
 
@@ -292,20 +323,19 @@ describe('Admin Operations', () => {
 
   describe('listSessions', () => {
     it('should list all sessions', async () => {
+      const session = createMockAdminSession({
+        userId: 'user-1',
+        userEmail: 'user@example.com',
+        userAgent: 'Chrome',
+      });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
+
       nock(BASE_URL)
         .get('/admin/sessions')
         .reply(200, {
           data: {
-            sessions: [
-              {
-                id: 'sess-1',
-                userId: 'user-1',
-                userEmail: 'user@example.com',
-                userAgent: 'Chrome',
-                createdAt: '2024-01-01',
-              },
-            ],
-            pagination: { total: 1, page: 1, limit: 20 },
+            sessions: [session],
+            pagination,
           },
         });
 
@@ -315,13 +345,16 @@ describe('Admin Operations', () => {
     });
 
     it('should filter sessions by user', async () => {
+      const session = createMockAdminSession({ userId: 'user-1' });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
+
       nock(BASE_URL)
         .get('/admin/sessions')
         .query({ userId: 'user-1' })
         .reply(200, {
           data: {
-            sessions: [{ id: 'sess-1', userId: 'user-1' }],
-            pagination: { total: 1, page: 1, limit: 20 },
+            sessions: [session],
+            pagination,
           },
         });
 
@@ -333,11 +366,11 @@ describe('Admin Operations', () => {
 
   describe('terminateSession', () => {
     it('should terminate specific session', async () => {
+      const mockResponse = createMockMessage('Session terminated');
+
       nock(BASE_URL)
         .delete('/admin/sessions/sess-1')
-        .reply(200, {
-          data: { message: 'Session terminated' },
-        });
+        .reply(200, { data: mockResponse });
 
       const result = await adminOps.terminateSession(client, 'sess-1');
 
@@ -347,11 +380,11 @@ describe('Admin Operations', () => {
 
   describe('terminateUserSessions', () => {
     it('should terminate all sessions for a user', async () => {
+      const mockResponse = createMockMessage('3 sessions terminated');
+
       nock(BASE_URL)
         .delete('/admin/sessions/user/user-1')
-        .reply(200, {
-          data: { message: '3 sessions terminated' },
-        });
+        .reply(200, { data: mockResponse });
 
       const result = await adminOps.terminateUserSessions(client, 'user-1');
 
@@ -361,21 +394,19 @@ describe('Admin Operations', () => {
 
   describe('listKeys', () => {
     it('should list all API keys', async () => {
+      const key = createMockAdminApiKey({
+        userId: 'user-1',
+        userEmail: 'user@example.com',
+        name: 'Production Key',
+      });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
+
       nock(BASE_URL)
         .get('/admin/keys')
         .reply(200, {
           data: {
-            keys: [
-              {
-                id: 'key-1',
-                userId: 'user-1',
-                userEmail: 'user@example.com',
-                name: 'Production Key',
-                prefix: 'ulr_prod',
-                createdAt: '2024-01-01',
-              },
-            ],
-            pagination: { total: 1, page: 1, limit: 20 },
+            keys: [key],
+            pagination,
           },
         });
 
@@ -386,13 +417,16 @@ describe('Admin Operations', () => {
     });
 
     it('should filter keys by user', async () => {
+      const key = createMockAdminApiKey({ userId: 'user-1' });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
+
       nock(BASE_URL)
         .get('/admin/keys')
         .query({ userId: 'user-1' })
         .reply(200, {
           data: {
-            keys: [{ id: 'key-1', userId: 'user-1' }],
-            pagination: { total: 1, page: 1, limit: 20 },
+            keys: [key],
+            pagination,
           },
         });
 
@@ -402,13 +436,16 @@ describe('Admin Operations', () => {
     });
 
     it('should search keys', async () => {
+      const key = createMockAdminApiKey({ name: 'Production Key' });
+      const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
+
       nock(BASE_URL)
         .get('/admin/keys')
         .query({ search: 'production' })
         .reply(200, {
           data: {
-            keys: [{ id: 'key-1', name: 'Production Key' }],
-            pagination: { total: 1, page: 1, limit: 20 },
+            keys: [key],
+            pagination,
           },
         });
 
@@ -420,11 +457,11 @@ describe('Admin Operations', () => {
 
   describe('revokeKey', () => {
     it('should revoke API key', async () => {
+      const mockResponse = createMockMessage('API key revoked');
+
       nock(BASE_URL)
         .delete('/admin/keys/key-1')
-        .reply(200, {
-          data: { message: 'API key revoked' },
-        });
+        .reply(200, { data: mockResponse });
 
       const result = await adminOps.revokeKey(client, 'key-1');
 

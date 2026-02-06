@@ -1,4 +1,5 @@
 import { HTTP_STATUS, ERROR_CODES } from '../config/constants.js';
+import { sanitizeForDisplay } from '../utils/logger.js';
 
 /**
  * Base API error class
@@ -39,7 +40,7 @@ export class OpsApiError extends Error {
       message: this.message,
       statusCode: this.statusCode,
       code: this.code,
-      details: this.details,
+      details: this.details ? sanitizeForDisplay(this.details) : undefined,
       requestId: this.requestId,
     };
   }

@@ -62,7 +62,6 @@ describe('Helper Utilities', () => {
     });
 
     it('should throw after max retries', async () => {
-      vi.useRealTimers();
       const error = new Error('always fails');
       const fn = vi.fn().mockRejectedValue(error);
 
@@ -74,7 +73,6 @@ describe('Helper Utilities', () => {
     });
 
     it('should respect shouldRetry predicate', async () => {
-      vi.useRealTimers();
       const error = new Error('non-retryable');
       const fn = vi.fn().mockRejectedValue(error);
 
@@ -89,7 +87,6 @@ describe('Helper Utilities', () => {
     });
 
     it('should respect maxDelayMs cap', async () => {
-      vi.useRealTimers();
       const fn = vi
         .fn()
         .mockRejectedValueOnce(new Error('fail'))

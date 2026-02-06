@@ -190,21 +190,37 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
 }
 
 /**
+ * Known result types for analytics metrics.
+ * Use with getByMetric for type-safe access to specific metrics.
+ */
+export interface AnalyticsMetricResultMap {
+  validator_performance: ValidatorPerformance[];
+  resolution_rates: ResolutionRate[];
+  file_hotspots: FileHotspot[];
+  trend_summary: TrendSummary[];
+  taxonomy_distribution: TaxonomyDistribution[];
+  cross_project_patterns: unknown;
+  regression_analysis: unknown;
+  cost_analysis: unknown;
+  category_performance: unknown;
+}
+
+/**
  * Get analytics by metric name (generic endpoint)
  * @throws Error if metric is not a valid analytics metric
  */
-export async function getByMetric(
+export async function getByMetric<M extends AnalyticsMetric>(
   client: OpsHttpClient,
-  metric: AnalyticsMetric,
+  metric: M,
   query?: AnalyticsQuery
-): Promise<unknown> {
+): Promise<AnalyticsMetricResultMap[M]> {
   // Runtime validation for string inputs that bypass type checking
   if (!isValidMetric(metric)) {
     throw new Error(
       `Invalid analytics metric: "${metric}". Valid metrics: ${ANALYTICS_METRICS.join(', ')}`
     );
   }
-  return client.get<unknown>(
+  return client.get<AnalyticsMetricResultMap[M]>(
     `/analytics/${metric}`,
     query
   );

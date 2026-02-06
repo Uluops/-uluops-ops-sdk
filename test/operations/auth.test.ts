@@ -3,11 +3,23 @@ import nock from 'nock';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as authOps from '../../src/operations/auth.js';
 import { BASE_URL } from '../setup.js';
+import {
+  createMockAuthUser,
+  createMockPublicUser,
+  createMockLoginResponse,
+  createMockRegisterResponse,
+  createMockPublicApiKey,
+  createMockApiKeyCreated,
+  createMockPublicSession,
+  createMockMessage,
+  resetMockIds,
+} from '../contract-helpers.js';
 
 describe('Auth Operations', () => {
   let client: OpsHttpClient;
 
   beforeEach(() => {
+    resetMockIds();
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
       apiKey: 'ulr_test-api-key-12345',
@@ -16,17 +28,18 @@ describe('Auth Operations', () => {
 
   describe('register', () => {
     it('should register a new user', async () => {
+      const mockResponse = createMockRegisterResponse({
+        email: 'newuser@example.com',
+        user: createMockAuthUser({ email: 'newuser@example.com' }),
+        token: 'jwt-token-abc',
+      });
+
       nock(BASE_URL)
         .post('/auth/register', {
           email: 'newuser@example.com',
           password: 'securePassword123',
         })
-        .reply(201, {
-          data: {
-            user: { id: 'user-1', email: 'newuser@example.com', role: 'user' },
-            token: 'jwt-token-abc',
-          },
-        });
+        .reply(201, { data: mockResponse });
 
       const result = await authOps.register(client, {
         email: 'newuser@example.com',
@@ -40,17 +53,17 @@ describe('Auth Operations', () => {
 
   describe('login', () => {
     it('should login and return token', async () => {
+      const mockResponse = createMockLoginResponse({
+        user: createMockAuthUser({ id: 'user-1', email: 'user@example.com' }),
+        token: 'jwt-token-xyz',
+      });
+
       nock(BASE_URL)
         .post('/auth/login', {
           email: 'user@example.com',
           password: 'password123',
         })
-        .reply(200, {
-          data: {
-            user: { id: 'user-1', email: 'user@example.com' },
-            token: 'jwt-token-xyz',
-          },
-        });
+        .reply(200, { data: mockResponse });
 
       const result = await authOps.login(client, {
         email: 'user@example.com',
@@ -76,9 +89,11 @@ describe('Auth Operations', () => {
 
   describe('forgotPassword', () => {
     it('should send password reset email', async () => {
+      const mockResponse = createMockMessage('Password reset email sent');
+
       nock(BASE_URL)
         .post('/auth/forgot-password', { email: 'user@example.com' })
-        .reply(200, { data: { message: 'Password reset email sent' } });
+        .reply(200, { data: mockResponse });
 
       const result = await authOps.forgotPassword(client, 'user@example.com');
 
@@ -88,16 +103,18 @@ describe('Auth Operations', () => {
 
   describe('resetPassword', () => {
     it('should reset password with token', async () => {
+      const mockResponse = createMockMessage('Password reset successfully');
+
       nock(BASE_URL)
         .post('/auth/reset-password', {
           token: 'reset-token-123',
-          password: 'newSecurePassword',
+          password: 'newSecurePass1',
         })
-        .reply(200, { data: { message: 'Password reset successfully' } });
+        .reply(200, { data: mockResponse });
 
       const result = await authOps.resetPassword(client, {
         token: 'reset-token-123',
-        password: 'newSecurePassword',
+        password: 'newSecurePass1',
       });
 
       expect(result.message).toBe('Password reset successfully');
@@ -106,12 +123,14 @@ describe('Auth Operations', () => {
 
   describe('changePassword', () => {
     it('should change password', async () => {
+      const mockResponse = createMockMessage('Password changed successfully');
+
       nock(BASE_URL)
         .put('/auth/password', {
           currentPassword: 'oldPassword',
           newPassword: 'newPassword123',
         })
-        .reply(200, { data: { message: 'Password changed successfully' } });
+        .reply(200, { data: mockResponse });
 
       const result = await authOps.changePassword(client, {
         currentPassword: 'oldPassword',
@@ -124,9 +143,11 @@ describe('Auth Operations', () => {
 
   describe('setPassword', () => {
     it('should set initial password', async () => {
+      const mockResponse = createMockMessage('Password set successfully');
+
       nock(BASE_URL)
         .post('/auth/password', { password: 'initialPassword' })
-        .reply(200, { data: { message: 'Password set successfully' } });
+        .reply(200, { data: mockResponse });
 
       const result = await authOps.setPassword(client, 'initialPassword');
 
@@ -136,56 +157,55 @@ describe('Auth Operations', () => {
 
   describe('getMe', () => {
     it('should get current user', async () => {
+      const mockUser = createMockAuthUser({
+        id: 'user-1',
+        email: 'user@example.com',
+        role: 'developer',
+      });
+
       nock(BASE_URL)
         .get('/auth/me')
-        .reply(200, {
-          data: {
-            id: 'user-1',
-            email: 'user@example.com',
-            role: 'user',
-          },
-        });
+        .reply(200, { data: mockUser });
 
       const user = await authOps.getMe(client);
 
       expect(user.id).toBe('user-1');
       expect(user.email).toBe('user@example.com');
-      expect(user.role).toBe('user');
+      expect(user.role).toBe('developer');
     });
   });
 
   describe('getProfile', () => {
     it('should get full user profile', async () => {
+      const mockUser = createMockPublicUser({
+        id: 'user-1',
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+
       nock(BASE_URL)
         .get('/auth/profile')
         .reply(200, {
-          data: {
-            user: {
-              id: 'user-1',
-              email: 'user@example.com',
-              displayName: 'Test User',
-              createdAt: '2024-01-01T00:00:00Z',
-            },
-          },
+          data: { user: mockUser },
         });
 
       const result = await authOps.getProfile(client);
 
-      expect(result.user.displayName).toBe('Test User');
+      expect(result.user.name).toBe('Test User');
     });
   });
 
   describe('updateProfile', () => {
     it('should update user profile', async () => {
+      const mockUser = createMockPublicUser({
+        id: 'user-1',
+        name: 'New Name',
+      });
+
       nock(BASE_URL)
         .patch('/auth/profile', { name: 'New Name' })
         .reply(200, {
-          data: {
-            user: {
-              id: 'user-1',
-              name: 'New Name',
-            },
-          },
+          data: { user: mockUser },
         });
 
       const result = await authOps.updateProfile(client, { name: 'New Name' });
@@ -206,14 +226,12 @@ describe('Auth Operations', () => {
 
   describe('listApiKeys', () => {
     it('should list API keys', async () => {
+      const key1 = createMockPublicApiKey({ name: 'My Key' });
+      const key2 = createMockPublicApiKey({ name: 'Another Key' });
+
       nock(BASE_URL)
         .get('/auth/keys')
-        .reply(200, {
-          data: [
-            { id: 'key-1', name: 'My Key', prefix: 'ulr_abc', createdAt: '2024-01-01' },
-            { id: 'key-2', name: 'Another Key', prefix: 'ulr_def', createdAt: '2024-01-02' },
-          ],
-        });
+        .reply(200, { data: [key1, key2] });
 
       const keys = await authOps.listApiKeys(client);
 
@@ -224,31 +242,28 @@ describe('Auth Operations', () => {
 
   describe('createApiKey', () => {
     it('should create API key with name', async () => {
+      const mockResponse = createMockApiKeyCreated({
+        key: 'ulr_full-secret-key-value',
+        apiKey: createMockPublicApiKey({ name: 'Production Key' }),
+      });
+
       nock(BASE_URL)
         .post('/auth/keys', { name: 'Production Key' })
-        .reply(201, {
-          data: {
-            id: 'key-3',
-            name: 'Production Key',
-            key: 'ulr_full-secret-key-value',
-          },
-        });
+        .reply(201, { data: mockResponse });
 
       const result = await authOps.createApiKey(client, { name: 'Production Key' });
 
-      expect(result.name).toBe('Production Key');
       expect(result.key).toBe('ulr_full-secret-key-value');
     });
 
     it('should create API key without name', async () => {
+      const mockResponse = createMockApiKeyCreated({
+        key: 'ulr_unnamed-key',
+      });
+
       nock(BASE_URL)
         .post('/auth/keys')
-        .reply(201, {
-          data: {
-            id: 'key-4',
-            key: 'ulr_unnamed-key',
-          },
-        });
+        .reply(201, { data: mockResponse });
 
       const result = await authOps.createApiKey(client);
 
@@ -268,14 +283,12 @@ describe('Auth Operations', () => {
 
   describe('listSessions', () => {
     it('should list active sessions', async () => {
+      const sess1 = createMockPublicSession({ userAgent: 'Chrome' });
+      const sess2 = createMockPublicSession({ userAgent: 'Firefox' });
+
       nock(BASE_URL)
         .get('/auth/sessions')
-        .reply(200, {
-          data: [
-            { id: 'sess-1', userAgent: 'Chrome', createdAt: '2024-01-01', lastUsed: '2024-01-02' },
-            { id: 'sess-2', userAgent: 'Firefox', createdAt: '2024-01-01', lastUsed: '2024-01-03' },
-          ],
-        });
+        .reply(200, { data: [sess1, sess2] });
 
       const sessions = await authOps.listSessions(client);
 

@@ -26,10 +26,23 @@ import {
   StatusUpdateResultResponseSchema,
   IssueDetailsResponseSchema,
   ErrorResponseSchema,
+  AuthUserResponseSchema,
+  LoginResponseSchema,
+  RegisterResponseSchema,
+  PublicApiKeyResponseSchema,
+  ApiKeyCreatedResponseSchema,
+  PublicSessionResponseSchema,
+  MessageResponseSchema,
+  AdminStatsResponseSchema,
+  AdminUserResponseSchema,
+  AdminSessionResponseSchema,
+  AdminApiKeyResponseSchema,
+  PaginationResponseSchema,
+  PublicUserResponseSchema,
   createApiResponseSchema,
   createListResponseSchema,
 } from '../src/types/response-schemas.js';
-import type { Priority, Status, Severity, FailureDomain, NoteType } from '../src/types/enums.js';
+import type { Priority, Status, Severity, FailureDomain, NoteType, UserRole, SubscriptionTier } from '../src/types/enums.js';
 
 // ============================================
 // CONFIGURATION
@@ -450,6 +463,318 @@ export function createMockStatusUpdateResult(
 }
 
 // ============================================
+// AUTH MOCK FACTORIES
+// ============================================
+
+/**
+ * Factory for creating valid AuthUser response data
+ */
+export function createMockAuthUser(overrides: Partial<z.infer<typeof AuthUserResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    email: `user${idCounter}@example.com`,
+    role: 'developer' as UserRole,
+    subscriptionTier: 'free' as SubscriptionTier,
+    username: null,
+    name: null,
+    bio: null,
+    timezone: null,
+    websiteUrl: null,
+    avatarUrl: null,
+    createdAt: isoDate(30),
+    updatedAt: isoDate(1),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AuthUserResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock auth user data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid PublicUser response data
+ */
+export function createMockPublicUser(overrides: Partial<z.infer<typeof PublicUserResponseSchema>> = {}) {
+  const data = {
+    ...createMockAuthUser(),
+    avatarMimeType: null,
+    isActive: true,
+    hasAvatar: false,
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = PublicUserResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock public user data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid LoginResponse data
+ */
+export function createMockLoginResponse(overrides: Partial<z.infer<typeof LoginResponseSchema>> = {}) {
+  const data = {
+    user: createMockAuthUser(),
+    token: `jwt-token-${idCounter}`,
+    expiresAt: isoDate(-1), // 1 day in future
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = LoginResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock login response data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid RegisterResponse data
+ */
+export function createMockRegisterResponse(overrides: Partial<z.infer<typeof RegisterResponseSchema>> = {}) {
+  const data = {
+    user: createMockAuthUser(),
+    token: `jwt-token-${idCounter}`,
+    email: `user${idCounter}@example.com`,
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = RegisterResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock register response data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid PublicApiKey response data
+ */
+export function createMockPublicApiKey(overrides: Partial<z.infer<typeof PublicApiKeyResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    name: `Key ${idCounter}`,
+    prefix: `ulr_${idCounter}`,
+    lastUsedAt: null,
+    expiresAt: null,
+    createdAt: isoDate(7),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = PublicApiKeyResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock public API key data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid ApiKeyCreated response data
+ */
+export function createMockApiKeyCreated(overrides: Partial<z.infer<typeof ApiKeyCreatedResponseSchema>> = {}) {
+  const data = {
+    key: `ulr_full-secret-key-${idCounter}`,
+    apiKey: createMockPublicApiKey(),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = ApiKeyCreatedResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock API key created data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid PublicSession response data
+ */
+export function createMockPublicSession(overrides: Partial<z.infer<typeof PublicSessionResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    expiresAt: isoDate(-7),
+    createdAt: isoDate(14),
+    lastActiveAt: isoDate(0),
+    userAgent: 'Chrome/120.0',
+    ipAddress: null,
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = PublicSessionResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock public session data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid MessageResponse data
+ */
+export function createMockMessage(message: string) {
+  const data = { message };
+
+  if (STRICT_CONTRACTS) {
+    const result = MessageResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock message data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+// ============================================
+// ADMIN MOCK FACTORIES
+// ============================================
+
+/**
+ * Factory for creating valid AdminStats response data
+ */
+export function createMockAdminStats(overrides: Partial<z.infer<typeof AdminStatsResponseSchema>> = {}) {
+  const data = {
+    totalUsers: 150,
+    activeUsers: 120,
+    totalProjects: 75,
+    totalRuns: 5000,
+    totalIssues: 15000,
+    totalSessions: 200,
+    totalApiKeys: 50,
+    storageUsedMb: 2500,
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AdminStatsResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock admin stats data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid AdminUser response data
+ */
+export function createMockAdminUser(overrides: Partial<z.infer<typeof AdminUserResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    email: `user${idCounter}@example.com`,
+    role: 'developer' as UserRole,
+    subscriptionTier: 'free' as SubscriptionTier,
+    isActive: true,
+    deactivatedAt: null,
+    createdAt: isoDate(30),
+    updatedAt: isoDate(1),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AdminUserResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock admin user data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid AdminSession response data
+ */
+export function createMockAdminSession(overrides: Partial<z.infer<typeof AdminSessionResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    userId: generateId(),
+    userEmail: `user${idCounter}@example.com`,
+    userAgent: 'Chrome/120.0',
+    ipAddress: null,
+    createdAt: isoDate(7),
+    lastActiveAt: isoDate(0),
+    expiresAt: isoDate(-7),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AdminSessionResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock admin session data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid AdminApiKey response data
+ */
+export function createMockAdminApiKey(overrides: Partial<z.infer<typeof AdminApiKeyResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    userId: generateId(),
+    userEmail: `user${idCounter}@example.com`,
+    name: `Key ${idCounter}`,
+    prefix: `ulr_${idCounter}`,
+    createdAt: isoDate(7),
+    lastUsedAt: null,
+    expiresAt: null,
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AdminApiKeyResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock admin API key data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid Pagination response data
+ */
+export function createMockPagination(overrides: Partial<z.infer<typeof PaginationResponseSchema>> = {}) {
+  const data = {
+    total: 10,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = PaginationResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock pagination data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+// ============================================
 // NOCK HELPERS WITH CONTRACT VALIDATION
 // ============================================
 
@@ -633,6 +958,19 @@ export {
   StatusUpdateResultResponseSchema,
   IssueDetailsResponseSchema,
   ErrorResponseSchema,
+  AuthUserResponseSchema,
+  LoginResponseSchema,
+  RegisterResponseSchema,
+  PublicApiKeyResponseSchema,
+  ApiKeyCreatedResponseSchema,
+  PublicSessionResponseSchema,
+  MessageResponseSchema,
+  AdminStatsResponseSchema,
+  AdminUserResponseSchema,
+  AdminSessionResponseSchema,
+  AdminApiKeyResponseSchema,
+  PaginationResponseSchema,
+  PublicUserResponseSchema,
   createApiResponseSchema,
   createListResponseSchema,
 };

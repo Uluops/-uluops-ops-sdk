@@ -29,7 +29,7 @@ describe('OpsClient', () => {
   describe('auth operations', () => {
     it('should register a new user', async () => {
       nock(BASE_URL)
-        .post('/auth/register', { email: 'test@example.com', password: 'password123' })
+        .post('/auth/register', { email: 'test@example.com', password: 'Password123' })
         .reply(201, {
           data: {
             user: { id: 'user-1', email: 'test@example.com' },
@@ -39,7 +39,7 @@ describe('OpsClient', () => {
 
       const result = await client.auth.register({
         email: 'test@example.com',
-        password: 'password123',
+        password: 'Password123',
       });
 
       expect(result.user.email).toBe('test@example.com');

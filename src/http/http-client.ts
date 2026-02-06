@@ -45,6 +45,7 @@ export class OpsHttpClient {
   private readonly logger: Logger;
   private readonly retries: number;
   private readonly defaultHeaders: Record<string, string>;
+  private refreshPromise: Promise<void> | null = null;
 
   constructor(config: HttpClientConfig = {}) {
     this.logger = createLogger('[ops-sdk:http]', config.debug ?? false);
@@ -151,7 +152,13 @@ export class OpsHttpClient {
         ) {
           try {
             this.logger.debug('Token expired, attempting refresh...');
-            await this.authStrategy.refresh();
+            // Deduplicate concurrent refresh attempts
+            if (!this.refreshPromise) {
+              this.refreshPromise = this.authStrategy.refresh().finally(() => {
+                this.refreshPromise = null;
+              });
+            }
+            await this.refreshPromise;
             continue; // Retry the request
           } catch (refreshError) {
             this.logger.debug(`Token refresh failed: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`);

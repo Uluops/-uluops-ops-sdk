@@ -38,6 +38,135 @@ export const FailureCodeResponseSchema = z.string().regex(FAILURE_CODE_PATTERN).
 export const FailureSeverityCodeResponseSchema = z.enum(['C', 'H', 'M', 'L', 'I']).nullable();
 
 // ============================================
+// AUTH RESPONSE SCHEMAS
+// ============================================
+
+export const AuthUserResponseSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  role: UserRoleResponseSchema,
+  subscriptionTier: SubscriptionTierResponseSchema.optional(),
+  username: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  bio: z.string().nullable().optional(),
+  timezone: z.string().nullable().optional(),
+  websiteUrl: z.string().nullable().optional(),
+  avatarUrl: z.string().nullable().optional(),
+  createdAt: DateTimeStringSchema.optional(),
+  updatedAt: DateTimeStringSchema.optional(),
+});
+
+export const PublicUserResponseSchema = AuthUserResponseSchema.extend({
+  avatarMimeType: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+  hasAvatar: z.boolean().optional(),
+});
+
+export const LoginResponseSchema = z.object({
+  user: AuthUserResponseSchema,
+  sessionToken: z.string().optional(),
+  token: z.string().optional(),
+  expiresAt: DateTimeStringSchema.optional(),
+});
+
+export const RegisterResponseSchema = z.object({
+  id: z.string().optional(),
+  email: z.string().email(),
+  isActive: z.boolean().optional(),
+  role: UserRoleResponseSchema.optional(),
+  subscriptionTier: SubscriptionTierResponseSchema.optional(),
+  user: AuthUserResponseSchema.optional(),
+  token: z.string().optional(),
+  createdAt: DateTimeStringSchema.optional(),
+  updatedAt: DateTimeStringSchema.optional(),
+});
+
+export const PublicApiKeyResponseSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  prefix: z.string().optional(),
+  lastUsedAt: NullableDateTimeSchema.optional(),
+  expiresAt: NullableDateTimeSchema.optional(),
+  createdAt: DateTimeStringSchema,
+});
+
+export const ApiKeyCreatedResponseSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().nullable().optional(),
+  key: z.string(),
+  apiKey: PublicApiKeyResponseSchema.optional(),
+});
+
+export const PublicSessionResponseSchema = z.object({
+  id: z.string(),
+  expiresAt: DateTimeStringSchema.optional(),
+  createdAt: DateTimeStringSchema,
+  lastActiveAt: DateTimeStringSchema.optional(),
+  lastUsed: DateTimeStringSchema.optional(),
+  userAgent: z.string().nullable(),
+  ipAddress: z.string().nullable().optional(),
+});
+
+export const MessageResponseSchema = z.object({
+  message: z.string(),
+});
+
+// ============================================
+// ADMIN RESPONSE SCHEMAS
+// ============================================
+
+export const AdminStatsResponseSchema = z.object({
+  totalUsers: z.number().int().nonnegative(),
+  activeUsers: z.number().int().nonnegative(),
+  totalProjects: z.number().int().nonnegative().optional(),
+  totalRuns: z.number().int().nonnegative().optional(),
+  totalIssues: z.number().int().nonnegative().optional(),
+  totalSessions: z.number().int().nonnegative().optional(),
+  totalApiKeys: z.number().int().nonnegative().optional(),
+  storageUsedMb: z.number().nonnegative().optional(),
+});
+
+export const PaginationResponseSchema = z.object({
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  limit: z.number().int().positive(),
+  totalPages: z.number().int().nonnegative().optional(),
+});
+
+export const AdminUserResponseSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  role: UserRoleResponseSchema.optional(),
+  subscriptionTier: SubscriptionTierResponseSchema.optional(),
+  isActive: z.boolean().optional(),
+  deactivatedAt: NullableDateTimeSchema.optional(),
+  createdAt: DateTimeStringSchema.optional(),
+  updatedAt: DateTimeStringSchema.optional(),
+});
+
+export const AdminSessionResponseSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  userEmail: z.string().optional(),
+  userAgent: z.string().nullable().optional(),
+  ipAddress: z.string().nullable().optional(),
+  createdAt: DateTimeStringSchema.optional(),
+  lastActiveAt: DateTimeStringSchema.optional(),
+  expiresAt: DateTimeStringSchema.optional(),
+});
+
+export const AdminApiKeyResponseSchema = z.object({
+  id: z.string(),
+  userId: z.string().optional(),
+  userEmail: z.string().optional(),
+  name: z.string().nullable().optional(),
+  prefix: z.string().optional(),
+  createdAt: DateTimeStringSchema.optional(),
+  lastUsedAt: NullableDateTimeSchema.optional(),
+  expiresAt: NullableDateTimeSchema.optional(),
+});
+
+// ============================================
 // PROJECT RESPONSE SCHEMAS
 // ============================================
 
@@ -322,3 +451,11 @@ export type ValidatorSnapshotResponse = z.infer<typeof ValidatorSnapshotResponse
 export type OccurrenceResponse = z.infer<typeof OccurrenceResponseSchema>;
 export type IssueNoteResponse = z.infer<typeof IssueNoteResponseSchema>;
 export type StatusHistoryResponse = z.infer<typeof StatusHistoryResponseSchema>;
+export type AuthUserResponse = z.infer<typeof AuthUserResponseSchema>;
+export type PublicUserResponse = z.infer<typeof PublicUserResponseSchema>;
+export type LoginResponseData = z.infer<typeof LoginResponseSchema>;
+export type RegisterResponseData = z.infer<typeof RegisterResponseSchema>;
+export type PublicApiKeyResponse = z.infer<typeof PublicApiKeyResponseSchema>;
+export type PublicSessionResponse = z.infer<typeof PublicSessionResponseSchema>;
+export type AdminStatsResponse = z.infer<typeof AdminStatsResponseSchema>;
+export type AdminUserResponseData = z.infer<typeof AdminUserResponseSchema>;

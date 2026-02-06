@@ -63,13 +63,28 @@ describe('Config Validators', () => {
       expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
     });
 
-    it('should accept exactly 8 char password', () => {
-      const input = { email: 'test@example.com', password: '12345678' };
+    it('should accept exactly 8 char password with complexity', () => {
+      const input = { email: 'test@example.com', password: 'Abcdef1!' };
       expect(() => validateRegisterInput(input)).not.toThrow();
     });
 
+    it('should reject password without uppercase', () => {
+      const input = { email: 'test@example.com', password: 'abcdefg1' };
+      expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
+    });
+
+    it('should reject password without lowercase', () => {
+      const input = { email: 'test@example.com', password: 'ABCDEFG1' };
+      expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
+    });
+
+    it('should reject password without digit', () => {
+      const input = { email: 'test@example.com', password: 'Abcdefgh' };
+      expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
+    });
+
     it('should reject password exceeding 128 chars', () => {
-      const input = { email: 'test@example.com', password: 'a'.repeat(129) };
+      const input = { email: 'test@example.com', password: 'Aa1' + 'a'.repeat(126) };
       expect(() => validateRegisterInput(input)).toThrow(InputValidationError);
     });
   });

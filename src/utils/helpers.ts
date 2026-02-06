@@ -1,5 +1,7 @@
 /**
  * Sleep for a specified number of milliseconds
+ * @param ms - Duration to sleep in milliseconds
+ * @returns Promise that resolves after the delay
  */
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -7,6 +9,13 @@ export function sleep(ms: number): Promise<void> {
 
 /**
  * Retry a function with exponential backoff
+ * @param fn - Async function to retry
+ * @param options - Retry configuration
+ * @param options.maxRetries - Maximum number of attempts (default: 3)
+ * @param options.baseDelayMs - Base delay between retries in ms (default: 1000)
+ * @param options.maxDelayMs - Maximum delay cap in ms (default: 30000)
+ * @param options.shouldRetry - Predicate to determine if an error is retryable
+ * @returns The result of the function call
  */
 export async function retry<T>(
   fn: () => Promise<T>,
@@ -45,7 +54,10 @@ export async function retry<T>(
 }
 
 /**
- * Deep merge objects
+ * Deep merge two objects, recursively merging nested objects
+ * @param target - Base object to merge into
+ * @param source - Object with values to overlay
+ * @returns New merged object (does not mutate inputs)
  */
 export function deepMerge<T extends Record<string, unknown>>(
   target: T,
@@ -81,6 +93,9 @@ export function deepMerge<T extends Record<string, unknown>>(
 
 /**
  * Pick specified keys from an object
+ * @param obj - Source object
+ * @param keys - Keys to include in the result
+ * @returns New object containing only the specified keys
  */
 export function pick<T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
@@ -99,6 +114,9 @@ export function pick<T extends Record<string, unknown>, K extends keyof T>(
 
 /**
  * Omit specified keys from an object
+ * @param obj - Source object
+ * @param keys - Keys to exclude from the result
+ * @returns New object without the specified keys
  */
 export function omit<T extends Record<string, unknown>, K extends keyof T>(
   obj: T,
@@ -115,6 +133,8 @@ export function omit<T extends Record<string, unknown>, K extends keyof T>(
 
 /**
  * Remove undefined values from an object
+ * @param obj - Source object to compact
+ * @returns New object with undefined values removed
  */
 export function compact<T extends Record<string, unknown>>(obj: T): Partial<T> {
   const result: Partial<T> = {};
@@ -129,7 +149,9 @@ export function compact<T extends Record<string, unknown>>(obj: T): Partial<T> {
 }
 
 /**
- * Format a date for display
+ * Format a date for display as an ISO 8601 string
+ * @param date - Date object or date string to format
+ * @returns ISO 8601 formatted date string
  */
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
@@ -137,7 +159,9 @@ export function formatDate(date: string | Date): string {
 }
 
 /**
- * Check if a string is a valid UUID
+ * Check if a string is a valid UUID (v1-v5)
+ * @param value - String to validate
+ * @returns True if the string is a valid UUID
  */
 export function isUuid(value: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -146,6 +170,9 @@ export function isUuid(value: string): boolean {
 
 /**
  * Truncate a string with ellipsis
+ * @param str - String to truncate
+ * @param maxLength - Maximum length including ellipsis
+ * @returns Truncated string with '...' suffix if exceeding maxLength
  */
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
@@ -154,6 +181,8 @@ export function truncate(str: string, maxLength: number): string {
 
 /**
  * Convert camelCase to snake_case
+ * @param str - camelCase string to convert
+ * @returns snake_case formatted string
  */
 export function toSnakeCase(str: string): string {
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
@@ -161,6 +190,8 @@ export function toSnakeCase(str: string): string {
 
 /**
  * Convert snake_case to camelCase
+ * @param str - snake_case string to convert
+ * @returns camelCase formatted string
  */
 export function toCamelCase(str: string): string {
   return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
