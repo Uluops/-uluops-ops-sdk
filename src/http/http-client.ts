@@ -130,7 +130,7 @@ export class OpsHttpClient {
   private createFetchClient(): FetchClient {
     return {
       post: async <T>(url: string, body: object) => {
-        const fullUrl = new URL(url, this.baseUrl).toString();
+        const fullUrl = this.buildUrl(url);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
