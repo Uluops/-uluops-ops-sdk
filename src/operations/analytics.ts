@@ -120,7 +120,7 @@ export async function getVelocity(
   return client.get<VelocityResult>('/analytics/taxonomy/velocity', {
     project: query?.project,
     days: query?.days,
-    alert_threshold: query?.alertThreshold,
+    alertThreshold: query?.alertThreshold,
   });
 }
 
@@ -134,7 +134,7 @@ export async function getDiscovery(
   return client.get<DiscoveryResult>('/analytics/taxonomy/discovery', {
     project: query?.project,
     days: query?.days,
-    group_by: query?.groupBy,
+    groupBy: query?.groupBy,
   });
 }
 
@@ -148,7 +148,7 @@ export async function getValidatorMatrix(
   return client.get<ValidatorMatrixResult>('/analytics/taxonomy/validator-matrix', {
     project: query?.project,
     days: query?.days,
-    min_issues: query?.minIssues,
+    minIssues: query?.minIssues,
   });
 }
 

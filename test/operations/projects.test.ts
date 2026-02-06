@@ -140,7 +140,7 @@ describe('Project Operations', () => {
       nock(BASE_URL)
         .delete('/projects/proj-1', {
           confirm: true,
-          confirmation_phrase: 'proj-1',
+          confirmationPhrase: 'proj-1',
         })
         .reply(200, { data: {} });
 
@@ -158,7 +158,7 @@ describe('Project Operations', () => {
       nock(BASE_URL)
         .delete('/projects/proj-1/soft', {
           confirm: true,
-          confirmation_phrase: 'proj-1',
+          confirmationPhrase: 'proj-1',
         })
         .reply(200, { data: {} });
 
@@ -195,8 +195,8 @@ describe('Project Operations', () => {
 
       nock(BASE_URL)
         .post('/projects/rename', {
-          old_name: 'old-name',
-          new_name: 'new-name',
+          oldName: 'old-name',
+          newName: 'new-name',
         })
         .reply(200, { data: mockProject });
 
@@ -344,8 +344,8 @@ describe('Project Operations', () => {
 
       nock(BASE_URL)
         .post('/projects/proj-1/issues/merge', {
-          target_issue_id: 'issue-1',
-          source_issue_ids: ['issue-2', 'issue-3'],
+          targetIssueId: 'issue-1',
+          sourceIssueIds: ['issue-2', 'issue-3'],
           strategy: 'keep_target',
         })
         .reply(200, { data: mockResult });

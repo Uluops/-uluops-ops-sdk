@@ -40,12 +40,12 @@ export async function listUsers(
   return client.get<{ users: PublicUser[]; pagination: Pagination }>('/admin/users', {
     search: query?.search,
     role: Array.isArray(query?.role) ? query.role.join(',') : query?.role,
-    subscription_tier: Array.isArray(query?.subscriptionTier)
+    subscriptionTier: Array.isArray(query?.subscriptionTier)
       ? query.subscriptionTier.join(',')
       : query?.subscriptionTier,
-    is_active: query?.isActive,
-    sort_by: query?.sortBy,
-    sort_order: query?.sortOrder,
+    isActive: query?.isActive,
+    sortBy: query?.sortBy,
+    sortOrder: query?.sortOrder,
     page: query?.page,
     limit: query?.limit,
   });
@@ -73,8 +73,8 @@ export async function createUser(
     email: input.email,
     password: input.password,
     role: input.role,
-    subscription_tier: input.subscriptionTier,
-    send_welcome_email: input.sendWelcomeEmail,
+    subscriptionTier: input.subscriptionTier,
+    sendWelcomeEmail: input.sendWelcomeEmail,
   });
 }
 
@@ -90,7 +90,7 @@ export async function updateUser(
   return client.patch<{ user: PublicUser }>(`/admin/users/${encodeURIComponent(userId)}`, {
     email: input.email,
     role: input.role,
-    subscription_tier: input.subscriptionTier,
+    subscriptionTier: input.subscriptionTier,
   });
 }
 
@@ -133,7 +133,7 @@ export async function bulkDeactivate(
 ): Promise<BulkResult> {
   validateBulkDeactivateInput({ userIds });
   return client.post<BulkResult>('/admin/users/bulk-deactivate', {
-    user_ids: userIds,
+    userIds: userIds,
   });
 }
 
@@ -149,9 +149,9 @@ export async function listSessions(
   query?: ListSessionsQuery
 ): Promise<{ sessions: AdminSession[]; pagination: Pagination }> {
   return client.get<{ sessions: AdminSession[]; pagination: Pagination }>('/admin/sessions', {
-    user_id: query?.userId,
-    sort_by: query?.sortBy,
-    sort_order: query?.sortOrder,
+    userId: query?.userId,
+    sortBy: query?.sortBy,
+    sortOrder: query?.sortOrder,
     page: query?.page,
     limit: query?.limit,
   });
@@ -189,10 +189,10 @@ export async function listKeys(
   query?: ListKeysQuery
 ): Promise<{ keys: AdminApiKey[]; pagination: Pagination }> {
   return client.get<{ keys: AdminApiKey[]; pagination: Pagination }>('/admin/keys', {
-    user_id: query?.userId,
+    userId: query?.userId,
     search: query?.search,
-    sort_by: query?.sortBy,
-    sort_order: query?.sortOrder,
+    sortBy: query?.sortBy,
+    sortOrder: query?.sortOrder,
     page: query?.page,
     limit: query?.limit,
   });

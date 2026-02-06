@@ -20,7 +20,7 @@ describe('Run Operations', () => {
         .post('/runs', (body) => {
           return (
             body.project === 'my-project' &&
-            body.workflow_type === 'post-implementation' &&
+            body.workflowType === 'post-implementation' &&
             body.validators.length === 1 &&
             body.validators[0].name === 'code-validator'
           );
@@ -85,8 +85,8 @@ describe('Run Operations', () => {
         .post('/runs', (body) => {
           const tokens = body.validators[0].tokens;
           return (
-            tokens.input_tokens === 1000 &&
-            tokens.output_tokens === 500
+            tokens.inputTokens === 1000 &&
+            tokens.outputTokens === 500
           );
         })
         .reply(201, {
@@ -146,7 +146,7 @@ describe('Run Operations', () => {
     it('should diff two runs', async () => {
       nock(BASE_URL)
         .get('/runs/diff')
-        .query({ project: 'my-project', base_run: 1, compare_run: 2 })
+        .query({ project: 'my-project', baseRun: 1, compareRun: 2 })
         .reply(200, {
           data: {
             fixed: [{ id: 'issue-1', title: 'Fixed bug' }],
@@ -175,7 +175,7 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .post('/runs/archive', {
           project: 'my-project',
-          before_run_number: 10,
+          beforeRunNumber: 10,
         })
         .reply(200, {
           data: {
@@ -196,7 +196,7 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .post('/runs/archive', {
           project: 'my-project',
-          keep_last: 5,
+          keepLast: 5,
         })
         .reply(200, {
           data: { archivedCount: 15 },
@@ -216,9 +216,9 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .patch('/runs/update', {
           project: 'my-project',
-          run_number: 5,
-          all_gates_passed: true,
-          average_score: 92,
+          runNumber: 5,
+          allGatesPassed: true,
+          averageScore: 92,
         })
         .reply(200, {
           data: { id: 'run-5', runNumber: 5, allGatesPassed: true, averageScore: 92 },
@@ -285,7 +285,7 @@ describe('Run Operations', () => {
     it('should get latest run by workflow type', async () => {
       nock(BASE_URL)
         .get('/runs/project/proj-1/latest')
-        .query({ workflow_type: 'post-implementation' })
+        .query({ workflowType: 'post-implementation' })
         .reply(200, {
           data: { id: 'run-95', runNumber: 95, workflowType: 'post-implementation' },
         });
@@ -319,7 +319,7 @@ describe('Run Operations', () => {
     it('should get details for specific run number', async () => {
       nock(BASE_URL)
         .get('/runs/project/proj-1/details')
-        .query({ run_number: 5 })
+        .query({ runNumber: 5 })
         .reply(200, {
           data: {
             run: { id: 'run-5', runNumber: 5 },
@@ -353,7 +353,7 @@ describe('Run Operations', () => {
     it('should update run by ID', async () => {
       nock(BASE_URL)
         .patch('/runs/run-uuid-123', {
-          average_score: 88,
+          averageScore: 88,
         })
         .reply(200, {
           data: { id: 'run-uuid-123', averageScore: 88 },

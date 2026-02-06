@@ -72,8 +72,8 @@ describe('Issue Operations', () => {
             body.project === 'proj-1' &&
             body.title === 'Security vulnerability' &&
             body.severity === 'critical' &&
-            body.failure_code === 'SEM-VAL/C' &&
-            body.file_path === 'src/auth.ts'
+            body.failureCode === 'SEM-VAL/C' &&
+            body.filePath === 'src/auth.ts'
           );
         })
         .reply(201, { data: mockIssue });
@@ -322,8 +322,8 @@ describe('Issue Operations', () => {
 
       nock(BASE_URL)
         .patch(`/issues/${issueId}`, {
-          file_path: 'src/new-location.ts',
-          line_number: 100,
+          filePath: 'src/new-location.ts',
+          lineNumber: 100,
         })
         .reply(200, { data: mockIssue });
 
@@ -347,7 +347,7 @@ describe('Issue Operations', () => {
       nock(BASE_URL)
         .post(`/issues/${issueId}/notes`, {
           content: 'Investigation notes here',
-          note_type: 'context',
+          noteType: 'context',
         })
         .reply(201, { data: mockNote });
 
@@ -369,8 +369,8 @@ describe('Issue Operations', () => {
       nock(BASE_URL)
         .post(`/issues/${issueId}/notes`, {
           content: 'Fixed by updating validation logic',
-          note_type: 'resolution',
-          created_by: 'developer@example.com',
+          noteType: 'resolution',
+          createdBy: 'developer@example.com',
         })
         .reply(201, { data: mockNote });
 
@@ -422,8 +422,8 @@ describe('Issue Operations', () => {
       nock(BASE_URL)
         .post('/issues/bulk-status', {
           updates: [
-            { issue_id: issueId1, status: 'completed', reason: 'Fixed' },
-            { issue_id: issueId2, status: 'wontfix', reason: 'By design' },
+            { issueId: issueId1, status: 'completed', reason: 'Fixed' },
+            { issueId: issueId2, status: 'wontfix', reason: 'By design' },
           ],
         })
         .reply(200, { data: mockResults });
@@ -472,7 +472,7 @@ describe('Issue Operations', () => {
         .query({
           status: 'open',
           priority: 'critical',
-          failure_domain: 'SEM',
+          failureDomain: 'SEM',
           limit: 10,
         })
         .reply(200, { data: mockIssues });

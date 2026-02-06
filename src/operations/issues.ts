@@ -36,11 +36,11 @@ export async function create(
     severity: input.severity,
     category: input.category,
     description: input.description,
-    file_path: input.filePath,
-    line_number: input.lineNumber,
-    failure_code: input.failureCode,
-    failure_domain: input.failureDomain,
-    failure_mode: input.failureMode,
+    filePath: input.filePath,
+    lineNumber: input.lineNumber,
+    failureCode: input.failureCode,
+    failureDomain: input.failureDomain,
+    failureMode: input.failureMode,
     validator: input.validator,
     type: input.type,
   });
@@ -60,7 +60,7 @@ export async function search(
     status: query.status,
     priority: query.priority,
     severities: query.severities?.join(','),
-    failure_domains: query.failureDomains?.join(','),
+    failureDomains: query.failureDomains?.join(','),
     limit: query.limit,
   });
 }
@@ -148,13 +148,13 @@ export async function edit(
     status: input.status,
     priority: input.priority,
     severity: input.severity,
-    failure_code: input.failureCode,
-    failure_domain: input.failureDomain,
-    failure_mode: input.failureMode,
+    failureCode: input.failureCode,
+    failureDomain: input.failureDomain,
+    failureMode: input.failureMode,
     category: input.category,
     type: input.type,
-    file_path: input.filePath,
-    line_number: input.lineNumber,
+    filePath: input.filePath,
+    lineNumber: input.lineNumber,
   });
 }
 
@@ -169,8 +169,8 @@ export async function addNote(
   validateCreateIssueNoteInput(input);
   return client.post<IssueNote>(`/issues/${issueId}/notes`, {
     content: input.content,
-    note_type: input.noteType,
-    created_by: input.createdBy,
+    noteType: input.noteType,
+    createdBy: input.createdBy,
   });
 }
 
@@ -204,7 +204,7 @@ export async function bulkUpdateStatus(
   validateBulkStatusUpdateInput({ updates });
   return client.post<StatusUpdateResult[]>('/issues/bulk-status', {
     updates: updates.map((u) => ({
-      issue_id: u.issueId,
+      issueId: u.issueId,
       id: u.id,
       status: u.status,
       reason: u.reason,
@@ -225,14 +225,14 @@ export async function listByProject(
         status: query.status,
         priority: query.priority,
         severity: query.severity,
-        failure_domain: query.failureDomain,
+        failureDomain: query.failureDomain,
         validator: query.validator,
         limit: query.limit,
         offset: query.offset,
-        include_resolved: query.includeResolved,
-        min_times_seen: query.minTimesSeen,
-        date_start: query.dateStart,
-        date_end: query.dateEnd,
+        includeResolved: query.includeResolved,
+        minTimesSeen: query.minTimesSeen,
+        dateStart: query.dateStart,
+        dateEnd: query.dateEnd,
       }
     : undefined;
 

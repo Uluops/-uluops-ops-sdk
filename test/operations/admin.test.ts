@@ -143,7 +143,7 @@ describe('Admin Operations', () => {
           email: 'newuser@example.com',
           password: 'securePass123',
           role: 'developer',
-          subscription_tier: 'free',
+          subscriptionTier: 'free',
         })
         .reply(201, {
           data: {
@@ -166,8 +166,8 @@ describe('Admin Operations', () => {
         .post('/admin/users', {
           email: 'invited@example.com',
           role: 'viewer',
-          subscription_tier: 'free',
-          send_welcome_email: true,
+          subscriptionTier: 'free',
+          sendWelcomeEmail: true,
         })
         .reply(201, {
           data: {
@@ -202,7 +202,7 @@ describe('Admin Operations', () => {
 
     it('should update subscription tier', async () => {
       nock(BASE_URL)
-        .patch('/admin/users/user-1', { subscription_tier: 'enterprise' })
+        .patch('/admin/users/user-1', { subscriptionTier: 'enterprise' })
         .reply(200, {
           data: { user: { id: 'user-1', subscriptionTier: 'enterprise' } },
         });
@@ -261,7 +261,7 @@ describe('Admin Operations', () => {
     it('should bulk deactivate users', async () => {
       nock(BASE_URL)
         .post('/admin/users/bulk-deactivate', {
-          user_ids: [
+          userIds: [
             '00000000-0000-1000-8000-000000000001',
             '00000000-0000-1000-8000-000000000002',
             '00000000-0000-1000-8000-000000000003',
@@ -317,7 +317,7 @@ describe('Admin Operations', () => {
     it('should filter sessions by user', async () => {
       nock(BASE_URL)
         .get('/admin/sessions')
-        .query({ user_id: 'user-1' })
+        .query({ userId: 'user-1' })
         .reply(200, {
           data: {
             sessions: [{ id: 'sess-1', userId: 'user-1' }],
@@ -388,7 +388,7 @@ describe('Admin Operations', () => {
     it('should filter keys by user', async () => {
       nock(BASE_URL)
         .get('/admin/keys')
-        .query({ user_id: 'user-1' })
+        .query({ userId: 'user-1' })
         .reply(200, {
           data: {
             keys: [{ id: 'key-1', userId: 'user-1' }],

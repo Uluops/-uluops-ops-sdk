@@ -71,7 +71,7 @@ export async function deleteProject(
   validateDeleteProjectInput(input);
   await client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
     confirm: input.confirm,
-    confirmation_phrase: input.confirmationPhrase,
+    confirmationPhrase: input.confirmationPhrase,
   });
 }
 
@@ -86,7 +86,7 @@ export async function softDelete(
   validateDeleteProjectInput(input);
   await client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
     confirm: input.confirm,
-    confirmation_phrase: input.confirmationPhrase,
+    confirmationPhrase: input.confirmationPhrase,
   });
 }
 
@@ -109,8 +109,8 @@ export async function rename(
 ): Promise<Project> {
   validateRenameProjectInput(input);
   return client.post<Project>('/projects/rename', {
-    old_name: input.oldName,
-    new_name: input.newName,
+    oldName: input.oldName,
+    newName: input.newName,
   });
 }
 
@@ -151,14 +151,14 @@ export async function listIssues(
         status: query.status,
         priority: query.priority,
         severity: query.severity,
-        failure_domain: query.failureDomain,
+        failureDomain: query.failureDomain,
         validator: query.validator,
         limit: query.limit,
         offset: query.offset,
-        include_resolved: query.includeResolved,
-        min_times_seen: query.minTimesSeen,
-        date_start: query.dateStart,
-        date_end: query.dateEnd,
+        includeResolved: query.includeResolved,
+        minTimesSeen: query.minTimesSeen,
+        dateStart: query.dateStart,
+        dateEnd: query.dateEnd,
       }
     : undefined;
 
@@ -193,8 +193,8 @@ export async function mergeIssues(
   return client.post<MergeIssuesResult>(
     `/projects/${encodeURIComponent(idOrName)}/issues/merge`,
     {
-      target_issue_id: input.targetIssueId,
-      source_issue_ids: input.sourceIssueIds,
+      targetIssueId: input.targetIssueId,
+      sourceIssueIds: input.sourceIssueIds,
       strategy: input.strategy,
     }
   );

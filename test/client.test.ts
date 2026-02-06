@@ -243,7 +243,7 @@ describe('OpsClient', () => {
     it('should diff two runs', async () => {
       nock(BASE_URL)
         .get('/runs/diff')
-        .query({ project: 'proj-1', base_run: 1, compare_run: 2 })
+        .query({ project: 'proj-1', baseRun: 1, compareRun: 2 })
         .reply(200, {
           data: {
             fixed: [{ id: 'issue-1', title: 'Fixed bug' }],
@@ -333,7 +333,7 @@ describe('OpsClient', () => {
 
     it('should add note to issue', async () => {
       nock(BASE_URL)
-        .post('/issues/issue-1/notes', { content: 'This is a note', note_type: 'context' })
+        .post('/issues/issue-1/notes', { content: 'This is a note', noteType: 'context' })
         .reply(201, {
           data: { id: 'note-1', content: 'This is a note' },
         });
@@ -470,24 +470,24 @@ describe('OpsClient', () => {
   });
 
   describe('request body transformation', () => {
-    it('should transform camelCase to snake_case in save run request', async () => {
-      // Verify the exact request body with snake_case transformation
+    it('should send camelCase in save run request', async () => {
+      // Verify the exact request body uses camelCase (no snake_case conversion)
       nock(BASE_URL)
         .post('/runs', (body) => {
-          // Verify snake_case transformation for top-level fields
-          expect(body.workflow_type).toBe('post-implementation');
+          // Verify camelCase for top-level fields
+          expect(body.workflowType).toBe('post-implementation');
           expect(body.project).toBe('my-project');
-          // Verify validator token transformation
+          // Verify validator tokens stay camelCase
           expect(body.validators[0].name).toBe('code-validator');
-          expect(body.validators[0].tokens.input_tokens).toBe(1000);
-          expect(body.validators[0].tokens.output_tokens).toBe(500);
-          expect(body.validators[0].tokens.cache_creation_tokens).toBe(100);
-          expect(body.validators[0].duration_ms).toBe(5000);
-          // Verify recommendation transformation
-          expect(body.recommendations[0].failure_code).toBe('SEM-VAL/H');
-          expect(body.recommendations[0].failure_domain).toBe('SEM');
-          expect(body.recommendations[0].file_path).toBe('src/index.ts');
-          expect(body.recommendations[0].line_number).toBe(42);
+          expect(body.validators[0].tokens.inputTokens).toBe(1000);
+          expect(body.validators[0].tokens.outputTokens).toBe(500);
+          expect(body.validators[0].tokens.cacheCreationTokens).toBe(100);
+          expect(body.validators[0].durationMs).toBe(5000);
+          // Verify recommendation fields stay camelCase
+          expect(body.recommendations[0].failureCode).toBe('SEM-VAL/H');
+          expect(body.recommendations[0].failureDomain).toBe('SEM');
+          expect(body.recommendations[0].filePath).toBe('src/index.ts');
+          expect(body.recommendations[0].lineNumber).toBe(42);
           return true;
         })
         .reply(201, {
@@ -537,10 +537,10 @@ describe('OpsClient', () => {
       await client.projects.getTrends('proj-1', { days: 30 });
     });
 
-    it('should transform issue note with note_type', async () => {
+    it('should send issue note with camelCase noteType', async () => {
       nock(BASE_URL)
         .post('/issues/issue-1/notes', (body) => {
-          expect(body.note_type).toBe('resolution');
+          expect(body.noteType).toBe('resolution');
           expect(body.content).toBe('Fixed the bug');
           return true;
         })
@@ -609,7 +609,7 @@ describe('OpsClient', () => {
           severity: 'high',
           limit: 20,
           offset: 0,
-          include_resolved: false,
+          includeResolved: false,
         })
         .reply(200, {
           data: [{ id: 'issue-1', title: 'Critical issue', status: 'open' }],
