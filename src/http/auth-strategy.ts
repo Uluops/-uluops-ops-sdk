@@ -136,7 +136,7 @@ export class JwtSessionAuth implements AuthStrategy {
   getAuthorizationHeader(): string {
     if (!this.sessionToken) {
       throw new UnauthorizedError(
-        'Session expired or not authenticated. Call client.auth.login({ email, password }) to obtain a new session.'
+        'Session expired or not authenticated. Call client.login(email, password) to obtain a new session.'
       );
     }
     return `Bearer ${this.sessionToken}`;

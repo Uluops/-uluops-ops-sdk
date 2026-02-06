@@ -974,7 +974,17 @@ const results = await client.issues.bulkUpdateStatus([
   { issueId: 'issue-1', status: 'completed' },
   { issueId: 'issue-2', status: 'deferred', reason: 'Not a priority' },
 ]);
+
+// Each result includes per-item success/failure — some items may fail
+// while others succeed (e.g., issue not found, invalid status transition)
+for (const result of results) {
+  if (!result.success) {
+    console.warn(`Failed to update ${result.issueId}: ${result.error}`);
+  }
+}
 ```
+
+Maximum 100 items per bulk request. The SDK validates this limit client-side via Zod before sending.
 
 #### `client.issues.listByProject(projectId, query)`
 
@@ -1491,6 +1501,7 @@ try {
 } catch (error) {
   if (error instanceof InputValidationError) {
     console.log('Validation errors:', error.errors);
+    // => [{ code: 'too_small', minimum: 1, path: ['name'], message: 'String must contain at least 1 character(s)' }]
   }
 }
 ```
