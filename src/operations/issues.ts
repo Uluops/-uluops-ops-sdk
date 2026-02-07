@@ -87,7 +87,7 @@ export async function updateStatusByFingerprint(
   input: UpdateIssueStatusInput
 ): Promise<StatusUpdateResult> {
   return client.patch<StatusUpdateResult>(
-    `/issues/by-fingerprint/${fingerprint}/status`,
+    `/issues/by-fingerprint/${encodeURIComponent(fingerprint)}/status`,
     { status: input.status, reason: input.reason },
     { params: { project } }
   );
@@ -107,7 +107,7 @@ export async function getDetails(
   client: OpsHttpClient,
   issueId: string
 ): Promise<IssueDetails> {
-  return client.get<IssueDetails>(`/issues/${issueId}/details`);
+  return client.get<IssueDetails>(`/issues/${encodeURIComponent(issueId)}/details`);
 }
 
 /**
@@ -117,7 +117,7 @@ export async function getHistory(
   client: OpsHttpClient,
   issueId: string
 ): Promise<StatusHistory[]> {
-  return client.get<StatusHistory[]>(`/issues/${issueId}/history`);
+  return client.get<StatusHistory[]>(`/issues/${encodeURIComponent(issueId)}/history`);
 }
 
 /**
@@ -129,7 +129,7 @@ export async function updateStatus(
   input: UpdateIssueStatusInput
 ): Promise<Issue> {
   validateUpdateIssueStatusInput(input);
-  return client.patch<Issue>(`/issues/${issueId}/status`, {
+  return client.patch<Issue>(`/issues/${encodeURIComponent(issueId)}/status`, {
     status: input.status,
     reason: input.reason,
   });
@@ -168,7 +168,7 @@ export async function addNote(
   input: CreateIssueNoteInput
 ): Promise<IssueNote> {
   validateCreateIssueNoteInput(input);
-  return client.post<IssueNote>(`/issues/${issueId}/notes`, {
+  return client.post<IssueNote>(`/issues/${encodeURIComponent(issueId)}/notes`, {
     content: input.content,
     noteType: input.noteType,
     createdBy: input.createdBy,
@@ -182,7 +182,7 @@ export async function restore(
   client: OpsHttpClient,
   issueId: string
 ): Promise<Issue> {
-  return client.post<Issue>(`/issues/${issueId}/restore`);
+  return client.post<Issue>(`/issues/${encodeURIComponent(issueId)}/restore`);
 }
 
 /**
@@ -192,7 +192,7 @@ export async function undoLastChange(
   client: OpsHttpClient,
   issueId: string
 ): Promise<Issue> {
-  return client.post<Issue>(`/issues/${issueId}/undo`);
+  return client.post<Issue>(`/issues/${encodeURIComponent(issueId)}/undo`);
 }
 
 /**

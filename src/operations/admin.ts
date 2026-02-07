@@ -111,7 +111,7 @@ export async function reactivateUser(
   client: OpsHttpClient,
   userId: string
 ): Promise<{ user: PublicUser }> {
-  return client.post<{ user: PublicUser }>(`/admin/users/${userId}/reactivate`);
+  return client.post<{ user: PublicUser }>(`/admin/users/${encodeURIComponent(userId)}/reactivate`);
 }
 
 /**
@@ -121,7 +121,7 @@ export async function resetUserPassword(
   client: OpsHttpClient,
   userId: string
 ): Promise<{ message: string }> {
-  return client.post<{ message: string }>(`/admin/users/${userId}/reset-password`);
+  return client.post<{ message: string }>(`/admin/users/${encodeURIComponent(userId)}/reset-password`);
 }
 
 /**
