@@ -196,7 +196,7 @@ describe('Error Classes', () => {
 
   describe('RateLimitError', () => {
     it('should format message with retryAfter', () => {
-      const error = new RateLimitError(60);
+      const error = new RateLimitError(undefined, 60);
       expect(error.message).toBe('Rate limit exceeded. Retry after 60 seconds');
       expect(error.statusCode).toBe(HTTP_STATUS.TOO_MANY_REQUESTS);
       expect(error.code).toBe(ERROR_CODES.RATE_LIMITED);
@@ -211,7 +211,7 @@ describe('Error Classes', () => {
     });
 
     it('should be retryable', () => {
-      expect(new RateLimitError(30).isRetryable()).toBe(true);
+      expect(new RateLimitError(undefined, 30).isRetryable()).toBe(true);
     });
   });
 
@@ -340,7 +340,7 @@ describe('Error Classes', () => {
     it('should return true for subclass instances', () => {
       expect(isOpsApiError(new ValidationError('test'))).toBe(true);
       expect(isOpsApiError(new NotFoundError('Resource'))).toBe(true);
-      expect(isOpsApiError(new RateLimitError(60))).toBe(true);
+      expect(isOpsApiError(new RateLimitError(undefined, 60))).toBe(true);
       expect(isOpsApiError(new TimeoutError(5000))).toBe(true);
       expect(isOpsApiError(new NetworkError('test'))).toBe(true);
     });

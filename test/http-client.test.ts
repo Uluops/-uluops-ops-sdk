@@ -625,6 +625,20 @@ describe('OpsHttpClient', () => {
 
       const strategy = sessionClient.getAuthStrategy();
       expect(strategy?.getType()).toBe('session');
+      // sessionToken-only auth cannot refresh (no email/password for login)
+      expect(strategy?.canRefresh()).toBe(false);
+    });
+
+    it('should be refreshable when session auth includes email/password', () => {
+      const sessionClient = new OpsHttpClient({
+        baseUrl: BASE_URL,
+        sessionToken: 'some-token',
+        email: 'user@test.com',
+        password: 'pass123',
+      });
+
+      const strategy = sessionClient.getAuthStrategy();
+      expect(strategy?.getType()).toBe('session');
       expect(strategy?.canRefresh()).toBe(true);
     });
 
