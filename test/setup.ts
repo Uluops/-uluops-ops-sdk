@@ -4,7 +4,7 @@ import { resetMockIds } from './contract-helpers.js';
 
 export const BASE_URL = 'http://localhost:3100/api/v1';
 export const TEST_API_KEY = 'ulr_test-api-key-12345';
-export const TEST_API_KEY_SHORT = 'ulr_test-key';
+export const TEST_API_KEY_SHORT = 'ulr_test-key-longEnough';
 export const TEST_UUID = '550e8400-e29b-41d4-a716-446655440000';
 
 beforeEach(() => {

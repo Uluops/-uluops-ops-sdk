@@ -26,7 +26,8 @@ describe('Error Classes', () => {
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.details).toEqual({ field: 'email' });
       expect(error.requestId).toBe('req-123');
-      expect(error.name).toBe('OpsApiError');
+      // Base class name is SdkApiError (from sdk-core), aliased as OpsApiError on export
+      expect(error.name).toBe('SdkApiError');
     });
 
     it('should default code to UNKNOWN when not provided', () => {
@@ -43,7 +44,8 @@ describe('Error Classes', () => {
     it('should have a stack trace', () => {
       const error = new OpsApiError(500, 'test');
       expect(error.stack).toBeDefined();
-      expect(error.stack).toContain('OpsApiError');
+      // Stack trace uses the internal class name SdkApiError
+      expect(error.stack).toContain('SdkApiError');
     });
 
     describe('isRetryable', () => {
@@ -86,7 +88,7 @@ describe('Error Classes', () => {
         const json = error.toJSON();
 
         expect(json).toEqual({
-          name: 'OpsApiError',
+          name: 'SdkApiError',
           message: 'Unprocessable',
           statusCode: 422,
           code: 'VALIDATION_ERROR',
@@ -127,8 +129,8 @@ describe('Error Classes', () => {
   describe('UnauthorizedError', () => {
     it('should use default message', () => {
       const error = new UnauthorizedError();
-      expect(error.message).toContain('Authentication required');
-      expect(error.message).toContain('ULUOPS_API_KEY');
+      // sdk-core uses generic message without SDK-specific env var hints
+      expect(error.message).toBe('Authentication required');
       expect(error.statusCode).toBe(HTTP_STATUS.UNAUTHORIZED);
       expect(error.code).toBe(ERROR_CODES.UNAUTHORIZED);
       expect(error.name).toBe('UnauthorizedError');
@@ -167,12 +169,14 @@ describe('Error Classes', () => {
     it('should format message with resource and identifier', () => {
       const error = new NotFoundError('Project', 'my-project');
       expect(error.message).toBe("Project 'my-project' not found");
-      expect(error.details).toEqual({ id: 'my-project' });
+      // sdk-core stores { resource, identifier } in details
+      expect(error.details).toEqual({ resource: 'Project', identifier: 'my-project' });
     });
 
-    it('should have no details without identifier', () => {
+    it('should have resource details even without identifier', () => {
       const error = new NotFoundError('Issue');
-      expect(error.details).toBeUndefined();
+      // sdk-core always includes { resource } in details
+      expect(error.details).toEqual({ resource: 'Issue' });
     });
   });
 

@@ -308,11 +308,13 @@ describe('OpsHttpClient', () => {
       expect(result).toEqual({ id: '1', name: 'test' });
     });
 
-    it('should handle 200 with empty data wrapper', async () => {
-      nock(BASE_URL).delete('/resource/1').reply(200, { data: undefined });
+    it('should handle 200 with null data wrapper', async () => {
+      // Note: { data: undefined } serializes to {} in JSON, which is not a valid data envelope.
+      // Use { data: null } to represent an empty/deleted response with the envelope present.
+      nock(BASE_URL).delete('/resource/1').reply(200, { data: null });
 
       const result = await client.delete('/resource/1');
-      expect(result).toBeUndefined();
+      expect(result).toBeNull();
     });
 
     it('should handle null data in response', async () => {
@@ -675,8 +677,8 @@ describe('OpsHttpClient', () => {
 
 describe('ApiKeyAuth', () => {
   it('should create auth with valid API key', () => {
-    const auth = new ApiKeyAuth('ulr_valid-key');
-    expect(auth.getAuthorizationHeader()).toBe('Bearer ulr_valid-key');
+    const auth = new ApiKeyAuth('ulr_valid-key-longEnough');
+    expect(auth.getAuthorizationHeader()).toBe('Bearer ulr_valid-key-longEnough');
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.getType()).toBe('api_key');
     expect(auth.canRefresh()).toBe(false);
@@ -687,11 +689,11 @@ describe('ApiKeyAuth', () => {
   });
 
   it('should reject API key without prefix', () => {
-    expect(() => new ApiKeyAuth('invalid-key')).toThrow('Invalid API key format');
+    expect(() => new ApiKeyAuth('invalid-key-longEnough')).toThrow('Invalid API key format');
   });
 
   it('should throw on refresh attempt', async () => {
-    const auth = new ApiKeyAuth('ulr_test-key');
+    const auth = new ApiKeyAuth('ulr_test-key-longEnough');
     await expect(auth.refresh()).rejects.toThrow('API keys cannot be refreshed');
   });
 });
@@ -849,7 +851,7 @@ describe('createAuthStrategy', () => {
 
   it('should prioritize API key over session', () => {
     const strategy = createAuthStrategy({
-      apiKey: 'ulr_api-key',
+      apiKey: 'ulr_api-key-longEnough-val',
       email: 'test@example.com',
       password: 'pass',
       httpClient: mockHttpClient,

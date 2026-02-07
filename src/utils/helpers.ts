@@ -1,62 +1,20 @@
 /**
- * Sleep for a specified number of milliseconds
- * @param ms - Duration to sleep in milliseconds
- * @returns Promise that resolves after the delay
+ * Utility functions for @uluops/ops-sdk
+ *
+ * Shared utilities are re-exported from @uluops/sdk-core.
+ * SDK-specific utilities are defined here.
  */
-export function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+
+// Re-export shared utilities from sdk-core
+export { sleep, retry, truncate, isPlainObject, isUuid } from '@uluops/sdk-core/utils';
+
+// ---- SDK-specific utilities ----
 
 /**
- * Retry a function with exponential backoff
- * @param fn - Async function to retry
- * @param options - Retry configuration
- * @param options.maxRetries - Maximum number of attempts (default: 3)
- * @param options.baseDelayMs - Base delay between retries in ms (default: 1000)
- * @param options.maxDelayMs - Maximum delay cap in ms (default: 30000)
- * @param options.shouldRetry - Predicate to determine if an error is retryable
- * @returns The result of the function call
+ * Check if a value is a plain object (local copy for deepMerge to avoid
+ * importing the re-exported version which could cause issues)
  */
-export async function retry<T>(
-  fn: () => Promise<T>,
-  options: {
-    maxRetries?: number;
-    baseDelayMs?: number;
-    maxDelayMs?: number;
-    shouldRetry?: (error: unknown) => boolean;
-  } = {}
-): Promise<T> {
-  const {
-    maxRetries = 3,
-    baseDelayMs = 1000,
-    maxDelayMs = 30000,
-    shouldRetry = () => true,
-  } = options;
-
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-
-      if (attempt === maxRetries || !shouldRetry(error)) {
-        throw error;
-      }
-
-      const delay = Math.min(baseDelayMs * Math.pow(2, attempt - 1), maxDelayMs);
-      await sleep(delay);
-    }
-  }
-
-  throw lastError;
-}
-
-/**
- * Check if a value is a plain object suitable for deep merging
- */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+function isObj(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
@@ -76,7 +34,7 @@ export function deepMerge<T extends Record<string, unknown>>(
     const sourceValue = source[key];
     const targetValue = result[key];
 
-    if (isPlainObject(sourceValue) && isPlainObject(targetValue)) {
+    if (isObj(sourceValue) && isObj(targetValue)) {
       result[key] = deepMerge(targetValue, sourceValue as Partial<Record<string, unknown>>) as T[keyof T];
     } else if (sourceValue !== undefined) {
       result[key] = sourceValue as T[keyof T];
@@ -154,27 +112,6 @@ export function formatDate(date: string | Date): string {
 }
 
 /**
- * Check if a string is a valid UUID (v1-v5)
- * @param value - String to validate
- * @returns True if the string is a valid UUID
- */
-export function isUuid(value: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(value);
-}
-
-/**
- * Truncate a string with ellipsis
- * @param str - String to truncate
- * @param maxLength - Maximum length including ellipsis
- * @returns Truncated string with '...' suffix if exceeding maxLength
- */
-export function truncate(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength - 3) + '...';
-}
-
-/**
  * Convert camelCase to snake_case
  * @param str - camelCase string to convert
  * @returns snake_case formatted string
@@ -189,7 +126,7 @@ export function toSnakeCase(str: string): string {
  * @returns camelCase formatted string
  */
 export function toCamelCase(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
 /**
@@ -219,4 +156,3 @@ export function getFlexibleProperty<T>(
   }
   return defaultValue;
 }
-
