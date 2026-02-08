@@ -32,7 +32,7 @@ export async function register(
   input: RegisterInput
 ): Promise<RegisterResponse> {
   validateRegisterInput(input);
-  return client.post<RegisterResponse>('/auth/register', input);
+  return client.post<RegisterResponse>('/auth/register', input, { skipAuth: true });
 }
 
 /**
@@ -43,7 +43,7 @@ export async function login(
   input: LoginInput
 ): Promise<LoginResponse> {
   validateLoginInput(input);
-  return client.post<LoginResponse>('/auth/login', input);
+  return client.post<LoginResponse>('/auth/login', input, { skipAuth: true });
 }
 
 /**
@@ -62,7 +62,7 @@ export async function forgotPassword(
   client: OpsHttpClient,
   email: string
 ): Promise<MessageResponse> {
-  return client.post<MessageResponse>('/auth/forgot-password', { email });
+  return client.post<MessageResponse>('/auth/forgot-password', { email }, { skipAuth: true });
 }
 
 /**
@@ -73,7 +73,7 @@ export async function resetPassword(
   input: ResetPasswordInput
 ): Promise<MessageResponse> {
   validateResetPasswordInput(input);
-  return client.post<MessageResponse>('/auth/reset-password', input);
+  return client.post<MessageResponse>('/auth/reset-password', input, { skipAuth: true });
 }
 
 /**

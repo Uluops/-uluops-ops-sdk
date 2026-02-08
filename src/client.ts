@@ -146,11 +146,16 @@ export class OpsClient {
    */
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await authOps.login(this.httpClient, { email, password });
-    // Update the auth strategy with new token
-    const authStrategy = this.httpClient.getAuthStrategy();
-    if (authStrategy instanceof JwtSessionAuth) {
-      // The strategy handles token storage internally
-    }
+    // Install session auth so subsequent requests are authenticated.
+    // Pass email/password through for automatic token refresh.
+    this.httpClient.setAuthStrategy(
+      new JwtSessionAuth(
+        this.httpClient.createFetchClient(),
+        { email, password },
+        undefined,
+        response.sessionToken
+      )
+    );
     return response;
   }
 
