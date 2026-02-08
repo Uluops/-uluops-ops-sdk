@@ -39,7 +39,7 @@ export async function save(
     rawMarkdown: input.rawMarkdown,
     summary: input.summary,
     idempotencyKey: input.idempotencyKey,
-  });
+  }, { retryMutations: true });
 }
 
 /**
