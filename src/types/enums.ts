@@ -18,9 +18,10 @@ export const Status = {
   Deferred: 'deferred',
   Wontfix: 'wontfix',
   Merged: 'merged',
+  FalsePositive: 'false-positive',
 } as const;
 export type Status = (typeof Status)[keyof typeof Status];
-export const STATUSES = ['open', 'completed', 'deferred', 'wontfix', 'merged'] as const;
+export const STATUSES = ['open', 'completed', 'deferred', 'wontfix', 'merged', 'false-positive'] as const;
 
 /**
  * Issue severity levels

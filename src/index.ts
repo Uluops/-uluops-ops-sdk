@@ -12,5 +12,5 @@ export * from './errors/errors.js';
 export * from './types/index.js';
 
 // Config utilities
-export { loadCredentials, loadConfig, type Credentials, type SdkConfig } from './config/loaders.js';
+export { loadCredentials, loadConfig, loadEnvFiles, type Credentials, type SdkConfig } from './config/loaders.js';
 export { DEFAULT_BASE_URL, API_KEY_PREFIX, ENV_VARS } from './config/constants.js';

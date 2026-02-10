@@ -56,6 +56,7 @@ export interface ProjectSummary {
   completedIssues: number;
   deferredIssues: number;
   wontfixIssues: number;
+  falsePositiveIssues: number;
   totalRuns: number;
   lastRunAt: string | null;
   averageScore: number | null;
