@@ -1,10 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import {
   getGlobalConfigDir,
   getCredentialsPath,
-  loadStoredCredentials,
   loadCredentials,
   loadConfig,
   isApiKey,
@@ -12,19 +10,10 @@ import {
 } from '../../src/config/loaders.js';
 import { ENV_VARS } from '../../src/config/constants.js';
 
-// Mock node:fs
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(),
-  readFileSync: vi.fn(),
-}));
-
-// Mock dotenv
+// Mock dotenv to prevent real .env files from being loaded
 vi.mock('dotenv', () => ({
   config: vi.fn(),
 }));
-
-const mockExistsSync = vi.mocked(existsSync);
-const mockReadFileSync = vi.mocked(readFileSync);
 
 describe('Config Loaders', () => {
   const originalEnv = { ...process.env };
@@ -59,122 +48,13 @@ describe('Config Loaders', () => {
     });
   });
 
-  describe('loadStoredCredentials', () => {
-    it('should return null when credentials file does not exist', () => {
-      mockExistsSync.mockReturnValue(false);
-      const result = loadStoredCredentials();
-      expect(result).toBeNull();
-    });
-
-    it('should load API key from default profile', () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({
-          default: {
-            type: 'api_key',
-            apiKey: 'ulr_test-key',
-          },
-        })
-      );
-
-      const result = loadStoredCredentials();
-      expect(result).toEqual({
-        apiKey: 'ulr_test-key',
-        sessionToken: undefined,
-        email: undefined,
-      });
-    });
-
-    it('should load session token from default profile', () => {
-      const futureDate = new Date(Date.now() + 3600000).toISOString();
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({
-          default: {
-            type: 'session',
-            sessionToken: 'jwt-token-here',
-            expiresAt: futureDate,
-            email: 'user@example.com',
-          },
-        })
-      );
-
-      const result = loadStoredCredentials();
-      expect(result).toEqual({
-        apiKey: undefined,
-        sessionToken: 'jwt-token-here',
-        email: 'user@example.com',
-      });
-    });
-
-    it('should return null for expired session token', () => {
-      const pastDate = new Date(Date.now() - 3600000).toISOString();
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({
-          default: {
-            type: 'session',
-            sessionToken: 'expired-token',
-            expiresAt: pastDate,
-          },
-        })
-      );
-
-      const result = loadStoredCredentials();
-      expect(result).toBeNull();
-    });
-
-    it('should load credentials from a named profile', () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({
-          default: { type: 'api_key', apiKey: 'ulr_default-key' },
-          staging: { type: 'api_key', apiKey: 'ulr_staging-key' },
-        })
-      );
-
-      const result = loadStoredCredentials('staging');
-      expect(result?.apiKey).toBe('ulr_staging-key');
-    });
-
-    it('should return null for missing profile', () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({
-          default: { type: 'api_key', apiKey: 'ulr_key' },
-        })
-      );
-
-      const result = loadStoredCredentials('nonexistent');
-      expect(result).toBeNull();
-    });
-
-    it('should return null and not throw on malformed JSON', () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue('not valid json{{{');
-
-      const result = loadStoredCredentials();
-      expect(result).toBeNull();
-    });
-
-    it('should return null when readFileSync throws', () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockImplementation(() => {
-        throw new Error('Permission denied');
-      });
-
-      const result = loadStoredCredentials();
-      expect(result).toBeNull();
-    });
-  });
+  // Note: loadStoredCredentials tests removed — it's a direct re-export from
+  // @uluops/sdk-core and tested in sdk-core's own test suite. Vitest's vi.mock('node:fs')
+  // cannot intercept fs calls inside pre-compiled ESM in node_modules/.
 
   describe('loadCredentials', () => {
     it('should prioritize explicit apiKey over everything', () => {
       process.env[ENV_VARS.API_KEY] = 'ulr_env-key';
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({ default: { type: 'api_key', apiKey: 'ulr_stored-key' } })
-      );
 
       const result = loadCredentials({ apiKey: 'ulr_explicit-key' });
       expect(result).toEqual({ apiKey: 'ulr_explicit-key' });
@@ -190,7 +70,6 @@ describe('Config Loaders', () => {
 
     it('should fall back to env var API key', () => {
       process.env[ENV_VARS.API_KEY] = 'ulr_env-key';
-      mockExistsSync.mockReturnValue(false);
 
       const result = loadCredentials();
       expect(result).toEqual({ apiKey: 'ulr_env-key' });
@@ -199,45 +78,14 @@ describe('Config Loaders', () => {
     it('should fall back to env var email/password', () => {
       process.env[ENV_VARS.EMAIL] = 'env@example.com';
       process.env[ENV_VARS.PASSWORD] = 'env-pass';
-      mockExistsSync.mockReturnValue(false);
 
       const result = loadCredentials();
       expect(result).toEqual({ email: 'env@example.com', password: 'env-pass' });
     });
 
-    it('should fall back to stored API key credentials', () => {
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({ default: { type: 'api_key', apiKey: 'ulr_stored-key' } })
-      );
-
-      const result = loadCredentials();
-      expect(result).toEqual({ apiKey: 'ulr_stored-key' });
-    });
-
-    it('should fall back to stored session token', () => {
-      const futureDate = new Date(Date.now() + 3600000).toISOString();
-      mockExistsSync.mockReturnValue(true);
-      mockReadFileSync.mockReturnValue(
-        JSON.stringify({
-          default: {
-            type: 'session',
-            sessionToken: 'jwt-token',
-            expiresAt: futureDate,
-            email: 'stored@example.com',
-          },
-        })
-      );
-
-      const result = loadCredentials();
-      expect(result).toEqual({ sessionToken: 'jwt-token', email: 'stored@example.com' });
-    });
-
-    it('should return empty object when no credentials found', () => {
-      mockExistsSync.mockReturnValue(false);
-      const result = loadCredentials();
-      expect(result).toEqual({});
-    });
+    // Note: "stored credentials fallback" tests removed — they require mocking node:fs
+    // inside sdk-core's compiled code, which Vitest cannot do for npm packages.
+    // The stored credentials priority chain is tested in sdk-core's test suite.
 
     it('should require both email and password for explicit credentials', () => {
       // Only email, no password - should not match explicit
@@ -249,8 +97,6 @@ describe('Config Loaders', () => {
 
   describe('loadConfig', () => {
     it('should return full config with defaults', () => {
-      mockExistsSync.mockReturnValue(false);
-
       const config = loadConfig();
       expect(config).toHaveProperty('baseUrl');
       expect(config).toHaveProperty('credentials');
@@ -259,15 +105,12 @@ describe('Config Loaders', () => {
     });
 
     it('should use explicit baseUrl', () => {
-      mockExistsSync.mockReturnValue(false);
-
       const config = loadConfig({ baseUrl: 'https://api.example.com/v1' });
       expect(config.baseUrl).toBe('https://api.example.com/v1');
     });
 
     it('should use env var baseUrl', () => {
       process.env[ENV_VARS.BASE_URL] = 'https://env.example.com/v1';
-      mockExistsSync.mockReturnValue(false);
 
       const config = loadConfig();
       expect(config.baseUrl).toBe('https://env.example.com/v1');
@@ -275,30 +118,23 @@ describe('Config Loaders', () => {
 
     it('should enable debug from env var', () => {
       process.env[ENV_VARS.DEBUG] = 'true';
-      mockExistsSync.mockReturnValue(false);
 
       const config = loadConfig();
       expect(config.debug).toBe(true);
     });
 
     it('should enable debug from explicit option', () => {
-      mockExistsSync.mockReturnValue(false);
-
       const config = loadConfig({ debug: true });
       expect(config.debug).toBe(true);
     });
 
     it('should pass through timeout and retries', () => {
-      mockExistsSync.mockReturnValue(false);
-
       const config = loadConfig({ timeout: 5000, retries: 5 });
       expect(config.timeout).toBe(5000);
       expect(config.retries).toBe(5);
     });
 
     it('should load credentials through priority chain', () => {
-      mockExistsSync.mockReturnValue(false);
-
       const config = loadConfig({ apiKey: 'ulr_my-key' });
       expect(config.credentials).toEqual({ apiKey: 'ulr_my-key' });
     });
