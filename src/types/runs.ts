@@ -146,12 +146,33 @@ export interface ValidateFeaturesListResponse {
 }
 
 /**
+ * Issue reference in a run diff (API returns issueId + title only)
+ */
+export interface DiffIssueRef {
+  issueId: string;
+  title: string;
+}
+
+/**
+ * Validator score change between two runs
+ */
+export interface ValidatorChange {
+  name: string;
+  baseScore: number;
+  compareScore: number;
+  change: number;
+}
+
+/**
  * Run diff result
  */
 export interface RunDiffResult {
-  fixed: Array<{ id: string; title: string; fingerprint: string }>;
-  new: Array<{ id: string; title: string; fingerprint: string }>;
-  unchanged: Array<{ id: string; title: string; fingerprint: string }>;
+  baseRun: Run;
+  compareRun: Run;
+  fixed: DiffIssueRef[];
+  new: DiffIssueRef[];
+  unchanged: DiffIssueRef[];
+  validatorChanges: ValidatorChange[];
 }
 
 /**

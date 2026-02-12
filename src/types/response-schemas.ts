@@ -335,22 +335,25 @@ export const SaveFeaturesListResponseSchema = z.object({
   deduplicated: z.boolean(),
 });
 
+export const DiffIssueRefResponseSchema = z.object({
+  issueId: z.string().uuid(),
+  title: z.string(),
+});
+
+export const ValidatorChangeResponseSchema = z.object({
+  name: z.string(),
+  baseScore: z.number(),
+  compareScore: z.number(),
+  change: z.number(),
+});
+
 export const RunDiffResultResponseSchema = z.object({
-  fixed: z.array(z.object({
-    id: z.string().uuid(),
-    title: z.string(),
-    fingerprint: z.string(),
-  })),
-  new: z.array(z.object({
-    id: z.string().uuid(),
-    title: z.string(),
-    fingerprint: z.string(),
-  })),
-  unchanged: z.array(z.object({
-    id: z.string().uuid(),
-    title: z.string(),
-    fingerprint: z.string(),
-  })),
+  baseRun: RunResponseSchema,
+  compareRun: RunResponseSchema,
+  fixed: z.array(DiffIssueRefResponseSchema),
+  new: z.array(DiffIssueRefResponseSchema),
+  unchanged: z.array(DiffIssueRefResponseSchema),
+  validatorChanges: z.array(ValidatorChangeResponseSchema),
 });
 
 export const RunDetailsResponseSchema = z.object({

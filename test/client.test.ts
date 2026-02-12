@@ -246,9 +246,12 @@ describe('OpsClient', () => {
         .query({ project: 'proj-1', baseRun: 1, compareRun: 2 })
         .reply(200, {
           data: {
-            fixed: [{ id: 'issue-1', title: 'Fixed bug' }],
-            new: [{ id: 'issue-2', title: 'New issue' }],
+            baseRun: { id: 'run-1', projectId: 'proj-1', runNumber: 1, workflowType: 'ship', timestamp: '2026-01-01T00:00:00Z', allGatesPassed: true, averageScore: 90, rawMarkdown: null, archivedAt: null, archiveReason: null, idempotencyKey: null, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+            compareRun: { id: 'run-2', projectId: 'proj-1', runNumber: 2, workflowType: 'ship', timestamp: '2026-01-02T00:00:00Z', allGatesPassed: true, averageScore: 95, rawMarkdown: null, archivedAt: null, archiveReason: null, idempotencyKey: null, createdAt: '2026-01-02T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z' },
+            fixed: [{ issueId: 'issue-1', title: 'Fixed bug' }],
+            new: [{ issueId: 'issue-2', title: 'New issue' }],
             unchanged: [],
+            validatorChanges: [],
           },
         });
 
@@ -259,7 +262,10 @@ describe('OpsClient', () => {
       });
 
       expect(diff.fixed).toHaveLength(1);
+      expect(diff.fixed[0].issueId).toBe('issue-1');
       expect(diff.new).toHaveLength(1);
+      expect(diff.baseRun.runNumber).toBe(1);
+      expect(diff.compareRun.runNumber).toBe(2);
     });
   });
 

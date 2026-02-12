@@ -159,20 +159,21 @@ describe('Run Operations', () => {
 
   describe('diff', () => {
     it('should diff two runs', async () => {
-      const fixedIssue = createMockIssue({ title: 'Fixed bug' });
-      const newIssue = createMockIssue({ title: 'New issue' });
-      const unchangedIssue = createMockIssue({ title: 'Still there' });
+      const baseRun = createMockRun({ runNumber: 1 });
+      const compareRun = createMockRun({ runNumber: 2 });
 
       nock(BASE_URL)
         .get('/runs/diff')
         .query({ project: 'my-project', baseRun: 1, compareRun: 2 })
         .reply(200, {
           data: {
-            fixed: [fixedIssue],
-            new: [newIssue],
-            unchanged: [unchangedIssue],
+            baseRun,
+            compareRun,
+            fixed: [{ issueId: 'issue-1', title: 'Fixed bug' }],
+            new: [{ issueId: 'issue-2', title: 'New issue' }],
+            unchanged: [{ issueId: 'issue-3', title: 'Still there' }],
             validatorChanges: [
-              { validator: 'code-validator', baseScore: 75, compareScore: 85 },
+              { name: 'code-validator', baseScore: 75, compareScore: 85, change: 10 },
             ],
           },
         });
@@ -183,15 +184,19 @@ describe('Run Operations', () => {
         compareRun: 2,
       });
 
+      expect(result.baseRun.runNumber).toBe(1);
+      expect(result.compareRun.runNumber).toBe(2);
       expect(result.fixed).toHaveLength(1);
+      expect(result.fixed[0].issueId).toBe('issue-1');
       expect(result.fixed[0].title).toBe('Fixed bug');
       expect(result.new).toHaveLength(1);
-      expect(result.new[0].title).toBe('New issue');
+      expect(result.new[0].issueId).toBe('issue-2');
       expect(result.unchanged).toHaveLength(1);
       expect(result.validatorChanges).toHaveLength(1);
-      expect(result.validatorChanges[0].validator).toBe('code-validator');
+      expect(result.validatorChanges[0].name).toBe('code-validator');
       expect(result.validatorChanges[0].baseScore).toBe(75);
       expect(result.validatorChanges[0].compareScore).toBe(85);
+      expect(result.validatorChanges[0].change).toBe(10);
     });
   });
 

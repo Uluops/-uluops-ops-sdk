@@ -148,7 +148,7 @@ export async function getDetails(
 ): Promise<RunDetails> {
   return client.get<RunDetails>(
     `/runs/project/${encodeURIComponent(projectId)}/details`,
-    runNumber ? { runNumber } : undefined
+    runNumber !== undefined ? { runNumber } : undefined
   );
 }
 
