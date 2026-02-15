@@ -24,6 +24,11 @@ export type Status = (typeof Status)[keyof typeof Status];
 export const STATUSES = ['open', 'completed', 'deferred', 'wontfix', 'merged', 'false-positive'] as const;
 
 /**
+ * Status filter type (includes 'all' for query parameters)
+ */
+export type StatusFilter = Status | 'all';
+
+/**
  * Issue severity levels
  */
 export const Severity = {

@@ -57,6 +57,11 @@ describe('query-utils', () => {
       expect(result?.limit).toBeUndefined();
     });
 
+    it('should pass through "all" status filter', () => {
+      const result = buildIssueListParams({ status: 'all' });
+      expect(result?.status).toBe('all');
+    });
+
     it('should preserve boundary values for limit and offset', () => {
       const result = buildIssueListParams({ limit: 0, offset: 0 });
       expect(result?.limit).toBe(0);

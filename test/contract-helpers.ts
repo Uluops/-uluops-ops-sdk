@@ -17,6 +17,7 @@ import {
   RunResponseSchema,
   ValidatorSnapshotResponseSchema,
   ProjectSummaryResponseSchema,
+  ProjectSummaryStatsResponseSchema,
   TrendDataPointResponseSchema,
   OccurrenceResponseSchema,
   IssueNoteResponseSchema,
@@ -227,19 +228,35 @@ export function createMockValidatorSnapshot(
  * Factory for creating valid ProjectSummary response data
  */
 export function createMockProjectSummary(
-  overrides: Partial<z.infer<typeof ProjectSummaryResponseSchema>> = {}
+  overrides: Partial<{
+    project?: z.infer<typeof ProjectResponseSchema>;
+    stats?: Partial<z.infer<typeof ProjectSummaryStatsResponseSchema>>;
+    // Flat overrides for convenience (mapped into stats)
+    totalIssues?: number;
+    openIssues?: number;
+    completedIssues?: number;
+    deferredIssues?: number;
+    wontfixIssues?: number;
+    totalRuns?: number;
+    lastRunAt?: string | null;
+    averageScore?: number | null;
+  }> = {}
 ) {
+  const { project, stats, ...flatOverrides } = overrides;
   const data = {
-    project: createMockProject(),
-    totalIssues: 100,
-    openIssues: 25,
-    completedIssues: 50,
-    deferredIssues: 15,
-    wontfixIssues: 10,
-    totalRuns: 50,
-    lastRunAt: isoDate(1),
-    averageScore: 85,
-    ...overrides,
+    project: project ?? createMockProject(),
+    stats: {
+      totalIssues: 100,
+      openIssues: 25,
+      completedIssues: 50,
+      deferredIssues: 15,
+      wontfixIssues: 10,
+      totalRuns: 50,
+      lastRunAt: isoDate(1),
+      averageScore: 85,
+      ...flatOverrides,
+      ...stats,
+    },
   };
 
   if (STRICT_CONTRACTS) {
@@ -373,7 +390,7 @@ export function createMockIssueDetails(
     issue: createMockIssue({ id: issueId }),
     occurrences: [createMockOccurrence({ issueId })],
     notes: [createMockIssueNote({ issueId })],
-    statusHistory: [createMockStatusHistory({ issueId })],
+    history: [createMockStatusHistory({ issueId })],
     ...overrides,
   };
 

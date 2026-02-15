@@ -1,6 +1,7 @@
 import type {
   Priority,
   Status,
+  StatusFilter,
   Severity,
   FailureDomain,
   FailureSeverityCode,
@@ -149,7 +150,7 @@ export interface IssueDetails {
   issue: Issue;
   occurrences: Occurrence[];
   notes: IssueNote[];
-  statusHistory: StatusHistory[];
+  history: StatusHistory[];
 }
 
 /**
@@ -170,7 +171,7 @@ export interface IssueSearchQuery {
  * List issues query options
  */
 export interface ListIssuesQuery {
-  status?: Status;
+  status?: StatusFilter;
   priority?: Priority;
   severity?: Severity;
   failureDomain?: FailureDomain;

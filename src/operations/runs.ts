@@ -2,6 +2,7 @@ import type { OpsHttpClient } from '../http/http-client.js';
 import { toQuery } from '../http/http-client.js';
 import type {
   Run,
+  RunSummary,
   SaveFeaturesListInput,
   SaveFeaturesListResponse,
   ValidateFeaturesListResponse,
@@ -117,8 +118,8 @@ export async function listByProject(
   client: OpsHttpClient,
   projectId: string,
   query?: ListRunsQuery
-): Promise<Run[]> {
-  return client.get<Run[]>(
+): Promise<RunSummary[]> {
+  return client.get<RunSummary[]>(
     `/runs/project/${encodeURIComponent(projectId)}`,
     toQuery(query)
   );

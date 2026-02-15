@@ -40,7 +40,8 @@ import type {
   UpdateProjectInput,
   DeleteProjectInput,
   RenameProjectInput,
-  ProjectSummary,
+  ProjectSummaryResponse,
+  PaginatedIssues,
   TrendDataPoint,
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
@@ -52,6 +53,7 @@ import type {
 
 import type {
   Run,
+  RunSummary,
   SaveFeaturesListInput,
   SaveFeaturesListResponse,
   ValidateFeaturesListResponse,
@@ -265,7 +267,7 @@ export class OpsClient {
     rename: (input: RenameProjectInput): Promise<Project> =>
       projectOps.rename(this.httpClient, input),
 
-    getSummary: (idOrName: string): Promise<ProjectSummary> =>
+    getSummary: (idOrName: string): Promise<ProjectSummaryResponse> =>
       projectOps.getSummary(this.httpClient, idOrName),
 
     getTrends: (idOrName: string, query?: ProjectTrendsQuery): Promise<TrendDataPoint[]> =>
@@ -273,6 +275,9 @@ export class OpsClient {
 
     listIssues: (idOrName: string, query?: ListProjectIssuesQuery): Promise<Issue[]> =>
       projectOps.listIssues(this.httpClient, idOrName, query),
+
+    listIssuesWithCount: (idOrName: string, query?: ListProjectIssuesQuery): Promise<PaginatedIssues> =>
+      projectOps.listIssuesWithCount(this.httpClient, idOrName, query),
 
     bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[]): Promise<BulkIssueStatusResult[]> =>
       projectOps.bulkUpdateIssueStatus(this.httpClient, idOrName, updates),
@@ -301,7 +306,7 @@ export class OpsClient {
     update: (input: UpdateRunByNumberInput): Promise<Run> =>
       runOps.update(this.httpClient, input),
 
-    listByProject: (projectId: string, query?: ListRunsQuery): Promise<Run[]> =>
+    listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
       runOps.listByProject(this.httpClient, projectId, query),
 
     getLatest: (projectId: string, workflowType?: string): Promise<Run> =>

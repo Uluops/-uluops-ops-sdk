@@ -179,17 +179,20 @@ export const ProjectResponseSchema = z.object({
   deletedAt: NullableDateTimeSchema.optional(),
 });
 
-export const ProjectSummaryResponseSchema = z.object({
-  project: ProjectResponseSchema.optional(),
+export const ProjectSummaryStatsResponseSchema = z.object({
   totalIssues: z.number().int().nonnegative(),
   openIssues: z.number().int().nonnegative(),
   completedIssues: z.number().int().nonnegative().optional(),
   deferredIssues: z.number().int().nonnegative().optional(),
   wontfixIssues: z.number().int().nonnegative().optional(),
-  resolvedIssues: z.number().int().nonnegative().optional(), // Legacy field
   totalRuns: z.number().int().nonnegative(),
   lastRunAt: NullableDateTimeSchema,
   averageScore: z.number().nullable().optional(),
+});
+
+export const ProjectSummaryResponseSchema = z.object({
+  project: ProjectResponseSchema,
+  stats: ProjectSummaryStatsResponseSchema,
 });
 
 export const TrendDataPointResponseSchema = z.object({
@@ -271,7 +274,7 @@ export const IssueDetailsResponseSchema = z.object({
   issue: IssueResponseSchema,
   occurrences: z.array(OccurrenceResponseSchema),
   notes: z.array(IssueNoteResponseSchema),
-  statusHistory: z.array(StatusHistoryResponseSchema).optional(),
+  history: z.array(StatusHistoryResponseSchema).optional(),
 });
 
 export const StatusUpdateResultResponseSchema = z.object({

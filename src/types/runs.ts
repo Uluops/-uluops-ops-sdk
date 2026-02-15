@@ -27,6 +27,18 @@ export interface Run {
 }
 
 /**
+ * Enriched run returned by the runs list endpoint.
+ * Includes optional aggregated counts from recommendations.
+ */
+export interface RunSummary extends Run {
+  totalRecommendations?: number;
+  criticalCount?: number;
+  suggestedCount?: number;
+  backlogCount?: number;
+  validatorScores?: Record<string, number>;
+}
+
+/**
  * Validator snapshot (results from a single validator in a run)
  */
 export interface ValidatorSnapshot {

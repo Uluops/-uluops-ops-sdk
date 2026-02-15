@@ -1,4 +1,5 @@
-import type { Priority, Status, Severity, FailureDomain } from './enums.js';
+import type { Priority, Status, StatusFilter, Severity, FailureDomain } from './enums.js';
+import type { Issue } from './issues.js';
 
 /**
  * Project entity
@@ -48,19 +49,29 @@ export interface RenameProjectInput {
 }
 
 /**
- * Project summary statistics
+ * Project summary statistics returned by the API
  */
-export interface ProjectSummary {
+export interface ProjectSummaryStats {
   totalIssues: number;
   openIssues: number;
   completedIssues: number;
   deferredIssues: number;
   wontfixIssues: number;
-  falsePositiveIssues: number;
   totalRuns: number;
   lastRunAt: string | null;
   averageScore: number | null;
 }
+
+/**
+ * Full project summary response (nested structure matching API)
+ */
+export interface ProjectSummaryResponse {
+  project: PublicProject;
+  stats: ProjectSummaryStats;
+}
+
+/** @deprecated Use ProjectSummaryResponse */
+export type ProjectSummary = ProjectSummaryResponse;
 
 /**
  * Single trend data point
@@ -84,7 +95,7 @@ export interface ProjectTrendsQuery {
  * List issues in project query options
  */
 export interface ListProjectIssuesQuery {
-  status?: Status;
+  status?: StatusFilter;
   priority?: Priority;
   severity?: Severity;
   failureDomain?: FailureDomain;
@@ -95,6 +106,14 @@ export interface ListProjectIssuesQuery {
   minTimesSeen?: number;
   dateStart?: string;
   dateEnd?: string;
+}
+
+/**
+ * Paginated issues response preserving count from API envelope
+ */
+export interface PaginatedIssues {
+  issues: Issue[];
+  count: number;
 }
 
 /**

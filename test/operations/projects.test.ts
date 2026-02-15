@@ -230,12 +230,12 @@ describe('Project Operations', () => {
 
       const summary = await projectOps.getSummary(client, 'proj-1');
 
-      expect(summary.totalRuns).toBe(50);
-      expect(summary.openIssues).toBe(25);
-      expect(summary.totalIssues).toBe(100);
-      expect(summary.completedIssues).toBe(50);
-      expect(summary.averageScore).toBe(85);
       expect(summary.project).toBeDefined();
+      expect(summary.stats.totalRuns).toBe(50);
+      expect(summary.stats.openIssues).toBe(25);
+      expect(summary.stats.totalIssues).toBe(100);
+      expect(summary.stats.completedIssues).toBe(50);
+      expect(summary.stats.averageScore).toBe(85);
     });
   });
 
@@ -322,6 +322,58 @@ describe('Project Operations', () => {
 
       expect(issues).toHaveLength(1);
       expect(issues[0].priority).toBe('critical');
+    });
+  });
+
+  describe('listIssuesWithCount', () => {
+    it('should return issues with count from API envelope', async () => {
+      const mockIssues = [
+        createMockIssue({ title: 'Bug 1', priority: 'critical' }),
+        createMockIssue({ title: 'Bug 2', priority: 'suggested' }),
+      ];
+
+      nock(BASE_URL)
+        .get('/projects/proj-1/issues')
+        .reply(200, { data: mockIssues, count: 42 });
+
+      const result = await projectOps.listIssuesWithCount(client, 'proj-1');
+
+      expect(result.issues).toHaveLength(2);
+      expect(result.count).toBe(42);
+      expect(result.issues[0].title).toBe('Bug 1');
+    });
+
+    it('should pass through query filters', async () => {
+      const mockIssues = [createMockIssue({ title: 'Critical Bug' })];
+
+      nock(BASE_URL)
+        .get('/projects/proj-1/issues')
+        .query({ status: 'open', priority: 'critical' })
+        .reply(200, { data: mockIssues, count: 1 });
+
+      const result = await projectOps.listIssuesWithCount(client, 'proj-1', {
+        status: 'open',
+        priority: 'critical',
+      });
+
+      expect(result.issues).toHaveLength(1);
+      expect(result.count).toBe(1);
+    });
+
+    it('should default count to data length when not in response', async () => {
+      const mockIssues = [
+        createMockIssue({ title: 'Bug 1' }),
+        createMockIssue({ title: 'Bug 2' }),
+      ];
+
+      nock(BASE_URL)
+        .get('/projects/proj-1/issues')
+        .reply(200, { data: mockIssues });
+
+      const result = await projectOps.listIssuesWithCount(client, 'proj-1');
+
+      expect(result.issues).toHaveLength(2);
+      expect(result.count).toBe(2);
     });
   });
 

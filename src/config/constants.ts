@@ -39,12 +39,11 @@ export const ENV_VARS = {
 } as const;
 
 /**
- * SDK version - read from package.json to avoid hardcoded drift
+ * SDK version — hardcoded instead of reading package.json via createRequire
+ * (node:module) so this module can be imported in browser environments.
+ * Keep in sync with package.json "version" field.
  */
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-const pkg = require('../../package.json') as { version: string };
-export const SDK_VERSION: string = pkg.version;
+export const SDK_VERSION = '0.1.1';
 
 /**
  * User agent string for requests

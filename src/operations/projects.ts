@@ -6,7 +6,7 @@ import type {
   UpdateProjectInput,
   DeleteProjectInput,
   RenameProjectInput,
-  ProjectSummary,
+  ProjectSummaryResponse,
   TrendDataPoint,
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
@@ -14,6 +14,7 @@ import type {
   BulkIssueStatusResult,
   MergeIssuesInput,
   MergeIssuesResult,
+  PaginatedIssues,
 } from '../types/projects.js';
 import type { Issue } from '../types/issues.js';
 import {
@@ -122,8 +123,8 @@ export async function rename(
 export async function getSummary(
   client: OpsHttpClient,
   idOrName: string
-): Promise<ProjectSummary> {
-  return client.get<ProjectSummary>(`/projects/${encodeURIComponent(idOrName)}/summary`);
+): Promise<ProjectSummaryResponse> {
+  return client.get<ProjectSummaryResponse>(`/projects/${encodeURIComponent(idOrName)}/summary`);
 }
 
 /**
@@ -152,6 +153,22 @@ export async function listIssues(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
     buildIssueListParams(query)
   );
+}
+
+/**
+ * List issues in a project with count (preserves pagination count from API envelope)
+ */
+export async function listIssuesWithCount(
+  client: OpsHttpClient,
+  idOrName: string,
+  query?: ListProjectIssuesQuery
+): Promise<PaginatedIssues> {
+  const response = await client.requestRaw<{ data: Issue[]; count: number }>(
+    'GET',
+    `/projects/${encodeURIComponent(idOrName)}/issues`,
+    buildIssueListParams(query) as object | undefined
+  );
+  return { issues: response.data, count: response.count ?? response.data.length };
 }
 
 /**

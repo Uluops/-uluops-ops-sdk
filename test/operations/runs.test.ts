@@ -304,6 +304,30 @@ describe('Run Operations', () => {
 
       expect(runs).toHaveLength(1);
     });
+
+    it('should preserve RunSummary enrichment fields', async () => {
+      const run = {
+        ...createMockRun({ runNumber: 1 }),
+        totalRecommendations: 5,
+        criticalCount: 2,
+        suggestedCount: 3,
+        backlogCount: 0,
+        validatorScores: { 'code-validator': 85, 'test-architect': 90 },
+      };
+
+      nock(BASE_URL)
+        .get('/runs/project/proj-1')
+        .reply(200, {
+          data: [run],
+        });
+
+      const runs = await runOps.listByProject(client, 'proj-1');
+
+      expect(runs).toHaveLength(1);
+      expect(runs[0].totalRecommendations).toBe(5);
+      expect(runs[0].criticalCount).toBe(2);
+      expect(runs[0].validatorScores).toEqual({ 'code-validator': 85, 'test-architect': 90 });
+    });
   });
 
   describe('getLatest', () => {
