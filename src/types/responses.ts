@@ -64,6 +64,13 @@ export interface DeleteResponse {
 }
 
 /**
+ * Result returned from delete operations (wraps void API responses)
+ */
+export interface DeleteResult {
+  deleted: true;
+}
+
+/**
  * Health check response
  */
 export interface HealthResponse {

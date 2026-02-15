@@ -452,7 +452,8 @@ describe('Run Operations', () => {
         .matchHeader('X-Confirm-Delete', runId)
         .reply(200, { data: {} });
 
-      await expect(runOps.deleteRun(client, runId)).resolves.toBeUndefined();
+      const result = await runOps.deleteRun(client, runId);
+      expect(result).toEqual({ deleted: true });
     });
   });
 });

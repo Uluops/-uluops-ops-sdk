@@ -15,6 +15,7 @@ import type {
   ListRunsQuery,
   RunDetails,
 } from '../types/runs.js';
+import type { DeleteResult } from '../types/responses.js';
 import {
   validateSaveFeaturesListInput,
   validateArchiveRunsInput,
@@ -183,8 +184,9 @@ export async function updateById(
 export async function deleteRun(
   client: OpsHttpClient,
   runId: string
-): Promise<void> {
+): Promise<DeleteResult> {
   await client.request('DELETE', `/runs/${encodeURIComponent(runId)}`, undefined, {
     headers: { 'X-Confirm-Delete': runId },
   });
+  return { deleted: true };
 }

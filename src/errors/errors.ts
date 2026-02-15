@@ -23,4 +23,10 @@ export {
   isConflictError,
   isUnprocessableError,
   isRateLimitError,
+  isUnauthorizedError,
+  isForbiddenError,
+  isPayloadTooLargeError,
+  isServiceUnavailableError,
+  isNetworkError,
+  isTimeoutError,
 } from '@uluops/sdk-core/errors';

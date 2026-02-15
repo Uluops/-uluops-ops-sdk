@@ -2,6 +2,7 @@ import type { OpsHttpClient } from '../http/http-client.js';
 import { toQuery } from '../http/http-client.js';
 import type {
   AnalyticsQuery,
+  ValidatorInfo,
   ValidatorPerformance,
   ValidatorReliability,
   ValidatorReliabilityQuery,
@@ -164,6 +165,22 @@ export async function getTrendSummary(
     '/analytics/trends/summary',
     toQuery(query)
   );
+}
+
+/**
+ * List validators with summary info (derived from performance data)
+ */
+export async function listValidators(
+  client: OpsHttpClient,
+  query?: AnalyticsQuery
+): Promise<ValidatorInfo[]> {
+  const perf = await getValidatorPerformance(client, query);
+  return perf.map(v => ({
+    name: v.name,
+    totalRuns: v.totalRuns,
+    avgScore: v.avgScore,
+    passRate: v.passRate,
+  }));
 }
 
 /**

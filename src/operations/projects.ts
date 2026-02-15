@@ -17,6 +17,7 @@ import type {
   PaginatedIssues,
 } from '../types/projects.js';
 import type { Issue } from '../types/issues.js';
+import type { DeleteResult } from '../types/responses.js';
 import {
   validateCreateProjectInput,
   validateDeleteProjectInput,
@@ -70,12 +71,13 @@ export async function deleteProject(
   client: OpsHttpClient,
   idOrName: string,
   input: DeleteProjectInput
-): Promise<void> {
+): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
   await client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
   });
+  return { deleted: true };
 }
 
 /**
@@ -85,12 +87,13 @@ export async function softDelete(
   client: OpsHttpClient,
   idOrName: string,
   input: DeleteProjectInput
-): Promise<void> {
+): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
   await client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
   });
+  return { deleted: true };
 }
 
 /**

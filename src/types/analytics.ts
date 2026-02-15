@@ -23,6 +23,16 @@ export interface Period {
 // ============================================
 
 /**
+ * Simplified validator info (from performance data)
+ */
+export interface ValidatorInfo {
+  name: string;
+  totalRuns: number;
+  avgScore: number;
+  passRate: number;
+}
+
+/**
  * Validator performance metrics
  */
 export interface ValidatorPerformance {

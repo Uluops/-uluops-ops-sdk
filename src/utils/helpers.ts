@@ -126,7 +126,7 @@ export function toSnakeCase(str: string): string {
  * @returns camelCase formatted string
  */
 export function toCamelCase(str: string): string {
-  return str.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
+  return str.replace(/_([a-z0-9])/g, (_, letter: string) => letter.toUpperCase());
 }
 
 /**
@@ -155,4 +155,41 @@ export function getFlexibleProperty<T>(
     return record[snakeKey] as T;
   }
   return defaultValue;
+}
+
+// ---- Key normalization ----
+
+/** Mapped type: convert a single snake_case string to camelCase */
+type CamelCase<S extends string> = S extends `${infer P}_${infer R}`
+  ? `${P}${Capitalize<CamelCase<R>>}`
+  : S;
+
+/** Recursively convert all object keys from snake_case to camelCase at the type level */
+export type CamelCaseKeys<T> = T extends readonly unknown[]
+  ? { [K in keyof T]: CamelCaseKeys<T[K]> }
+  : T extends Record<string, unknown>
+    ? { [K in keyof T as K extends string ? CamelCase<K> : K]: CamelCaseKeys<T[K]> }
+    : T;
+
+/**
+ * Recursively convert all object keys from snake_case to camelCase.
+ *
+ * @example
+ * ```typescript
+ * normalizeKeys({ run_number: 1, workflow_type: 'ship' })
+ * // → { runNumber: 1, workflowType: 'ship' }
+ * ```
+ */
+export function normalizeKeys<T>(input: T): CamelCaseKeys<T> {
+  if (Array.isArray(input)) {
+    return input.map(normalizeKeys) as CamelCaseKeys<T>;
+  }
+  if (input !== null && typeof input === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+      result[toCamelCase(key)] = normalizeKeys(value);
+    }
+    return result as CamelCaseKeys<T>;
+  }
+  return input as CamelCaseKeys<T>;
 }

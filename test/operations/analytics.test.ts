@@ -451,6 +451,82 @@ describe('Analytics Operations', () => {
     });
   });
 
+  describe('listValidators', () => {
+    it('should return simplified validator info', async () => {
+      nock(BASE_URL)
+        .get('/analytics/validators/performance')
+        .reply(200, {
+          data: [
+            {
+              name: 'code-validator',
+              totalRuns: 100,
+              avgScore: 85.5,
+              minScore: 60,
+              maxScore: 100,
+              passRate: 0.92,
+              avgDurationMs: 1500,
+              totalIssuesFound: 250,
+            },
+            {
+              name: 'test-architect',
+              totalRuns: 80,
+              avgScore: 78.2,
+              minScore: 55,
+              maxScore: 95,
+              passRate: 0.85,
+              avgDurationMs: 2000,
+              totalIssuesFound: 180,
+            },
+          ],
+        });
+
+      const validators = await analyticsOps.listValidators(client);
+
+      expect(validators).toHaveLength(2);
+      expect(validators[0]).toEqual({
+        name: 'code-validator',
+        totalRuns: 100,
+        avgScore: 85.5,
+        passRate: 0.92,
+      });
+      expect(validators[1]).toEqual({
+        name: 'test-architect',
+        totalRuns: 80,
+        avgScore: 78.2,
+        passRate: 0.85,
+      });
+      // Should NOT include extra fields like minScore, maxScore, etc.
+      expect(validators[0]).not.toHaveProperty('minScore');
+      expect(validators[0]).not.toHaveProperty('avgDurationMs');
+      expect(validators[0]).not.toHaveProperty('totalIssuesFound');
+    });
+
+    it('should pass query parameters through', async () => {
+      nock(BASE_URL)
+        .get('/analytics/validators/performance')
+        .query({ project: 'proj-1' })
+        .reply(200, {
+          data: [
+            {
+              name: 'code-validator',
+              totalRuns: 50,
+              avgScore: 90,
+              minScore: 80,
+              maxScore: 100,
+              passRate: 0.96,
+              avgDurationMs: 1200,
+              totalIssuesFound: 100,
+            },
+          ],
+        });
+
+      const validators = await analyticsOps.listValidators(client, { project: 'proj-1' });
+
+      expect(validators).toHaveLength(1);
+      expect(validators[0].name).toBe('code-validator');
+    });
+  });
+
   describe('ANALYTICS_METRICS', () => {
     it('should contain all expected metrics', () => {
       expect(analyticsOps.ANALYTICS_METRICS).toContain('validator_performance');

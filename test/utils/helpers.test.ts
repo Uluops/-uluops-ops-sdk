@@ -12,6 +12,7 @@ import {
   toSnakeCase,
   toCamelCase,
   getFlexibleProperty,
+  normalizeKeys,
 } from '../../src/utils/helpers.js';
 import { TEST_UUID } from '../setup.js';
 
@@ -263,6 +264,82 @@ describe('Helper Utilities', () => {
 
     it('should handle strings with no underscores', () => {
       expect(toCamelCase('simple')).toBe('simple');
+    });
+
+    it('should handle digits after underscores', () => {
+      expect(toCamelCase('field_1')).toBe('field1');
+      expect(toCamelCase('step_2_result')).toBe('step2Result');
+    });
+  });
+
+  describe('normalizeKeys', () => {
+    it('should convert flat snake_case keys to camelCase', () => {
+      const input = { run_number: 1, workflow_type: 'ship' };
+      expect(normalizeKeys(input)).toEqual({ runNumber: 1, workflowType: 'ship' });
+    });
+
+    it('should recursively convert nested objects', () => {
+      const input = {
+        project_name: 'test',
+        run_details: {
+          run_number: 5,
+          all_gates_passed: true,
+        },
+      };
+      expect(normalizeKeys(input)).toEqual({
+        projectName: 'test',
+        runDetails: {
+          runNumber: 5,
+          allGatesPassed: true,
+        },
+      });
+    });
+
+    it('should handle arrays of objects', () => {
+      const input = [
+        { file_path: 'src/a.ts', line_number: 10 },
+        { file_path: 'src/b.ts', line_number: 20 },
+      ];
+      expect(normalizeKeys(input)).toEqual([
+        { filePath: 'src/a.ts', lineNumber: 10 },
+        { filePath: 'src/b.ts', lineNumber: 20 },
+      ]);
+    });
+
+    it('should handle mixed nested arrays and objects', () => {
+      const input = {
+        issue_list: [
+          { issue_id: '123', failure_code: 'STR-OMI/H' },
+        ],
+      };
+      expect(normalizeKeys(input)).toEqual({
+        issueList: [
+          { issueId: '123', failureCode: 'STR-OMI/H' },
+        ],
+      });
+    });
+
+    it('should pass through primitives unchanged', () => {
+      expect(normalizeKeys('hello')).toBe('hello');
+      expect(normalizeKeys(42)).toBe(42);
+      expect(normalizeKeys(true)).toBe(true);
+      expect(normalizeKeys(null)).toBeNull();
+      expect(normalizeKeys(undefined)).toBeUndefined();
+    });
+
+    it('should handle keys with digits after underscores', () => {
+      const input = { field_1: 'a', field_2b: 'b' };
+      expect(normalizeKeys(input)).toEqual({ field1: 'a', field2b: 'b' });
+    });
+
+    it('should handle already camelCase keys', () => {
+      const input = { alreadyCamel: true, noChange: 42 };
+      expect(normalizeKeys(input)).toEqual({ alreadyCamel: true, noChange: 42 });
+    });
+
+    it('should handle empty objects and arrays', () => {
+      expect(normalizeKeys({})).toEqual({});
+      expect(normalizeKeys([])).toEqual([]);
     });
   });
 

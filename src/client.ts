@@ -84,6 +84,7 @@ import type {
 
 import type {
   AnalyticsQuery,
+  ValidatorInfo,
   ValidatorPerformance,
   ValidatorReliability,
   ValidatorReliabilityQuery,
@@ -103,7 +104,7 @@ import type {
   TaxonomySchema,
 } from './types/analytics.js';
 
-import type { MessageResponse, Pagination } from './types/responses.js';
+import type { MessageResponse, Pagination, DeleteResult } from './types/responses.js';
 
 /**
  * OpsClient configuration options
@@ -255,10 +256,10 @@ export class OpsClient {
     update: (idOrName: string, input: UpdateProjectInput): Promise<Project> =>
       projectOps.update(this.httpClient, idOrName, input),
 
-    delete: (idOrName: string, input: DeleteProjectInput): Promise<void> =>
+    delete: (idOrName: string, input: DeleteProjectInput): Promise<DeleteResult> =>
       projectOps.deleteProject(this.httpClient, idOrName, input),
 
-    softDelete: (idOrName: string, input: DeleteProjectInput): Promise<void> =>
+    softDelete: (idOrName: string, input: DeleteProjectInput): Promise<DeleteResult> =>
       projectOps.softDelete(this.httpClient, idOrName, input),
 
     restore: (idOrName: string): Promise<Project> =>
@@ -321,7 +322,7 @@ export class OpsClient {
     updateById: (runId: string, input: UpdateRunInput): Promise<Run> =>
       runOps.updateById(this.httpClient, runId, input),
 
-    delete: (runId: string): Promise<void> =>
+    delete: (runId: string): Promise<DeleteResult> =>
       runOps.deleteRun(this.httpClient, runId),
   };
 
@@ -413,6 +414,9 @@ export class OpsClient {
 
     getByMetric: <M extends analyticsOps.AnalyticsMetric>(metric: M, query?: AnalyticsQuery): Promise<analyticsOps.AnalyticsMetricResultMap[M]> =>
       analyticsOps.getByMetric(this.httpClient, metric, query),
+
+    listValidators: (query?: AnalyticsQuery): Promise<ValidatorInfo[]> =>
+      analyticsOps.listValidators(this.httpClient, query),
   };
 
   // ============================================

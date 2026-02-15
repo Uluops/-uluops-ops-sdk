@@ -148,12 +148,11 @@ describe('Project Operations', () => {
         })
         .reply(200, { data: {} });
 
-      await expect(
-        projectOps.deleteProject(client, 'proj-1', {
-          confirm: true,
-          confirmationPhrase: 'proj-1',
-        })
-      ).resolves.toBeUndefined();
+      const result = await projectOps.deleteProject(client, 'proj-1', {
+        confirm: true,
+        confirmationPhrase: 'proj-1',
+      });
+      expect(result).toEqual({ deleted: true });
     });
   });
 
@@ -166,12 +165,11 @@ describe('Project Operations', () => {
         })
         .reply(200, { data: {} });
 
-      await expect(
-        projectOps.softDelete(client, 'proj-1', {
-          confirm: true,
-          confirmationPhrase: 'proj-1',
-        })
-      ).resolves.toBeUndefined();
+      const result = await projectOps.softDelete(client, 'proj-1', {
+        confirm: true,
+        confirmationPhrase: 'proj-1',
+      });
+      expect(result).toEqual({ deleted: true });
     });
   });
 
