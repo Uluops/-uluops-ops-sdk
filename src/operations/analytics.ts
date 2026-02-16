@@ -19,6 +19,10 @@ import type {
   ValidatorMatrixResult,
   ValidatorMatrixQuery,
   TrendSummary,
+  CrossProjectPattern,
+  RegressionEntry,
+  CostEntry,
+  CategoryPerformanceEntry,
 } from '../types/analytics.js';
 
 /**
@@ -217,10 +221,10 @@ export interface AnalyticsMetricResultMap {
   file_hotspots: FileHotspot[];
   trend_summary: TrendSummary[];
   taxonomy_distribution: TaxonomyDistribution[];
-  cross_project_patterns: unknown;
-  regression_analysis: unknown;
-  cost_analysis: unknown;
-  category_performance: unknown;
+  cross_project_patterns: CrossProjectPattern[];
+  regression_analysis: RegressionEntry[];
+  cost_analysis: CostEntry[];
+  category_performance: CategoryPerformanceEntry[];
 }
 
 /**

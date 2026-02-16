@@ -134,6 +134,43 @@ describe('Config Validators', () => {
         expect(validationError.errors.length).toBeGreaterThan(0);
       }
     });
+
+    it('should accept short password (login does not enforce complexity)', () => {
+      const result = validateLoginInput({ email: 'test@example.com', password: 'a' });
+      expect(result.password).toBe('a');
+    });
+
+    it('should accept long password', () => {
+      const longPassword = 'x'.repeat(256);
+      const result = validateLoginInput({ email: 'test@example.com', password: longPassword });
+      expect(result.password).toBe(longPassword);
+    });
+
+    it('should reject missing email with error path', () => {
+      try {
+        validateLoginInput({ password: 'pass123' });
+        expect.fail('Should throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(InputValidationError);
+        const validationError = error as InputValidationError;
+        expect(validationError.errors.some(e => e.path.includes('email'))).toBe(true);
+      }
+    });
+
+    it('should reject invalid email format', () => {
+      expect(() => validateLoginInput({ email: 'not-email', password: 'pass123' })).toThrow(InputValidationError);
+    });
+
+    it('should reject missing password with error path', () => {
+      try {
+        validateLoginInput({ email: 'test@example.com' });
+        expect.fail('Should throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(InputValidationError);
+        const validationError = error as InputValidationError;
+        expect(validationError.errors.some(e => e.path.includes('password'))).toBe(true);
+      }
+    });
   });
 
   describe('validateCreateProjectInput', () => {

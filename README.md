@@ -130,6 +130,10 @@ pnpm add @uluops/ops-sdk
 - Node.js 18.0.0 or higher
 - TypeScript 5.0+ (for TypeScript users)
 
+**Dependencies:**
+- [`@uluops/sdk-core`](https://www.npmjs.com/package/@uluops/sdk-core) — Shared HTTP client, auth strategies, and utilities (installed automatically)
+- [`zod`](https://www.npmjs.com/package/zod) — Runtime schema validation (installed automatically)
+
 ## Authentication
 
 The SDK supports two authentication methods:

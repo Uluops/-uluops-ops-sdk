@@ -91,6 +91,9 @@ describe('Project Operations', () => {
       const project = await projectOps.get(client, 'my-project');
 
       expect(project.name).toBe('my-project');
+      expect(project.id).toBeDefined();
+      expect(project.ownerId).toBeDefined();
+      expect(project.createdAt).toBeDefined();
     });
 
     it('should URL encode project names with special characters', async () => {
@@ -107,6 +110,8 @@ describe('Project Operations', () => {
       const project = await projectOps.get(client, 'my project/with slashes');
 
       expect(project.name).toBe('my project/with slashes');
+      expect(project.id).toBeDefined();
+      expect(project.createdAt).toBeDefined();
     });
   });
 

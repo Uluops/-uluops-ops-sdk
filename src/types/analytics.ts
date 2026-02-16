@@ -393,6 +393,68 @@ export interface TrendSummary {
 }
 
 // ============================================
+// CROSS-PROJECT ANALYTICS
+// ============================================
+
+/**
+ * Cross-project pattern (shared issues across projects)
+ */
+export interface CrossProjectPattern {
+  pattern: string;
+  projects: string[];
+  projectCount: number;
+  totalOccurrences: number;
+  severity: string;
+}
+
+// ============================================
+// REGRESSION ANALYTICS
+// ============================================
+
+/**
+ * Regression analysis entry (issues that regressed after resolution)
+ */
+export interface RegressionEntry {
+  issueId: string;
+  title: string;
+  project: string;
+  timesRegressed: number;
+  lastRegression: string;
+  validator: string;
+}
+
+// ============================================
+// COST ANALYTICS
+// ============================================
+
+/**
+ * Cost analysis entry (token usage and cost per validator/project)
+ */
+export interface CostEntry {
+  name: string;
+  totalRuns: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalEffectiveTokens: number;
+  estimatedCost: number;
+}
+
+// ============================================
+// CATEGORY ANALYTICS
+// ============================================
+
+/**
+ * Category performance entry (issue resolution by category)
+ */
+export interface CategoryPerformanceEntry {
+  category: string;
+  totalIssues: number;
+  resolvedIssues: number;
+  resolutionRate: number;
+  avgTimeToResolveDays: number | null;
+}
+
+// ============================================
 // TAXONOMY SCHEMA
 // ============================================
 

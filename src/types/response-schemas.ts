@@ -416,7 +416,6 @@ export const ErrorResponseSchema = z.object({
     code: z.string(),
     message: z.string(),
     details: z.record(z.unknown()).optional(),
-    stack: z.string().optional(),
   }),
 });
 

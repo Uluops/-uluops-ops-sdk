@@ -83,29 +83,34 @@ describe('Taxonomy Operations', () => {
       expect(schema.priorities).toContain('critical');
     });
 
-    it('should include all domain codes', async () => {
+    it('should include all domain codes with names', async () => {
       nock(BASE_URL)
         .get('/taxonomy')
         .reply(200, {
           data: {
             domains: [
-              { code: 'STR', name: 'Structural', modes: [] },
-              { code: 'SEM', name: 'Semantic', modes: [] },
-              { code: 'PRA', name: 'Pragmatic', modes: [] },
-              { code: 'EPI', name: 'Epistemic', modes: [] },
+              { code: 'STR', name: 'Structural', description: 'Structural issues', modes: [] },
+              { code: 'SEM', name: 'Semantic', description: 'Semantic issues', modes: [] },
+              { code: 'PRA', name: 'Pragmatic', description: 'Pragmatic issues', modes: [] },
+              { code: 'EPI', name: 'Epistemic', description: 'Epistemic issues', modes: [] },
             ],
-            severities: [],
-            priorities: [],
+            severities: [
+              { code: 'C', name: 'critical', weight: 10 },
+            ],
+            priorities: ['critical', 'suggested', 'backlog'],
           },
         });
 
       const schema = await taxonomyOps.get(client);
 
+      expect(schema.domains).toHaveLength(4);
       const domainCodes = schema.domains.map((d) => d.code);
-      expect(domainCodes).toContain('STR');
-      expect(domainCodes).toContain('SEM');
-      expect(domainCodes).toContain('PRA');
-      expect(domainCodes).toContain('EPI');
+      expect(domainCodes).toEqual(['STR', 'SEM', 'PRA', 'EPI']);
+      expect(schema.domains[0].name).toBe('Structural');
+      expect(schema.domains[0].description).toBe('Structural issues');
+      expect(schema.severities).toHaveLength(1);
+      expect(schema.severities[0].code).toBe('C');
+      expect(schema.priorities).toEqual(['critical', 'suggested', 'backlog']);
     });
   });
 });
