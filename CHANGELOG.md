@@ -4,6 +4,61 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.4] - 2026-02-15
+
+### Fixed
+- Query parameters now sent as snake_case to match API expectations (`failureDomain` → `failure_domain`, `includeResolved` → `include_resolved`, etc.)
+- `priority=all` filter value stripped before sending (API rejects it; omitting means "all")
+- `lineNumber` field now accepts `null` in `RecommendationInputSchema` and `CreateUserIssueInputSchema` (`.optional()` → `.nullish()`)
+- `deepMerge` utility now guards against prototype pollution (`__proto__`, `constructor`, `prototype` keys)
+- `formatDate` now throws `RangeError` on invalid date strings instead of returning `"Invalid Date"`
+
+### Added
+- `toApiQuery()` utility for centralized camelCase→snake_case query parameter conversion
+- JSDoc descriptions on all 7 operation group properties in `OpsClient`
+- Documented `requestRaw` tradeoff in `listIssuesWithCount` (no retry/refresh for envelope access)
+
+### Changed
+- `RegisterResponseSchema` now requires `id`, `email`, `isActive`, `role`, `createdAt`, `updatedAt` (were optional)
+- `LoginResponseSchema` documented `sessionToken`/`token` backward compatibility
+
+## [0.1.3] - 2026-02-15
+
+### Added
+- `normalizeKeys<T>()` — recursive snake_case→camelCase key conversion with mapped types
+- `getFlexibleProperty()` — dual-case property access for mixed API responses
+- `retryMutations` option on `runs.save()` for idempotent retry safety
+- `loadEnvFiles()` — loads `.env` from cwd and `~/.uluops/.env`
+- `listIssuesWithCount()` — paginated issue listing preserving API envelope count
+- `listValidators()` — derived validator list from performance data
+- `updateById()` — update a run by UUID (vs by project+runNumber)
+- `updateStatusByFingerprint()` — update issue status by fingerprint hash
+
+### Fixed
+- Error guards on all SDK error classes (missing `instanceof` checks)
+- Delete operations now return `{ deleted: true }` result type
+
+## [0.1.2] - 2026-02-08
+
+### Added
+- `readFileOption` helper for CLI file argument parsing
+- `parseIntOption`/`parseFloatOption` for safe CLI numeric parsing
+- Global `unhandledRejection` handler in CLI entry point
+- `--timeout` flag for CLI commands
+- 503 `Retry-After` header support in retry logic
+- `retryMutations` option for POST requests that are safe to retry
+- EACCES error handling for config file writes
+
+### Fixed
+- Retry logic respects `Retry-After` header from 503/429 responses
+- Config directory creation handles permission errors gracefully
+
+## [0.1.1] - 2026-02-07
+
+### Changed
+- SDK core extraction: shared HTTP client, auth strategies, and utilities moved to `@uluops/sdk-core`
+- Aligned SDK types with actual API response shapes
+
 ## [0.1.0] - 2026-02-05
 
 ### Added

@@ -7,7 +7,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 0.1.0** | [Changelog](./CHANGELOG.md)
+**Current version: 0.1.4** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -102,11 +102,11 @@ The UluOps SDK provides programmatic access to the UluOps validation tracker API
 - **Analyze Trends**: Get burndown charts, velocity metrics, and taxonomy distribution analytics
 - **Automate Workflows**: Integrate validation tracking into CI/CD pipelines
 
-The SDK covers **74 API endpoints** across 7 operation domains with full TypeScript support.
+The SDK covers **83 API methods** across 7 operation domains with full TypeScript support.
 
 ## Features
 
-- **Full API Coverage**: Access all 74 endpoints across auth, projects, runs, issues, analytics, taxonomy, and admin domains
+- **Full API Coverage**: Access all 83 methods across auth, projects, runs, issues, analytics, taxonomy, and admin domains
 - **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429)
@@ -360,6 +360,18 @@ await client.auth.changePassword({
 });
 ```
 
+#### `client.auth.setPassword(password)`
+
+Set password for accounts created without one (e.g., OAuth or admin-created).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `password` | `string` | Yes | New password |
+
+```typescript
+await client.auth.setPassword('newSecurePassword');
+```
+
 #### `client.auth.forgotPassword(email)`
 
 Request a password reset email.
@@ -382,6 +394,14 @@ await client.auth.resetPassword({
   token: 'reset-token-from-email',
   newPassword: 'newSecurePassword',
 });
+```
+
+#### `client.auth.deleteAvatar()`
+
+Delete the current user's avatar.
+
+```typescript
+await client.auth.deleteAvatar();
 ```
 
 #### `client.auth.listApiKeys()`
@@ -493,13 +513,13 @@ Rename a project.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `project` | `string` | Yes | Current project name or ID |
-| `name` | `string` | Yes | New project name |
+| `oldName` | `string` | Yes | Current project name |
+| `newName` | `string` | Yes | New project name |
 
 ```typescript
 const project = await client.projects.rename({
-  project: 'old-name',
-  name: 'new-name',
+  oldName: 'old-name',
+  newName: 'new-name',
 });
 ```
 
@@ -584,6 +604,20 @@ const issues = await client.projects.listIssues('my-project', {
   limit: 10,
 });
 ```
+
+#### `client.projects.listIssuesWithCount(idOrName, query)`
+
+List issues with total count for pagination. Same filters as `listIssues`.
+
+```typescript
+const { issues, count } = await client.projects.listIssuesWithCount('my-project', {
+  status: 'open',
+  limit: 10,
+});
+console.log(`Showing ${issues.length} of ${count} total issues`);
+```
+
+> **Note:** Uses `requestRaw` internally to access the envelope `count` field, which does not include automatic retry or token refresh. Use `listIssues` for retry-safe access without count.
 
 #### `client.projects.bulkUpdateIssueStatus(idOrName, updates)`
 
@@ -791,6 +825,16 @@ const run = await client.runs.update({
 });
 ```
 
+#### `client.runs.updateById(runId, input)`
+
+Update run metadata by run UUID (alternative to `update` which uses project+runNumber).
+
+```typescript
+const run = await client.runs.updateById('run-uuid-here', {
+  validators: [{ name: 'code-validator', score: 92 }],
+});
+```
+
 #### `client.runs.delete(runId)`
 
 Delete a run.
@@ -884,6 +928,23 @@ Get an issue by its SHA-256 fingerprint.
 
 ```typescript
 const issue = await client.issues.getByFingerprint('abc123...', 'my-project');
+```
+
+#### `client.issues.updateStatusByFingerprint(fingerprint, project, input)`
+
+Update an issue's status using its fingerprint hash.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `fingerprint` | `string` | Yes | SHA-256 fingerprint |
+| `project` | `string` | Yes | Project name or ID |
+| `status` | `Status` | Yes | New status |
+| `reason` | `string` | No | Reason for change |
+
+```typescript
+const result = await client.issues.updateStatusByFingerprint(
+  'abc123...', 'my-project', { status: 'completed', reason: 'Fixed' }
+);
 ```
 
 #### `client.issues.getHistory(issueId)`
@@ -1174,6 +1235,17 @@ Get analytics by specific metric name.
 ```typescript
 const costData = await client.analytics.getByMetric('cost_analysis', { days: 30 });
 const regressions = await client.analytics.getByMetric('regression_analysis', { project: 'my-project' });
+```
+
+#### `client.analytics.listValidators(query)`
+
+List validators with summary info (derived from performance data).
+
+```typescript
+const validators = await client.analytics.listValidators();
+for (const v of validators) {
+  console.log(`${v.name}: avg=${v.avgScore}, runs=${v.totalRuns}, pass=${v.passRate}`);
+}
 ```
 
 ---

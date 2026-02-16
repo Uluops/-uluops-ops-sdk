@@ -159,7 +159,11 @@ export async function listIssues(
 }
 
 /**
- * List issues in a project with count (preserves pagination count from API envelope)
+ * List issues in a project with count (preserves pagination count from API envelope).
+ *
+ * Uses `requestRaw` to access the `count` field outside the `data` envelope.
+ * Note: `requestRaw` does not include automatic retry or token refresh.
+ * For retry-safe access without count, use {@link listIssues}.
  */
 export async function listIssuesWithCount(
   client: OpsHttpClient,
@@ -171,7 +175,7 @@ export async function listIssuesWithCount(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
     buildIssueListParams(query) as object | undefined
   );
-  return { issues: response.data, count: response.count ?? response.data.length };
+  return { issues: response.data ?? [], count: response.count ?? response.data?.length ?? 0 };
 }
 
 /**

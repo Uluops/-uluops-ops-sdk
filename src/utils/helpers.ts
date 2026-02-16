@@ -31,6 +31,7 @@ export function deepMerge<T extends Record<string, unknown>>(
   const result = { ...target };
 
   for (const key of Object.keys(source) as (keyof T)[]) {
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
     const sourceValue = source[key];
     const targetValue = result[key];
 
@@ -108,6 +109,9 @@ export function compact<T extends Record<string, unknown>>(obj: T): Partial<T> {
  */
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) {
+    throw new RangeError(`Invalid date: ${String(date)}`);
+  }
   return d.toISOString();
 }
 

@@ -189,6 +189,7 @@ export class OpsClient {
   // AUTH OPERATIONS
   // ============================================
 
+  /** Authentication, API keys, sessions, and user profile management */
   readonly auth = {
     register: (input: RegisterInput): Promise<RegisterResponse> =>
       authOps.register(this.httpClient, input),
@@ -243,6 +244,7 @@ export class OpsClient {
   // PROJECT OPERATIONS
   // ============================================
 
+  /** Project CRUD, summaries, trends, issue listing, and bulk operations */
   readonly projects = {
     list: (): Promise<Project[]> =>
       projectOps.list(this.httpClient),
@@ -291,6 +293,7 @@ export class OpsClient {
   // RUN OPERATIONS
   // ============================================
 
+  /** Validation run save, preview, diff, archive, and retrieval */
   readonly runs = {
     save: (input: SaveFeaturesListInput): Promise<SaveFeaturesListResponse> =>
       runOps.save(this.httpClient, input),
@@ -330,6 +333,7 @@ export class OpsClient {
   // ISSUE OPERATIONS
   // ============================================
 
+  /** Issue CRUD, search, status management, notes, and bulk operations */
   readonly issues = {
     create: (input: CreateUserIssueInput): Promise<Issue> =>
       issueOps.create(this.httpClient, input),
@@ -378,6 +382,7 @@ export class OpsClient {
   // ANALYTICS OPERATIONS
   // ============================================
 
+  /** Validator performance, taxonomy analytics, burndown, velocity, and discovery */
   readonly analytics = {
     getValidatorPerformance: (query?: AnalyticsQuery): Promise<ValidatorPerformance[]> =>
       analyticsOps.getValidatorPerformance(this.httpClient, query),
@@ -423,6 +428,7 @@ export class OpsClient {
   // TAXONOMY OPERATIONS
   // ============================================
 
+  /** Failure taxonomy schema (domains, modes, severities) */
   readonly taxonomy = {
     get: (): Promise<TaxonomySchema> =>
       taxonomyOps.get(this.httpClient),
@@ -432,6 +438,7 @@ export class OpsClient {
   // ADMIN OPERATIONS
   // ============================================
 
+  /** Administrative operations (requires admin role) */
   readonly admin = {
     getStats: (): Promise<AdminStats> =>
       adminOps.getStats(this.httpClient),

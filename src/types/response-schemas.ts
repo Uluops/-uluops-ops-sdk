@@ -62,6 +62,11 @@ export const PublicUserResponseSchema = AuthUserResponseSchema.extend({
   hasAvatar: z.boolean().optional(),
 });
 
+/**
+ * Login response schema.
+ * The API returns `sessionToken` (preferred) but legacy clients may use `token`.
+ * Both are accepted for backward compatibility; the SDK normalizes to `sessionToken`.
+ */
 export const LoginResponseSchema = z.object({
   user: AuthUserResponseSchema,
   sessionToken: z.string().optional(),
@@ -69,16 +74,21 @@ export const LoginResponseSchema = z.object({
   expiresAt: DateTimeStringSchema.optional(),
 });
 
+/**
+ * Register response schema.
+ * Guaranteed fields: id, email, role, createdAt, updatedAt.
+ * The `user` and `token` fields are included for API variants that return them.
+ */
 export const RegisterResponseSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   email: z.string().email(),
-  isActive: z.boolean().optional(),
-  role: UserRoleResponseSchema.optional(),
+  isActive: z.boolean(),
+  role: UserRoleResponseSchema,
   subscriptionTier: SubscriptionTierResponseSchema.optional(),
   user: AuthUserResponseSchema.optional(),
   token: z.string().optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  updatedAt: DateTimeStringSchema.optional(),
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
 });
 
 export const PublicApiKeyResponseSchema = z.object({

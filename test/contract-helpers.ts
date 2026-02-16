@@ -561,9 +561,14 @@ export function createMockLoginResponse(overrides: Partial<z.infer<typeof LoginR
  */
 export function createMockRegisterResponse(overrides: Partial<z.infer<typeof RegisterResponseSchema>> = {}) {
   const data = {
+    id: generateId(),
     user: createMockAuthUser(),
     token: `jwt-token-${idCounter}`,
     email: `user${idCounter}@example.com`,
+    isActive: true,
+    role: 'developer' as const,
+    createdAt: isoDate(),
+    updatedAt: isoDate(),
     ...overrides,
   };
 
