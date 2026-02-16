@@ -1,5 +1,5 @@
 import type { OpsHttpClient } from '../http/http-client.js';
-import { toQuery } from '../http/http-client.js';
+import { toApiQuery } from '../http/http-client.js';
 import type {
   Project,
   CreateProjectInput,
@@ -140,7 +140,7 @@ export async function getTrends(
 ): Promise<TrendDataPoint[]> {
   return client.get<TrendDataPoint[]>(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 

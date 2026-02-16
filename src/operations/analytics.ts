@@ -1,5 +1,5 @@
 import type { OpsHttpClient } from '../http/http-client.js';
-import { toQuery } from '../http/http-client.js';
+import { toApiQuery } from '../http/http-client.js';
 import type {
   AnalyticsQuery,
   ValidatorInfo,
@@ -30,7 +30,7 @@ export async function getValidatorPerformance(
 ): Promise<ValidatorPerformance[]> {
   return client.get<ValidatorPerformance[]>(
     '/analytics/validators/performance',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -43,7 +43,7 @@ export async function getValidatorReliability(
 ): Promise<{ validators: ValidatorReliability[] }> {
   return client.get<{ validators: ValidatorReliability[] }>(
     '/analytics/validators/reliability',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -56,7 +56,7 @@ export async function getResolutionRates(
 ): Promise<ResolutionRate[]> {
   return client.get<ResolutionRate[]>(
     '/analytics/projects/resolution-rates',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -69,7 +69,7 @@ export async function getFileHotspots(
 ): Promise<FileHotspot[]> {
   return client.get<FileHotspot[]>(
     '/analytics/files/hotspots',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -82,7 +82,7 @@ export async function getTaxonomyDistribution(
 ): Promise<TaxonomyDistribution[]> {
   return client.get<TaxonomyDistribution[]>(
     '/analytics/taxonomy/distribution',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -95,7 +95,7 @@ export async function getFullTaxonomy(
 ): Promise<{ data: FullTaxonomyAnalytics; computedAt: string }> {
   return client.get<{ data: FullTaxonomyAnalytics; computedAt: string }>(
     '/analytics/taxonomy/full',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -108,7 +108,7 @@ export async function getBurndown(
 ): Promise<BurndownResult> {
   return client.get<BurndownResult>(
     '/analytics/taxonomy/burndown',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -163,7 +163,7 @@ export async function getTrendSummary(
 ): Promise<TrendSummary[]> {
   return client.get<TrendSummary[]>(
     '/analytics/trends/summary',
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 
@@ -240,6 +240,6 @@ export async function getByMetric<M extends AnalyticsMetric>(
   }
   return client.get<AnalyticsMetricResultMap[M]>(
     `/analytics/${metric}`,
-    toQuery(query)
+    toApiQuery(query)
   );
 }

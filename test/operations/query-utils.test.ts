@@ -8,7 +8,7 @@ describe('query-utils', () => {
       expect(buildIssueListParams(undefined)).toBeUndefined();
     });
 
-    it('should pass through all string fields', () => {
+    it('should convert camelCase keys to snake_case', () => {
       const query = {
         status: 'open',
         priority: 'critical',
@@ -23,43 +23,38 @@ describe('query-utils', () => {
         status: 'open',
         priority: 'critical',
         severity: 'high',
-        failureDomain: 'SEM',
+        failure_domain: 'SEM',
         validator: 'code-validator',
-        dateStart: '2025-01-01',
-        dateEnd: '2025-12-31',
-        limit: undefined,
-        offset: undefined,
-        includeResolved: undefined,
-        minTimesSeen: undefined,
+        date_start: '2025-01-01',
+        date_end: '2025-12-31',
       });
     });
 
-    it('should pass through numeric fields', () => {
+    it('should pass through numeric fields with snake_case keys', () => {
       const result = buildIssueListParams({ limit: 50, offset: 10, minTimesSeen: 3 });
       expect(result?.limit).toBe(50);
       expect(result?.offset).toBe(10);
-      expect(result?.minTimesSeen).toBe(3);
+      expect(result?.min_times_seen).toBe(3);
     });
 
-    it('should pass through boolean includeResolved', () => {
+    it('should pass through boolean includeResolved as snake_case', () => {
       const result = buildIssueListParams({ includeResolved: true });
-      expect(result?.includeResolved).toBe(true);
+      expect(result?.include_resolved).toBe(true);
 
       const result2 = buildIssueListParams({ includeResolved: false });
-      expect(result2?.includeResolved).toBe(false);
+      expect(result2?.include_resolved).toBe(false);
     });
 
-    it('should handle empty query object (all fields undefined)', () => {
+    it('should return undefined for empty query object (all fields undefined)', () => {
       const result = buildIssueListParams({});
-      expect(result).toBeDefined();
-      expect(result?.status).toBeUndefined();
-      expect(result?.priority).toBeUndefined();
-      expect(result?.limit).toBeUndefined();
+      // All undefined values are stripped, leaving empty object → undefined
+      expect(result).toBeUndefined();
     });
 
-    it('should pass through "all" status filter', () => {
+    it('should strip "all" values instead of passing them through', () => {
       const result = buildIssueListParams({ status: 'all' });
-      expect(result?.status).toBe('all');
+      // 'all' means no filter — param is omitted entirely
+      expect(result).toBeUndefined();
     });
 
     it('should preserve boundary values for limit and offset', () => {
@@ -68,7 +63,7 @@ describe('query-utils', () => {
       expect(result?.offset).toBe(0);
     });
 
-    it('should handle a fully populated query', () => {
+    it('should handle a fully populated query with snake_case conversion', () => {
       const query = {
         status: 'open',
         priority: 'critical',
@@ -83,7 +78,19 @@ describe('query-utils', () => {
         dateEnd: '2025-06-30',
       };
       const result = buildIssueListParams(query);
-      expect(result).toEqual(query);
+      expect(result).toEqual({
+        status: 'open',
+        priority: 'critical',
+        severity: 'high',
+        failure_domain: 'STR',
+        validator: 'test-architect',
+        limit: 100,
+        offset: 25,
+        include_resolved: false,
+        min_times_seen: 2,
+        date_start: '2025-06-01',
+        date_end: '2025-06-30',
+      });
     });
   });
 });

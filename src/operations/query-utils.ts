@@ -3,6 +3,9 @@
  * Used by both issues.listByProject and projects.listIssues.
  */
 
+import { toApiQuery } from '../http/http-client.js';
+import type { QueryParams } from '../http/http-client.js';
+
 interface IssueListQuery {
   status?: string;
   priority?: string;
@@ -17,20 +20,7 @@ interface IssueListQuery {
   dateEnd?: string;
 }
 
-export function buildIssueListParams(query?: IssueListQuery): Record<string, string | number | boolean | undefined> | undefined {
+export function buildIssueListParams(query?: IssueListQuery): QueryParams | undefined {
   if (!query) return undefined;
-
-  return {
-    status: query.status,
-    priority: query.priority,
-    severity: query.severity,
-    failureDomain: query.failureDomain,
-    validator: query.validator,
-    limit: query.limit,
-    offset: query.offset,
-    includeResolved: query.includeResolved,
-    minTimesSeen: query.minTimesSeen,
-    dateStart: query.dateStart,
-    dateEnd: query.dateEnd,
-  };
+  return toApiQuery(query);
 }

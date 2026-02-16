@@ -1,5 +1,5 @@
 import type { OpsHttpClient } from '../http/http-client.js';
-import { toQuery } from '../http/http-client.js';
+import { toApiQuery } from '../http/http-client.js';
 import type {
   Run,
   RunSummary,
@@ -122,7 +122,7 @@ export async function listByProject(
 ): Promise<RunSummary[]> {
   return client.get<RunSummary[]>(
     `/runs/project/${encodeURIComponent(projectId)}`,
-    toQuery(query)
+    toApiQuery(query)
   );
 }
 

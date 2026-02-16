@@ -606,7 +606,7 @@ describe('OpsClient', () => {
     });
 
     it('should handle project issues with all filter params', async () => {
-      // Note: listIssues manually transforms camelCase to snake_case
+      // Note: toApiQuery converts camelCase to snake_case for API
       nock(BASE_URL)
         .get('/projects/proj-1/issues')
         .query({
@@ -615,7 +615,7 @@ describe('OpsClient', () => {
           severity: 'high',
           limit: 20,
           offset: 0,
-          includeResolved: false,
+          include_resolved: false,
         })
         .reply(200, {
           data: [{ id: 'issue-1', title: 'Critical issue', status: 'open' }],
@@ -635,10 +635,10 @@ describe('OpsClient', () => {
     });
 
     it('should handle run list with workflow filter', async () => {
-      // Note: listByProject passes query params as-is (camelCase)
+      // Note: toApiQuery converts camelCase to snake_case for API
       nock(BASE_URL)
         .get('/runs/project/proj-1')
-        .query({ workflowType: 'ship', limit: 5 })
+        .query({ workflow_type: 'ship', limit: 5 })
         .reply(200, {
           data: [
             { id: 'run-1', runNumber: 1, workflowType: 'ship' },

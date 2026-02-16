@@ -487,7 +487,7 @@ describe('Issue Operations', () => {
         .query({
           status: 'open',
           priority: 'critical',
-          failureDomain: 'SEM',
+          failure_domain: 'SEM',
           limit: 10,
         })
         .reply(200, { data: mockIssues });
