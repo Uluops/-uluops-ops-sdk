@@ -4,6 +4,19 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.5] - 2026-02-15
+
+### Fixed
+- `getVelocity`, `getDiscovery`, `getValidatorMatrix` now use `toApiQuery()` for consistent snake_case query parameter conversion (was manually constructing query objects, bypassing conversion)
+
+### Improved
+- `OpsClient` class JSDoc with authentication mode examples and usage patterns
+- `login()` JSDoc clarifies relationship with `auth.login()` (install-session vs raw-token)
+- `listValidators()` JSDoc documents O(n) complexity note
+- README: `updateProfile` documents "at least one field required" constraint
+- README: `getByMetric` lists all available metric names
+- README: low-level HTTP client section warns to prefer `OpsClient`
+
 ## [0.1.4] - 2026-02-15
 
 ### Fixed
