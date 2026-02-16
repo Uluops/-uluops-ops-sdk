@@ -131,7 +131,22 @@ export interface OpsClientConfig {
 }
 
 /**
- * Main SDK client for ops-uluops-api
+ * Main SDK client for the UluOps validation tracker API.
+ *
+ * Supports two authentication modes:
+ * - **API key**: Pass `apiKey` in config (stateless, recommended for CI/CD and scripts)
+ * - **Session**: Call {@link OpsClient.login} with email/password (stateful, auto-refreshes tokens)
+ *
+ * @example
+ * ```ts
+ * // API key auth
+ * const client = new OpsClient({ apiKey: 'your-key' });
+ * const projects = await client.projects.list();
+ *
+ * // Session auth
+ * const client = new OpsClient({ baseUrl: 'https://api.uluops.com' });
+ * await client.login('user@example.com', 'password');
+ * ```
  */
 export class OpsClient {
   private readonly httpClient: OpsHttpClient;
@@ -145,7 +160,11 @@ export class OpsClient {
   // ============================================
 
   /**
-   * Login with email and password
+   * Login with email and password, then install session auth for subsequent requests.
+   *
+   * Prefer this over `client.auth.login()` — this method automatically configures
+   * the client for authenticated requests with token auto-refresh. `client.auth.login()`
+   * only returns the token without installing it.
    */
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await authOps.login(this.httpClient, { email, password });

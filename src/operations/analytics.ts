@@ -123,11 +123,10 @@ export async function getVelocity(
   client: OpsHttpClient,
   query?: VelocityQuery
 ): Promise<VelocityResult> {
-  return client.get<VelocityResult>('/analytics/taxonomy/velocity', {
-    project: query?.project,
-    days: query?.days,
-    alertThreshold: query?.alertThreshold,
-  });
+  return client.get<VelocityResult>(
+    '/analytics/taxonomy/velocity',
+    toApiQuery(query)
+  );
 }
 
 /**
@@ -137,11 +136,10 @@ export async function getDiscovery(
   client: OpsHttpClient,
   query?: DiscoveryQuery
 ): Promise<DiscoveryResult> {
-  return client.get<DiscoveryResult>('/analytics/taxonomy/discovery', {
-    project: query?.project,
-    days: query?.days,
-    groupBy: query?.groupBy,
-  });
+  return client.get<DiscoveryResult>(
+    '/analytics/taxonomy/discovery',
+    toApiQuery(query)
+  );
 }
 
 /**
@@ -151,11 +149,10 @@ export async function getValidatorMatrix(
   client: OpsHttpClient,
   query?: ValidatorMatrixQuery
 ): Promise<ValidatorMatrixResult> {
-  return client.get<ValidatorMatrixResult>('/analytics/taxonomy/validator-matrix', {
-    project: query?.project,
-    days: query?.days,
-    minIssues: query?.minIssues,
-  });
+  return client.get<ValidatorMatrixResult>(
+    '/analytics/taxonomy/validator-matrix',
+    toApiQuery(query)
+  );
 }
 
 /**
@@ -172,7 +169,10 @@ export async function getTrendSummary(
 }
 
 /**
- * List validators with summary info (derived from performance data)
+ * List validators with summary info (derived from performance data).
+ *
+ * Fetches full performance data then maps to a summary. O(n) where n is
+ * the number of validators — negligible for typical usage (<100 validators).
  */
 export async function listValidators(
   client: OpsHttpClient,

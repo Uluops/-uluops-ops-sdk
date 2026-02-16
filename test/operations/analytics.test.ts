@@ -281,7 +281,7 @@ describe('Analytics Operations', () => {
     it('should accept alert threshold', async () => {
       nock(BASE_URL)
         .get('/analytics/taxonomy/velocity')
-        .query({ alertThreshold: 10 })
+        .query({ alert_threshold: 10 })
         .reply(200, {
           data: { modes: [], alerts: [] },
         });
@@ -322,7 +322,7 @@ describe('Analytics Operations', () => {
     it('should group by week or month', async () => {
       nock(BASE_URL)
         .get('/analytics/taxonomy/discovery')
-        .query({ groupBy: 'week' })
+        .query({ group_by: 'week' })
         .reply(200, {
           data: {
             timeline: [{ date: '2024-W01', new: 15, recurring: 30 }],
@@ -363,7 +363,7 @@ describe('Analytics Operations', () => {
     it('should filter by minimum issues', async () => {
       nock(BASE_URL)
         .get('/analytics/taxonomy/validator-matrix')
-        .query({ minIssues: 10 })
+        .query({ min_issues: 10 })
         .reply(200, {
           data: { matrix: {}, blindSpots: [], singlePoints: [], highOverlap: [] },
         });

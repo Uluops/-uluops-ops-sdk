@@ -341,6 +341,8 @@ Update user profile information.
 | `bio` | `string` | No | User bio |
 | `avatarUrl` | `string` | No | Avatar URL |
 
+> **Note:** At least one field must be provided.
+
 ```typescript
 const { user } = await client.auth.updateProfile({
   displayName: 'John Doe',
@@ -1236,6 +1238,8 @@ for (const trend of trends) {
 
 Get analytics by specific metric name.
 
+Available metrics: `validator_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`, `category_performance`.
+
 ```typescript
 const costData = await client.analytics.getByMetric('cost_analysis', { days: 30 });
 const regressions = await client.analytics.getByMetric('regression_analysis', { project: 'my-project' });
@@ -1587,6 +1591,8 @@ Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCr
 ## Advanced Usage
 
 ### Using the Low-Level HTTP Client
+
+> **Prefer `OpsClient`** for all standard operations. Use `OpsHttpClient` directly only when you need custom endpoints or raw response access.
 
 For advanced use cases, you can use `OpsHttpClient` directly:
 
