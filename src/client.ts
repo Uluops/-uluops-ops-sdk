@@ -418,7 +418,7 @@ export class OpsClient {
     getTaxonomyDistribution: (query?: AnalyticsQuery): Promise<TaxonomyDistribution[]> =>
       analyticsOps.getTaxonomyDistribution(this.httpClient, query),
 
-    getFullTaxonomy: (query?: AnalyticsQuery): Promise<{ data: FullTaxonomyAnalytics; computedAt: string }> =>
+    getFullTaxonomy: (query?: AnalyticsQuery): Promise<FullTaxonomyAnalytics> =>
       analyticsOps.getFullTaxonomy(this.httpClient, query),
 
     getBurndown: (query?: BurndownQuery): Promise<BurndownResult> =>

@@ -112,30 +112,57 @@ export interface TaxonomyDistribution {
 }
 
 /**
- * Full taxonomy analytics
+ * Full taxonomy analytics (all aggregations from /analytics/taxonomy/full)
+ *
+ * Note: The SDK HttpClient auto-unwraps the API's `{ data }` envelope,
+ * so this type represents the unwrapped content, not the raw API response.
  */
 export interface FullTaxonomyAnalytics {
   byDomain: Array<{
     domain: FailureDomain;
+    label: string;
     count: number;
     percentage: number;
   }>;
   bySeverity: Array<{
     severity: string;
+    label: string;
     count: number;
     percentage: number;
   }>;
   byMode: Array<{
-    domain: FailureDomain;
     mode: string;
+    label: string;
+    domain: FailureDomain;
+    domainLabel: string;
     count: number;
     percentage: number;
   }>;
-  byValidator: Array<{
-    validator: string;
-    domain: FailureDomain;
+  topCodes: Array<{
+    code: string;
+    domain: string;
+    mode: string;
+    severity: string;
+    label: string;
     count: number;
+    percentage: number;
   }>;
+  heatmapData: Array<{
+    domain: string;
+    domainLabel: string;
+    mode: string;
+    modeLabel: string;
+    count: number;
+    percentage: number;
+    intensity: number;
+  }>;
+  totals: {
+    totalIssues: number;
+    classifiedIssues: number;
+    unclassifiedIssues: number;
+    classificationRate: number;
+  };
+  period: Period;
 }
 
 // ============================================

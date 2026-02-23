@@ -162,7 +162,7 @@ For interactive applications, you can authenticate with email/password:
 import { OpsClient } from '@uluops/ops-sdk';
 
 const client = new OpsClient({
-  baseUrl: 'https://api.uluops.com/api/v1',
+  baseUrl: 'https://api.uluops.ai/api/v1/ops',
 });
 
 // Login to get a session

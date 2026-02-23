@@ -91,13 +91,17 @@ export async function getTaxonomyDistribution(
 }
 
 /**
- * Get full taxonomy analytics with all aggregations
+ * Get full taxonomy analytics with all aggregations.
+ *
+ * Returns the unwrapped taxonomy data (HttpClient auto-strips the { data } envelope).
+ * Includes domain/mode/severity distributions, top failure codes, heatmap data,
+ * classification totals, and time period metadata.
  */
 export async function getFullTaxonomy(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<{ data: FullTaxonomyAnalytics; computedAt: string }> {
-  return client.get<{ data: FullTaxonomyAnalytics; computedAt: string }>(
+): Promise<FullTaxonomyAnalytics> {
+  return client.get<FullTaxonomyAnalytics>(
     '/analytics/taxonomy/full',
     toApiQuery(query)
   );

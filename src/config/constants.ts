@@ -23,9 +23,22 @@ export {
 // ---- SDK-specific constants ----
 
 /**
- * Default base URL for the ops-uluops-api
+ * Production base URL for the ops-uluops-api
  */
-export const DEFAULT_BASE_URL = 'http://localhost:3100/api/v1';
+export const DEFAULT_PROD_URL = 'https://api.uluops.ai/api/v1/ops';
+
+/**
+ * Development base URL for local ops-uluops-api
+ */
+export const DEFAULT_DEV_URL = 'http://localhost:3100/api/v1';
+
+/**
+ * Resolve the default base URL based on NODE_ENV.
+ * - NODE_ENV=development -> localhost
+ * - Otherwise (production, test, undefined) -> production
+ */
+export const DEFAULT_BASE_URL =
+  process.env.NODE_ENV === 'development' ? DEFAULT_DEV_URL : DEFAULT_PROD_URL;
 
 /**
  * Environment variable names

@@ -101,7 +101,7 @@ describe('Config Loaders', () => {
       expect(config).toHaveProperty('baseUrl');
       expect(config).toHaveProperty('credentials');
       expect(config).toHaveProperty('debug', false);
-      expect(config.baseUrl).toContain('localhost');
+      expect(config.baseUrl).toContain('api.uluops.ai');
     });
 
     it('should use explicit baseUrl', () => {
