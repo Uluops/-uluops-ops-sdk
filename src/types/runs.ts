@@ -22,6 +22,11 @@ export interface Run {
   archivedAt: string | null;
   archiveReason: string | null;
   idempotencyKey: string | null;
+  definitionType: string | null;
+  definitionName: string | null;
+  definitionVersion: string | null;
+  definitionHash: string | null;
+  registrySyncedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -125,6 +130,10 @@ export interface SaveFeaturesListInput {
   rawMarkdown?: string;
   summary?: RunSummaryInput;
   idempotencyKey?: string;
+  definitionType?: string;
+  definitionName?: string;
+  definitionVersion?: string;
+  definitionHash?: string;
 }
 
 /**

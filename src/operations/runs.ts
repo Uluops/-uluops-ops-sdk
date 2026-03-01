@@ -41,6 +41,10 @@ export async function save(
     rawMarkdown: input.rawMarkdown,
     summary: input.summary,
     idempotencyKey: input.idempotencyKey,
+    definitionType: input.definitionType,
+    definitionName: input.definitionName,
+    definitionVersion: input.definitionVersion,
+    definitionHash: input.definitionHash,
   }, { retryMutations: true });
 }
 
