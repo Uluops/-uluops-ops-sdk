@@ -78,6 +78,9 @@ export const IssueType = {
   Infra: 'infra',
   Security: 'security',
   Test: 'test',
+  Observation: 'observation',
+  Deficiency: 'deficiency',
+  Ambiguity: 'ambiguity',
 } as const;
 export type IssueType = (typeof IssueType)[keyof typeof IssueType];
 export const ISSUE_TYPES = [
@@ -89,6 +92,9 @@ export const ISSUE_TYPES = [
   'infra',
   'security',
   'test',
+  'observation',
+  'deficiency',
+  'ambiguity',
 ] as const;
 
 /**
