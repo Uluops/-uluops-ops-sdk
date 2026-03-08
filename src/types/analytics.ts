@@ -103,7 +103,7 @@ export interface FileHotspot {
   totalIssues: number;
   openIssues: number;
   resolvedIssues: number;
-  topValidators: string[];
+  topAgents: string[];
 }
 
 // ============================================
@@ -355,7 +355,7 @@ export interface DiscoveryQuery extends AnalyticsQuery {
  * Agent matrix row
  */
 export interface AgentMatrixRow {
-  validator: string;
+  agent: string;
   domains: Record<FailureDomain, number>;
   total: number;
   coverage: number;
@@ -366,7 +366,7 @@ export interface AgentMatrixRow {
  * Blind spot (agent missing domain coverage)
  */
 export interface BlindSpot {
-  validator: string;
+  agent: string;
   missingDomains: FailureDomain[];
 }
 
@@ -376,7 +376,7 @@ export interface BlindSpot {
 export interface SinglePointFailure {
   domain: FailureDomain;
   mode: string;
-  onlyValidator: string;
+  onlyAgent: string;
 }
 
 /**
@@ -384,8 +384,8 @@ export interface SinglePointFailure {
  */
 export interface HighOverlap {
   mode: string;
-  validatorCount: number;
-  validators: string[];
+  agentCount: number;
+  agents: string[];
 }
 
 /**
@@ -463,7 +463,7 @@ export interface RegressionEntry {
   project: string;
   timesRegressed: number;
   lastRegression: string;
-  validator: string;
+  agent: string;
 }
 
 // ============================================
@@ -471,7 +471,7 @@ export interface RegressionEntry {
 // ============================================
 
 /**
- * Cost analysis entry (token usage and cost per validator/project)
+ * Cost analysis entry (token usage and cost per agent/project)
  */
 export interface CostEntry {
   name: string;

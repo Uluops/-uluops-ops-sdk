@@ -27,7 +27,7 @@ export interface Issue {
   failureMode: string | null;
   failureSeverityCode: FailureSeverityCode | null;
   category: string | null;
-  validator: string | null;
+  agent: string | null;
   type: IssueType | null;
   filePath: string | null;
   lineNumber: number | null;
@@ -61,7 +61,7 @@ export interface CreateUserIssueInput {
   failureCode?: string;
   failureDomain?: FailureDomain;
   failureMode?: string;
-  validator?: string;
+  agent?: string;
   type?: IssueType;
 }
 
@@ -101,7 +101,7 @@ export interface Occurrence {
   id: string;
   issueId: string;
   runId: string;
-  validator: string;
+  agent: string;
   description: string | null;
   filePath: string | null;
   lineNumber: number | null;
@@ -159,7 +159,7 @@ export interface IssueDetails {
 export interface IssueSearchQuery {
   query?: string;
   projects?: string[];
-  validators?: string[];
+  agents?: string[];
   status?: Status | 'all';
   priority?: Priority | 'all';
   severities?: Severity[];
@@ -175,7 +175,7 @@ export interface ListIssuesQuery {
   priority?: Priority;
   severity?: Severity;
   failureDomain?: FailureDomain;
-  validator?: string;
+  agent?: string;
   limit?: number;
   offset?: number;
   includeResolved?: boolean;

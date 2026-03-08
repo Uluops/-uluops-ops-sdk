@@ -99,7 +99,7 @@ export interface ListProjectIssuesQuery {
   priority?: Priority;
   severity?: Severity;
   failureDomain?: FailureDomain;
-  validator?: string;
+  agent?: string;
   limit?: number;
   offset?: number;
   includeResolved?: boolean;

@@ -131,7 +131,7 @@ export const AgentInputSchema = z.object({
 });
 
 export const RecommendationInputSchema = z.object({
-  validator: z.string().min(1).max(100),
+  agent: z.string().min(1).max(100),
   title: z.string().min(1).max(500),
   priority: PrioritySchema,
   type: IssueTypeSchema.optional(),
@@ -152,7 +152,7 @@ export const RecommendationInputSchema = z.object({
 export const SaveFeaturesListInputSchema = z.object({
   project: z.string().min(1).max(200),
   workflowType: z.string().min(1).max(100),
-  validators: z.array(AgentInputSchema).min(1),
+  agents: z.array(AgentInputSchema).min(1),
   recommendations: z.array(RecommendationInputSchema),
   timestamp: z.string().datetime().optional(),
   rawMarkdown: z.string().optional(),
@@ -189,7 +189,7 @@ export const CreateUserIssueInputSchema = z.object({
   failureCode: FailureCodeSchema.optional(),
   failureDomain: FailureDomainSchema.optional(),
   failureMode: z.string().max(50).optional(),
-  validator: z.string().min(1).max(100).optional(),
+  agent: z.string().min(1).max(100).optional(),
   type: IssueTypeSchema.optional(),
 });
 
@@ -238,7 +238,7 @@ export const ListIssuesQuerySchema = z.object({
   priority: PrioritySchema.optional(),
   severity: SeveritySchema.optional(),
   failureDomain: FailureDomainSchema.optional(),
-  validator: z.string().optional(),
+  agent: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
   offset: z.coerce.number().int().nonnegative().optional(),
   includeResolved: z.coerce.boolean().optional(),
@@ -250,7 +250,7 @@ export const ListIssuesQuerySchema = z.object({
 export const IssueSearchQuerySchema = z.object({
   query: z.string().optional(),
   projects: z.array(z.string()).optional(),
-  validators: z.array(z.string()).optional(),
+  agents: z.array(z.string()).optional(),
   status: z.union([StatusSchema, z.literal('all')]).optional(),
   priority: z.union([PrioritySchema, z.literal('all')]).optional(),
   severities: z.array(SeveritySchema).optional(),

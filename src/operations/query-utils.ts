@@ -11,7 +11,7 @@ interface IssueListQuery {
   priority?: string;
   severity?: string;
   failureDomain?: string;
-  validator?: string;
+  agent?: string;
   limit?: number;
   offset?: number;
   includeResolved?: boolean;

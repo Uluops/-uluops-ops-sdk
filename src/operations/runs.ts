@@ -35,7 +35,7 @@ export async function save(
   return client.post<SaveFeaturesListResponse>('/runs', {
     project: input.project,
     workflowType: input.workflowType,
-    validators: input.validators,
+    agents: input.agents,
     recommendations: input.recommendations,
     timestamp: input.timestamp,
     rawMarkdown: input.rawMarkdown,
@@ -62,7 +62,7 @@ export async function validate(
   return client.post<ValidateFeaturesListResponse>('/runs/validate', {
     project: input.project,
     workflowType: input.workflowType,
-    validators: input.validators,
+    agents: input.agents,
     recommendations: input.recommendations,
   });
 }
@@ -112,7 +112,7 @@ export async function update(
     allGatesPassed: input.allGatesPassed,
     averageScore: input.averageScore,
     rawMarkdown: input.rawMarkdown,
-    validators: input.validators,
+    agents: input.agents,
   });
 }
 
@@ -178,7 +178,7 @@ export async function updateById(
     allGatesPassed: input.allGatesPassed,
     averageScore: input.averageScore,
     rawMarkdown: input.rawMarkdown,
-    validators: input.validators,
+    agents: input.agents,
   });
 }
 

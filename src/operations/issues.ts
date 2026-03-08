@@ -42,7 +42,7 @@ export async function create(
     failureCode: input.failureCode,
     failureDomain: input.failureDomain,
     failureMode: input.failureMode,
-    validator: input.validator,
+    agent: input.agent,
     type: input.type,
   });
 }
@@ -57,7 +57,7 @@ export async function search(
   return client.get<Issue[]>('/issues/search', {
     query: query.query,
     projects: query.projects?.join(','),
-    validators: query.validators?.join(','),
+    agents: query.agents?.join(','),
     status: query.status,
     priority: query.priority,
     severities: query.severities?.join(','),

@@ -40,7 +40,7 @@ export interface RunSummary extends Run {
   criticalCount?: number;
   suggestedCount?: number;
   backlogCount?: number;
-  validatorScores?: Record<string, number>;
+  agentScores?: Record<string, number>;
 }
 
 /**
@@ -92,7 +92,7 @@ export interface AgentInput {
  * Recommendation/issue input for save_features_list
  */
 export interface RecommendationInput {
-  validator: string;
+  agent: string;
   title: string;
   priority: Priority;
   type?: IssueType;
@@ -124,7 +124,7 @@ export interface RunSummaryInput {
 export interface SaveFeaturesListInput {
   project: string;
   workflowType: string;
-  validators: AgentInput[];
+  agents: AgentInput[];
   recommendations: RecommendationInput[];
   timestamp?: string;
   rawMarkdown?: string;
@@ -150,7 +150,7 @@ export interface CorrelationResult {
  */
 export interface SaveFeaturesListResponse {
   run: Run;
-  validators: AgentSnapshot[];
+  agents: AgentSnapshot[];
   correlation: CorrelationResult;
   deduplicated: boolean;
 }
@@ -193,7 +193,7 @@ export interface RunDiffResult {
   fixed: DiffIssueRef[];
   new: DiffIssueRef[];
   unchanged: DiffIssueRef[];
-  validatorChanges: AgentChange[];
+  agentChanges: AgentChange[];
 }
 
 /**
@@ -231,7 +231,7 @@ export interface UpdateRunInput {
   allGatesPassed?: boolean;
   averageScore?: number | null;
   rawMarkdown?: string | null;
-  validators?: Array<{
+  agents?: Array<{
     name: string;
     score?: number;
     status?: string;
@@ -262,17 +262,17 @@ export interface ListRunsQuery {
 }
 
 /**
- * Run details (with recommendations and validator snapshots)
+ * Run details (with recommendations and agent snapshots)
  */
 export interface RunDetails {
   run: Run;
-  validators: AgentSnapshot[];
+  agents: AgentSnapshot[];
   recommendations: Array<{
     id: string;
     title: string;
     priority: Priority;
     severity: Severity | null;
-    validator: string;
+    agent: string;
     status: string;
     correlation: 'new' | 'recurring' | 'regression';
   }>;

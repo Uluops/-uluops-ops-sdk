@@ -231,7 +231,7 @@ export const IssueResponseSchema = z.object({
   failureMode: z.string().nullable().optional(),
   failureSeverityCode: FailureSeverityCodeResponseSchema.optional(),
   category: z.string().nullable().optional(),
-  validator: z.string().nullable().optional(),
+  agent: z.string().nullable().optional(),
   type: IssueTypeResponseSchema.nullable().optional(),
   filePath: z.string().nullable().optional(),
   lineNumber: z.number().int().nonnegative().nullable().optional(),
@@ -343,7 +343,7 @@ export const CorrelationResultResponseSchema = z.object({
 
 export const SaveFeaturesListResponseSchema = z.object({
   run: RunResponseSchema,
-  validators: z.array(AgentSnapshotResponseSchema),
+  agents: z.array(AgentSnapshotResponseSchema),
   correlation: CorrelationResultResponseSchema,
   deduplicated: z.boolean(),
 });
@@ -366,18 +366,18 @@ export const RunDiffResultResponseSchema = z.object({
   fixed: z.array(DiffIssueRefResponseSchema),
   new: z.array(DiffIssueRefResponseSchema),
   unchanged: z.array(DiffIssueRefResponseSchema),
-  validatorChanges: z.array(AgentChangeResponseSchema),
+  agentChanges: z.array(AgentChangeResponseSchema),
 });
 
 export const RunDetailsResponseSchema = z.object({
   run: RunResponseSchema,
-  validators: z.array(AgentSnapshotResponseSchema),
+  agents: z.array(AgentSnapshotResponseSchema),
   recommendations: z.array(z.object({
     id: z.string().uuid(),
     title: z.string(),
     priority: PriorityResponseSchema,
     severity: SeverityResponseSchema.nullable(),
-    validator: z.string(),
+    agent: z.string(),
     status: z.string(),
     correlation: z.enum(['new', 'recurring', 'regression']),
   })),
