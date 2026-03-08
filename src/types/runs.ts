@@ -44,9 +44,9 @@ export interface RunSummary extends Run {
 }
 
 /**
- * Validator snapshot (results from a single validator in a run)
+ * Agent snapshot (results from a single agent in a run)
  */
-export interface ValidatorSnapshot {
+export interface AgentSnapshot {
   id: string;
   runId: string;
   name: string;
@@ -76,9 +76,9 @@ export interface TokenUsage {
 }
 
 /**
- * Validator input for save_features_list
+ * Agent input for save_features_list
  */
-export interface ValidatorInput {
+export interface AgentInput {
   name: string;
   score: number;
   maxScore?: number;
@@ -124,7 +124,7 @@ export interface RunSummaryInput {
 export interface SaveFeaturesListInput {
   project: string;
   workflowType: string;
-  validators: ValidatorInput[];
+  validators: AgentInput[];
   recommendations: RecommendationInput[];
   timestamp?: string;
   rawMarkdown?: string;
@@ -150,7 +150,7 @@ export interface CorrelationResult {
  */
 export interface SaveFeaturesListResponse {
   run: Run;
-  validators: ValidatorSnapshot[];
+  validators: AgentSnapshot[];
   correlation: CorrelationResult;
   deduplicated: boolean;
 }
@@ -175,9 +175,9 @@ export interface DiffIssueRef {
 }
 
 /**
- * Validator score change between two runs
+ * Agent score change between two runs
  */
-export interface ValidatorChange {
+export interface AgentChange {
   name: string;
   baseScore: number;
   compareScore: number;
@@ -193,7 +193,7 @@ export interface RunDiffResult {
   fixed: DiffIssueRef[];
   new: DiffIssueRef[];
   unchanged: DiffIssueRef[];
-  validatorChanges: ValidatorChange[];
+  validatorChanges: AgentChange[];
 }
 
 /**
@@ -266,7 +266,7 @@ export interface ListRunsQuery {
  */
 export interface RunDetails {
   run: Run;
-  validators: ValidatorSnapshot[];
+  validators: AgentSnapshot[];
   recommendations: Array<{
     id: string;
     title: string;
@@ -277,3 +277,10 @@ export interface RunDetails {
     correlation: 'new' | 'recurring' | 'regression';
   }>;
 }
+
+/** @deprecated Use AgentSnapshot instead */
+export type ValidatorSnapshot = AgentSnapshot;
+/** @deprecated Use AgentInput instead */
+export type ValidatorInput = AgentInput;
+/** @deprecated Use AgentChange instead */
+export type ValidatorChange = AgentChange;

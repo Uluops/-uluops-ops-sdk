@@ -120,7 +120,7 @@ export const TokenUsageSchema = z.object({
   totalEffectiveTokens: z.number().int().nonnegative().optional(),
 });
 
-export const ValidatorInputSchema = z.object({
+export const AgentInputSchema = z.object({
   name: z.string().min(1).max(100),
   score: z.number().min(0).max(100),
   maxScore: z.number().min(0).max(100).optional(),
@@ -152,7 +152,7 @@ export const RecommendationInputSchema = z.object({
 export const SaveFeaturesListInputSchema = z.object({
   project: z.string().min(1).max(200),
   workflowType: z.string().min(1).max(100),
-  validators: z.array(ValidatorInputSchema).min(1),
+  validators: z.array(AgentInputSchema).min(1),
   recommendations: z.array(RecommendationInputSchema),
   timestamp: z.string().datetime().optional(),
   rawMarkdown: z.string().optional(),
@@ -276,7 +276,7 @@ export const DiscoveryQuerySchema = AnalyticsQuerySchema.extend({
   groupBy: z.enum(['day', 'week', 'month']).optional(),
 });
 
-export const ValidatorMatrixQuerySchema = AnalyticsQuerySchema.extend({
+export const AgentMatrixQuerySchema = AnalyticsQuerySchema.extend({
   minIssues: z.coerce.number().int().min(1).max(1000).optional(),
 });
 
@@ -346,3 +346,8 @@ export type CreateProjectInputSchema = z.infer<typeof CreateProjectInputSchema>;
 export type SaveFeaturesListInputSchema = z.infer<typeof SaveFeaturesListInputSchema>;
 export type CreateUserIssueInputSchema = z.infer<typeof CreateUserIssueInputSchema>;
 export type UpdateIssueStatusInputSchema = z.infer<typeof UpdateIssueStatusInputSchema>;
+
+/** @deprecated Use AgentInputSchema instead */
+export const ValidatorInputSchema = AgentInputSchema;
+/** @deprecated Use AgentMatrixQuerySchema instead */
+export const ValidatorMatrixQuerySchema = AgentMatrixQuerySchema;

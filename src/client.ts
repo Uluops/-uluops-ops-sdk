@@ -84,10 +84,10 @@ import type {
 
 import type {
   AnalyticsQuery,
-  ValidatorInfo,
-  ValidatorPerformance,
-  ValidatorReliability,
-  ValidatorReliabilityQuery,
+  AgentInfo,
+  AgentPerformance,
+  AgentReliability,
+  AgentReliabilityQuery,
   ResolutionRate,
   FileHotspot,
   TaxonomyDistribution,
@@ -98,8 +98,8 @@ import type {
   VelocityQuery,
   DiscoveryResult,
   DiscoveryQuery,
-  ValidatorMatrixResult,
-  ValidatorMatrixQuery,
+  AgentMatrixResult,
+  AgentMatrixQuery,
   TrendSummary,
   TaxonomySchema,
 } from './types/analytics.js';
@@ -401,13 +401,13 @@ export class OpsClient {
   // ANALYTICS OPERATIONS
   // ============================================
 
-  /** Validator performance, taxonomy analytics, burndown, velocity, and discovery */
+  /** Agent performance, taxonomy analytics, burndown, velocity, and discovery */
   readonly analytics = {
-    getValidatorPerformance: (query?: AnalyticsQuery): Promise<ValidatorPerformance[]> =>
-      analyticsOps.getValidatorPerformance(this.httpClient, query),
+    getAgentPerformance: (query?: AnalyticsQuery): Promise<AgentPerformance[]> =>
+      analyticsOps.getAgentPerformance(this.httpClient, query),
 
-    getValidatorReliability: (query?: ValidatorReliabilityQuery): Promise<{ validators: ValidatorReliability[] }> =>
-      analyticsOps.getValidatorReliability(this.httpClient, query),
+    getAgentReliability: (query?: AgentReliabilityQuery): Promise<{ agents: AgentReliability[] }> =>
+      analyticsOps.getAgentReliability(this.httpClient, query),
 
     getResolutionRates: (query?: AnalyticsQuery): Promise<ResolutionRate[]> =>
       analyticsOps.getResolutionRates(this.httpClient, query),
@@ -430,8 +430,8 @@ export class OpsClient {
     getDiscovery: (query?: DiscoveryQuery): Promise<DiscoveryResult> =>
       analyticsOps.getDiscovery(this.httpClient, query),
 
-    getValidatorMatrix: (query?: ValidatorMatrixQuery): Promise<ValidatorMatrixResult> =>
-      analyticsOps.getValidatorMatrix(this.httpClient, query),
+    getAgentMatrix: (query?: AgentMatrixQuery): Promise<AgentMatrixResult> =>
+      analyticsOps.getAgentMatrix(this.httpClient, query),
 
     getTrendSummary: (query?: AnalyticsQuery): Promise<TrendSummary[]> =>
       analyticsOps.getTrendSummary(this.httpClient, query),
@@ -439,8 +439,22 @@ export class OpsClient {
     getByMetric: <M extends analyticsOps.AnalyticsMetric>(metric: M, query?: AnalyticsQuery): Promise<analyticsOps.AnalyticsMetricResultMap[M]> =>
       analyticsOps.getByMetric(this.httpClient, metric, query),
 
-    listValidators: (query?: AnalyticsQuery): Promise<ValidatorInfo[]> =>
-      analyticsOps.listValidators(this.httpClient, query),
+    listAgents: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>
+      analyticsOps.listAgents(this.httpClient, query),
+
+    // Backwards-compatible aliases
+    /** @deprecated Use getAgentPerformance instead */
+    getValidatorPerformance: (query?: AnalyticsQuery): Promise<AgentPerformance[]> =>
+      analyticsOps.getAgentPerformance(this.httpClient, query),
+    /** @deprecated Use getAgentReliability instead */
+    getValidatorReliability: (query?: AgentReliabilityQuery): Promise<{ agents: AgentReliability[] }> =>
+      analyticsOps.getAgentReliability(this.httpClient, query),
+    /** @deprecated Use getAgentMatrix instead */
+    getValidatorMatrix: (query?: AgentMatrixQuery): Promise<AgentMatrixResult> =>
+      analyticsOps.getAgentMatrix(this.httpClient, query),
+    /** @deprecated Use listAgents instead */
+    listValidators: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>
+      analyticsOps.listAgents(this.httpClient, query),
   };
 
   // ============================================

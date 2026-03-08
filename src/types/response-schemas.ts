@@ -249,7 +249,7 @@ export const OccurrenceResponseSchema = z.object({
   id: z.string().uuid().optional(),
   issueId: z.string().uuid().optional(),
   runId: z.string().uuid(),
-  validator: z.string().optional(),
+  agentName: z.string().optional(),
   description: z.string().nullable().optional(),
   filePath: z.string().nullable().optional(),
   lineNumber: z.number().int().nonnegative().nullable().optional(),
@@ -317,7 +317,7 @@ export const RunResponseSchema = z.object({
   updatedAt: DateTimeStringSchema.optional(),
 });
 
-export const ValidatorSnapshotResponseSchema = z.object({
+export const AgentSnapshotResponseSchema = z.object({
   id: z.string().uuid().optional(),
   runId: z.string().uuid().optional(),
   name: z.string(),
@@ -343,7 +343,7 @@ export const CorrelationResultResponseSchema = z.object({
 
 export const SaveFeaturesListResponseSchema = z.object({
   run: RunResponseSchema,
-  validators: z.array(ValidatorSnapshotResponseSchema),
+  validators: z.array(AgentSnapshotResponseSchema),
   correlation: CorrelationResultResponseSchema,
   deduplicated: z.boolean(),
 });
@@ -353,7 +353,7 @@ export const DiffIssueRefResponseSchema = z.object({
   title: z.string(),
 });
 
-export const ValidatorChangeResponseSchema = z.object({
+export const AgentChangeResponseSchema = z.object({
   name: z.string(),
   baseScore: z.number(),
   compareScore: z.number(),
@@ -366,12 +366,12 @@ export const RunDiffResultResponseSchema = z.object({
   fixed: z.array(DiffIssueRefResponseSchema),
   new: z.array(DiffIssueRefResponseSchema),
   unchanged: z.array(DiffIssueRefResponseSchema),
-  validatorChanges: z.array(ValidatorChangeResponseSchema),
+  validatorChanges: z.array(AgentChangeResponseSchema),
 });
 
 export const RunDetailsResponseSchema = z.object({
   run: RunResponseSchema,
-  validators: z.array(ValidatorSnapshotResponseSchema),
+  validators: z.array(AgentSnapshotResponseSchema),
   recommendations: z.array(z.object({
     id: z.string().uuid(),
     title: z.string(),
@@ -462,7 +462,13 @@ export const StatusUpdateApiResponseSchema = createApiResponseSchema(StatusUpdat
 export type ProjectResponse = z.infer<typeof ProjectResponseSchema>;
 export type IssueResponse = z.infer<typeof IssueResponseSchema>;
 export type RunResponse = z.infer<typeof RunResponseSchema>;
-export type ValidatorSnapshotResponse = z.infer<typeof ValidatorSnapshotResponseSchema>;
+export type AgentSnapshotResponse = z.infer<typeof AgentSnapshotResponseSchema>;
+/** @deprecated Use AgentSnapshotResponse instead */
+export type ValidatorSnapshotResponse = AgentSnapshotResponse;
+/** @deprecated Use AgentSnapshotResponseSchema instead */
+export const ValidatorSnapshotResponseSchema = AgentSnapshotResponseSchema;
+/** @deprecated Use AgentChangeResponseSchema instead */
+export const ValidatorChangeResponseSchema = AgentChangeResponseSchema;
 export type OccurrenceResponse = z.infer<typeof OccurrenceResponseSchema>;
 export type IssueNoteResponse = z.infer<typeof IssueNoteResponseSchema>;
 export type StatusHistoryResponse = z.infer<typeof StatusHistoryResponseSchema>;

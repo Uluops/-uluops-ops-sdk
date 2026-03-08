@@ -354,17 +354,17 @@ describe('OpsClient', () => {
   });
 
   describe('analytics operations', () => {
-    it('should get validator performance', async () => {
+    it('should get agent performance', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/performance')
+        .get('/analytics/agents/performance')
         .reply(200, {
           data: [
-            { validator: 'code-validator', avgScore: 85, runCount: 100 },
-            { validator: 'test-architect', avgScore: 78, runCount: 80 },
+            { name: 'code-validator', avgScore: 85, totalRuns: 100 },
+            { name: 'test-architect', avgScore: 78, totalRuns: 80 },
           ],
         });
 
-      const perf = await client.analytics.getValidatorPerformance();
+      const perf = await client.analytics.getAgentPerformance();
 
       expect(perf).toHaveLength(2);
       expect(perf[0].avgScore).toBe(85);

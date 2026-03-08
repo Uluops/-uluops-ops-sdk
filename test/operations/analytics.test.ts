@@ -14,10 +14,10 @@ describe('Analytics Operations', () => {
     });
   });
 
-  describe('getValidatorPerformance', () => {
+  describe('getAgentPerformance', () => {
     it('should get validator performance metrics', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/performance')
+        .get('/analytics/agents/performance')
         .reply(200, {
           data: [
             { validator: 'code-validator', avgScore: 85.5, runCount: 100, passRate: 0.92 },
@@ -25,7 +25,7 @@ describe('Analytics Operations', () => {
           ],
         });
 
-      const perf = await analyticsOps.getValidatorPerformance(client);
+      const perf = await analyticsOps.getAgentPerformance(client);
 
       expect(perf).toHaveLength(2);
       expect(perf[0].validator).toBe('code-validator');
@@ -38,27 +38,27 @@ describe('Analytics Operations', () => {
 
     it('should filter by project', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/performance')
+        .get('/analytics/agents/performance')
         .query({ project: 'proj-1' })
         .reply(200, {
           data: [{ validator: 'code-validator', avgScore: 90, runCount: 50 }],
         });
 
-      const perf = await analyticsOps.getValidatorPerformance(client, { project: 'proj-1' });
+      const perf = await analyticsOps.getAgentPerformance(client, { project: 'proj-1' });
 
       expect(perf).toHaveLength(1);
     });
   });
 
-  describe('getValidatorReliability', () => {
-    it('should get validator reliability stats', async () => {
+  describe('getAgentReliability', () => {
+    it('should get agent reliability stats', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/reliability')
+        .get('/analytics/agents/reliability')
         .reply(200, {
           data: {
-            validators: [
+            agents: [
               {
-                validator: 'code-validator',
+                name: 'code-validator',
                 falsePositiveRate: 0.05,
                 resolutionRate: 0.75,
                 reliabilityScore: 0.92,
@@ -67,30 +67,30 @@ describe('Analytics Operations', () => {
           },
         });
 
-      const result = await analyticsOps.getValidatorReliability(client);
+      const result = await analyticsOps.getAgentReliability(client);
 
-      expect(result.validators).toHaveLength(1);
-      expect(result.validators[0].validator).toBe('code-validator');
-      expect(result.validators[0].falsePositiveRate).toBe(0.05);
-      expect(result.validators[0].resolutionRate).toBe(0.75);
-      expect(result.validators[0].reliabilityScore).toBe(0.92);
+      expect(result.agents).toHaveLength(1);
+      expect(result.agents[0].name).toBe('code-validator');
+      expect(result.agents[0].falsePositiveRate).toBe(0.05);
+      expect(result.agents[0].resolutionRate).toBe(0.75);
+      expect(result.agents[0].reliabilityScore).toBe(0.92);
     });
 
-    it('should filter by validator name', async () => {
+    it('should filter by agent name', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/reliability')
-        .query({ validator: 'test-architect' })
+        .get('/analytics/agents/reliability')
+        .query({ agent: 'test-architect' })
         .reply(200, {
           data: {
-            validators: [{ validator: 'test-architect', reliabilityScore: 0.88 }],
+            agents: [{ name: 'test-architect', reliabilityScore: 0.88 }],
           },
         });
 
-      const result = await analyticsOps.getValidatorReliability(client, {
-        validator: 'test-architect',
+      const result = await analyticsOps.getAgentReliability(client, {
+        agent: 'test-architect',
       });
 
-      expect(result.validators[0].validator).toBe('test-architect');
+      expect(result.agents[0].name).toBe('test-architect');
     });
   });
 
@@ -334,10 +334,10 @@ describe('Analytics Operations', () => {
     });
   });
 
-  describe('getValidatorMatrix', () => {
+  describe('getAgentMatrix', () => {
     it('should get validator-taxonomy coverage matrix', async () => {
       nock(BASE_URL)
-        .get('/analytics/taxonomy/validator-matrix')
+        .get('/analytics/taxonomy/agent-matrix')
         .reply(200, {
           data: {
             matrix: {
@@ -350,7 +350,7 @@ describe('Analytics Operations', () => {
           },
         });
 
-      const matrix = await analyticsOps.getValidatorMatrix(client);
+      const matrix = await analyticsOps.getAgentMatrix(client);
 
       expect(matrix.matrix['code-validator'].STR).toBe(30);
       expect(matrix.matrix['code-validator'].SEM).toBe(50);
@@ -362,13 +362,13 @@ describe('Analytics Operations', () => {
 
     it('should filter by minimum issues', async () => {
       nock(BASE_URL)
-        .get('/analytics/taxonomy/validator-matrix')
+        .get('/analytics/taxonomy/agent-matrix')
         .query({ min_issues: 10 })
         .reply(200, {
           data: { matrix: {}, blindSpots: [], singlePoints: [], highOverlap: [] },
         });
 
-      await analyticsOps.getValidatorMatrix(client, { minIssues: 10 });
+      await analyticsOps.getAgentMatrix(client, { minIssues: 10 });
     });
   });
 
@@ -439,7 +439,7 @@ describe('Analytics Operations', () => {
 
   describe('isValidMetric', () => {
     it('should return true for valid metrics', () => {
-      expect(analyticsOps.isValidMetric('validator_performance')).toBe(true);
+      expect(analyticsOps.isValidMetric('agent_performance')).toBe(true);
       expect(analyticsOps.isValidMetric('resolution_rates')).toBe(true);
       expect(analyticsOps.isValidMetric('cost_analysis')).toBe(true);
     });
@@ -451,10 +451,10 @@ describe('Analytics Operations', () => {
     });
   });
 
-  describe('listValidators', () => {
+  describe('listAgents', () => {
     it('should return simplified validator info', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/performance')
+        .get('/analytics/agents/performance')
         .reply(200, {
           data: [
             {
@@ -480,7 +480,7 @@ describe('Analytics Operations', () => {
           ],
         });
 
-      const validators = await analyticsOps.listValidators(client);
+      const validators = await analyticsOps.listAgents(client);
 
       expect(validators).toHaveLength(2);
       expect(validators[0]).toEqual({
@@ -503,7 +503,7 @@ describe('Analytics Operations', () => {
 
     it('should pass query parameters through', async () => {
       nock(BASE_URL)
-        .get('/analytics/validators/performance')
+        .get('/analytics/agents/performance')
         .query({ project: 'proj-1' })
         .reply(200, {
           data: [
@@ -520,7 +520,7 @@ describe('Analytics Operations', () => {
           ],
         });
 
-      const validators = await analyticsOps.listValidators(client, { project: 'proj-1' });
+      const validators = await analyticsOps.listAgents(client, { project: 'proj-1' });
 
       expect(validators).toHaveLength(1);
       expect(validators[0].name).toBe('code-validator');
@@ -529,7 +529,7 @@ describe('Analytics Operations', () => {
 
   describe('ANALYTICS_METRICS', () => {
     it('should contain all expected metrics', () => {
-      expect(analyticsOps.ANALYTICS_METRICS).toContain('validator_performance');
+      expect(analyticsOps.ANALYTICS_METRICS).toContain('agent_performance');
       expect(analyticsOps.ANALYTICS_METRICS).toContain('resolution_rates');
       expect(analyticsOps.ANALYTICS_METRICS).toContain('file_hotspots');
       expect(analyticsOps.ANALYTICS_METRICS).toContain('trend_summary');

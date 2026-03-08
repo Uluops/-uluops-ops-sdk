@@ -19,13 +19,13 @@ export interface Period {
 }
 
 // ============================================
-// VALIDATOR ANALYTICS
+// AGENT ANALYTICS
 // ============================================
 
 /**
- * Simplified validator info (from performance data)
+ * Simplified agent info (from performance data)
  */
-export interface ValidatorInfo {
+export interface AgentInfo {
   name: string;
   totalRuns: number;
   avgScore: number;
@@ -33,9 +33,9 @@ export interface ValidatorInfo {
 }
 
 /**
- * Validator performance metrics
+ * Agent performance metrics
  */
-export interface ValidatorPerformance {
+export interface AgentPerformance {
   name: string;
   totalRuns: number;
   avgScore: number;
@@ -47,9 +47,9 @@ export interface ValidatorPerformance {
 }
 
 /**
- * Validator reliability stats
+ * Agent reliability stats
  */
-export interface ValidatorReliability {
+export interface AgentReliability {
   name: string;
   totalIssues: number;
   falsePositiveRate: number;
@@ -59,13 +59,22 @@ export interface ValidatorReliability {
 }
 
 /**
- * Validator reliability query options
+ * Agent reliability query options
  */
-export interface ValidatorReliabilityQuery {
-  validator?: string;
+export interface AgentReliabilityQuery {
+  agent?: string;
   project?: string;
   days?: number;
 }
+
+/** @deprecated Use AgentInfo instead */
+export type ValidatorInfo = AgentInfo;
+/** @deprecated Use AgentPerformance instead */
+export type ValidatorPerformance = AgentPerformance;
+/** @deprecated Use AgentReliability instead */
+export type ValidatorReliability = AgentReliability;
+/** @deprecated Use AgentReliabilityQuery instead */
+export type ValidatorReliabilityQuery = AgentReliabilityQuery;
 
 // ============================================
 // RESOLUTION ANALYTICS
@@ -339,13 +348,13 @@ export interface DiscoveryQuery extends AnalyticsQuery {
 }
 
 // ============================================
-// VALIDATOR MATRIX ANALYTICS
+// AGENT MATRIX ANALYTICS
 // ============================================
 
 /**
- * Validator matrix row
+ * Agent matrix row
  */
-export interface ValidatorMatrixRow {
+export interface AgentMatrixRow {
   validator: string;
   domains: Record<FailureDomain, number>;
   total: number;
@@ -354,7 +363,7 @@ export interface ValidatorMatrixRow {
 }
 
 /**
- * Blind spot (validator missing domain coverage)
+ * Blind spot (agent missing domain coverage)
  */
 export interface BlindSpot {
   validator: string;
@@ -362,7 +371,7 @@ export interface BlindSpot {
 }
 
 /**
- * Single point of failure (only one validator detects)
+ * Single point of failure (only one agent detects)
  */
 export interface SinglePointFailure {
   domain: FailureDomain;
@@ -371,7 +380,7 @@ export interface SinglePointFailure {
 }
 
 /**
- * High overlap (multiple validators detect same thing)
+ * High overlap (multiple agents detect same thing)
  */
 export interface HighOverlap {
   mode: string;
@@ -389,19 +398,26 @@ export interface MatrixAnalysis {
 }
 
 /**
- * Validator matrix result
+ * Agent matrix result
  */
-export interface ValidatorMatrixResult {
-  matrix: ValidatorMatrixRow[];
+export interface AgentMatrixResult {
+  matrix: AgentMatrixRow[];
   analysis: MatrixAnalysis;
 }
 
 /**
- * Validator matrix query options
+ * Agent matrix query options
  */
-export interface ValidatorMatrixQuery extends AnalyticsQuery {
+export interface AgentMatrixQuery extends AnalyticsQuery {
   minIssues?: number; // 1-1000, default 5
 }
+
+/** @deprecated Use AgentMatrixRow instead */
+export type ValidatorMatrixRow = AgentMatrixRow;
+/** @deprecated Use AgentMatrixResult instead */
+export type ValidatorMatrixResult = AgentMatrixResult;
+/** @deprecated Use AgentMatrixQuery instead */
+export type ValidatorMatrixQuery = AgentMatrixQuery;
 
 // ============================================
 // TREND ANALYTICS

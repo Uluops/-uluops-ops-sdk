@@ -2,10 +2,10 @@ import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import type {
   AnalyticsQuery,
-  ValidatorInfo,
-  ValidatorPerformance,
-  ValidatorReliability,
-  ValidatorReliabilityQuery,
+  AgentInfo,
+  AgentPerformance,
+  AgentReliability,
+  AgentReliabilityQuery,
   ResolutionRate,
   FileHotspot,
   TaxonomyDistribution,
@@ -16,8 +16,8 @@ import type {
   VelocityQuery,
   DiscoveryResult,
   DiscoveryQuery,
-  ValidatorMatrixResult,
-  ValidatorMatrixQuery,
+  AgentMatrixResult,
+  AgentMatrixQuery,
   TrendSummary,
   CrossProjectPattern,
   RegressionEntry,
@@ -26,27 +26,27 @@ import type {
 } from '../types/analytics.js';
 
 /**
- * Get validator performance metrics
+ * Get agent performance metrics
  */
-export async function getValidatorPerformance(
+export async function getAgentPerformance(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<ValidatorPerformance[]> {
-  return client.get<ValidatorPerformance[]>(
-    '/analytics/validators/performance',
+): Promise<AgentPerformance[]> {
+  return client.get<AgentPerformance[]>(
+    '/analytics/agents/performance',
     toApiQuery(query)
   );
 }
 
 /**
- * Get validator reliability stats
+ * Get agent reliability stats
  */
-export async function getValidatorReliability(
+export async function getAgentReliability(
   client: OpsHttpClient,
-  query?: ValidatorReliabilityQuery
-): Promise<{ validators: ValidatorReliability[] }> {
-  return client.get<{ validators: ValidatorReliability[] }>(
-    '/analytics/validators/reliability',
+  query?: AgentReliabilityQuery
+): Promise<{ agents: AgentReliability[] }> {
+  return client.get<{ agents: AgentReliability[] }>(
+    '/analytics/agents/reliability',
     toApiQuery(query)
   );
 }
@@ -147,14 +147,14 @@ export async function getDiscovery(
 }
 
 /**
- * Get validator-taxonomy coverage matrix
+ * Get agent-taxonomy coverage matrix
  */
-export async function getValidatorMatrix(
+export async function getAgentMatrix(
   client: OpsHttpClient,
-  query?: ValidatorMatrixQuery
-): Promise<ValidatorMatrixResult> {
-  return client.get<ValidatorMatrixResult>(
-    '/analytics/taxonomy/validator-matrix',
+  query?: AgentMatrixQuery
+): Promise<AgentMatrixResult> {
+  return client.get<AgentMatrixResult>(
+    '/analytics/taxonomy/agent-matrix',
     toApiQuery(query)
   );
 }
@@ -173,16 +173,16 @@ export async function getTrendSummary(
 }
 
 /**
- * List validators with summary info (derived from performance data).
+ * List agents with summary info (derived from performance data).
  *
  * Fetches full performance data then maps to a summary. O(n) where n is
- * the number of validators — negligible for typical usage (<100 validators).
+ * the number of agents — negligible for typical usage (<100 agents).
  */
-export async function listValidators(
+export async function listAgents(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<ValidatorInfo[]> {
-  const perf = await getValidatorPerformance(client, query);
+): Promise<AgentInfo[]> {
+  const perf = await getAgentPerformance(client, query);
   return perf.map(v => ({
     name: v.name,
     totalRuns: v.totalRuns,
@@ -195,7 +195,7 @@ export async function listValidators(
  * Valid metric names for getByMetric
  */
 export const ANALYTICS_METRICS = [
-  'validator_performance',
+  'agent_performance',
   'resolution_rates',
   'cross_project_patterns',
   'file_hotspots',
@@ -220,7 +220,7 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
  * Use with getByMetric for type-safe access to specific metrics.
  */
 export interface AnalyticsMetricResultMap {
-  validator_performance: ValidatorPerformance[];
+  agent_performance: AgentPerformance[];
   resolution_rates: ResolutionRate[];
   file_hotspots: FileHotspot[];
   trend_summary: TrendSummary[];
@@ -251,3 +251,13 @@ export async function getByMetric<M extends AnalyticsMetric>(
     toApiQuery(query)
   );
 }
+
+// Backwards-compatible aliases
+/** @deprecated Use getAgentPerformance instead */
+export const getValidatorPerformance = getAgentPerformance;
+/** @deprecated Use getAgentReliability instead */
+export const getValidatorReliability = getAgentReliability;
+/** @deprecated Use getAgentMatrix instead */
+export const getValidatorMatrix = getAgentMatrix;
+/** @deprecated Use listAgents instead */
+export const listValidators = listAgents;
