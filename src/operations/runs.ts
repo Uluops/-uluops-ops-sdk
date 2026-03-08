@@ -3,9 +3,9 @@ import { toApiQuery } from '../http/http-client.js';
 import type {
   Run,
   RunSummary,
-  SaveFeaturesListInput,
-  SaveFeaturesListResponse,
-  ValidateFeaturesListResponse,
+  SaveRunInput,
+  SaveRunResponse,
+  ValidateRunResponse,
   RunDiffQuery,
   RunDiffResult,
   ArchiveRunsInput,
@@ -17,22 +17,22 @@ import type {
 } from '../types/runs.js';
 import type { DeleteResult } from '../types/responses.js';
 import {
-  validateSaveFeaturesListInput,
+  validateSaveRunInput,
   validateArchiveRunsInput,
 } from '../config/validators.js';
 
 /**
- * Save validation run results (save_features_list)
+ * Save validation run results (save_run)
  *
  * Sends SDK input directly in camelCase. The API accepts both
  * camelCase and snake_case via normalizeKeys().
  */
 export async function save(
   client: OpsHttpClient,
-  input: SaveFeaturesListInput
-): Promise<SaveFeaturesListResponse> {
-  validateSaveFeaturesListInput(input);
-  return client.post<SaveFeaturesListResponse>('/runs', {
+  input: SaveRunInput
+): Promise<SaveRunResponse> {
+  validateSaveRunInput(input);
+  return client.post<SaveRunResponse>('/runs', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
@@ -56,10 +56,10 @@ export async function save(
  */
 export async function validate(
   client: OpsHttpClient,
-  input: SaveFeaturesListInput
-): Promise<ValidateFeaturesListResponse> {
-  validateSaveFeaturesListInput(input);
-  return client.post<ValidateFeaturesListResponse>('/runs/validate', {
+  input: SaveRunInput
+): Promise<ValidateRunResponse> {
+  validateSaveRunInput(input);
+  return client.post<ValidateRunResponse>('/runs/validate', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,

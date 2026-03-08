@@ -119,9 +119,9 @@ export interface RunSummaryInput {
 }
 
 /**
- * Save features list input (main run submission)
+ * Save run input (main run submission)
  */
-export interface SaveFeaturesListInput {
+export interface SaveRunInput {
   project: string;
   workflowType: string;
   agents: AgentInput[];
@@ -146,9 +146,9 @@ export interface CorrelationResult {
 }
 
 /**
- * Save features list response
+ * Save run response
  */
-export interface SaveFeaturesListResponse {
+export interface SaveRunResponse {
   run: Run;
   agents: AgentSnapshot[];
   correlation: CorrelationResult;
@@ -156,9 +156,9 @@ export interface SaveFeaturesListResponse {
 }
 
 /**
- * Validate features list response (preview without saving)
+ * Validate run response (preview without saving)
  */
-export interface ValidateFeaturesListResponse {
+export interface ValidateRunResponse {
   wouldCreate: boolean;
   wouldUpdate: boolean;
   wouldRegress: boolean;

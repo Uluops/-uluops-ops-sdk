@@ -149,7 +149,7 @@ export const RecommendationInputSchema = z.object({
   taxonomyVersion: z.string().optional(),
 });
 
-export const SaveFeaturesListInputSchema = z.object({
+export const SaveRunInputSchema = z.object({
   project: z.string().min(1).max(200),
   workflowType: z.string().min(1).max(100),
   agents: z.array(AgentInputSchema).min(1),
@@ -343,7 +343,7 @@ export type LoginInputSchema = z.infer<typeof LoginInputSchema>;
 export type UpdateProfileInputSchema = z.infer<typeof UpdateProfileInputSchema>;
 export type CreateApiKeyInputSchema = z.infer<typeof CreateApiKeyInputSchema>;
 export type CreateProjectInputSchema = z.infer<typeof CreateProjectInputSchema>;
-export type SaveFeaturesListInputSchema = z.infer<typeof SaveFeaturesListInputSchema>;
+export type SaveRunInputSchema = z.infer<typeof SaveRunInputSchema>;
 export type CreateUserIssueInputSchema = z.infer<typeof CreateUserIssueInputSchema>;
 export type UpdateIssueStatusInputSchema = z.infer<typeof UpdateIssueStatusInputSchema>;
 

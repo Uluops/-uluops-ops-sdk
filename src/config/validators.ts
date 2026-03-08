@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
   CreateProjectInputSchema,
-  SaveFeaturesListInputSchema,
+  SaveRunInputSchema,
   CreateUserIssueInputSchema,
   UpdateIssueStatusInputSchema,
   CreateIssueNoteInputSchema,
@@ -103,8 +103,8 @@ export function validateRenameProjectInput(data: unknown) {
 // RUN VALIDATORS
 // ============================================
 
-export function validateSaveFeaturesListInput(data: unknown) {
-  return validate(SaveFeaturesListInputSchema, data, 'features list');
+export function validateSaveRunInput(data: unknown) {
+  return validate(SaveRunInputSchema, data, 'save run');
 }
 
 export function validateArchiveRunsInput(data: unknown) {

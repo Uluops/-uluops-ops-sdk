@@ -341,7 +341,7 @@ export const CorrelationResultResponseSchema = z.object({
   regressions: z.number().int().nonnegative(),
 });
 
-export const SaveFeaturesListResponseSchema = z.object({
+export const SaveRunResponseSchema = z.object({
   run: RunResponseSchema,
   agents: z.array(AgentSnapshotResponseSchema),
   correlation: CorrelationResultResponseSchema,

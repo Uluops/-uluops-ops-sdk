@@ -54,9 +54,9 @@ import type {
 import type {
   Run,
   RunSummary,
-  SaveFeaturesListInput,
-  SaveFeaturesListResponse,
-  ValidateFeaturesListResponse,
+  SaveRunInput,
+  SaveRunResponse,
+  ValidateRunResponse,
   RunDiffQuery,
   RunDiffResult,
   ArchiveRunsInput,
@@ -314,10 +314,10 @@ export class OpsClient {
 
   /** Validation run save, preview, diff, archive, and retrieval */
   readonly runs = {
-    save: (input: SaveFeaturesListInput): Promise<SaveFeaturesListResponse> =>
+    save: (input: SaveRunInput): Promise<SaveRunResponse> =>
       runOps.save(this.httpClient, input),
 
-    validate: (input: SaveFeaturesListInput): Promise<ValidateFeaturesListResponse> =>
+    validate: (input: SaveRunInput): Promise<ValidateRunResponse> =>
       runOps.validate(this.httpClient, input),
 
     diff: (query: RunDiffQuery): Promise<RunDiffResult> =>
