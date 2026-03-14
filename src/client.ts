@@ -65,6 +65,11 @@ import type {
   UpdateRunByNumberInput,
   ListRunsQuery,
   RunDetails,
+  RunAnalysis,
+  AnalysisSummary,
+  AnalysisRecord,
+  ProjectAnalysisQuery,
+  AnalysisRecordsQuery,
 } from './types/runs.js';
 
 import type {
@@ -346,6 +351,16 @@ export class OpsClient {
 
     delete: (runId: string): Promise<DeleteResult> =>
       runOps.deleteRun(this.httpClient, runId),
+
+    // Analysis operations (v0.3.0)
+    getAnalysis: (runId: string): Promise<RunAnalysis> =>
+      runOps.getAnalysis(this.httpClient, runId),
+
+    getProjectAnalysis: (projectId: string, query?: ProjectAnalysisQuery): Promise<{ data: AnalysisSummary[]; total: number }> =>
+      runOps.getProjectAnalysis(this.httpClient, projectId, query),
+
+    queryAnalysisRecords: (query?: AnalysisRecordsQuery): Promise<{ data: AnalysisRecord[]; total: number }> =>
+      runOps.queryAnalysisRecords(this.httpClient, query),
   };
 
   // ============================================
