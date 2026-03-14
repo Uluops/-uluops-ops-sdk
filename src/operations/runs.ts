@@ -14,6 +14,11 @@ import type {
   UpdateRunByNumberInput,
   ListRunsQuery,
   RunDetails,
+  RunAnalysis,
+  AnalysisSummary,
+  AnalysisRecord,
+  ProjectAnalysisQuery,
+  AnalysisRecordsQuery,
 } from '../types/runs.js';
 import type { DeleteResult } from '../types/responses.js';
 import {
@@ -45,6 +50,8 @@ export async function save(
     definitionName: input.definitionName,
     definitionVersion: input.definitionVersion,
     definitionHash: input.definitionHash,
+    analysisRecords: input.analysisRecords,
+    analysisSummary: input.analysisSummary,
   }, { retryMutations: true });
 }
 
@@ -193,4 +200,45 @@ export async function deleteRun(
     headers: { 'X-Confirm-Delete': runId },
   });
   return { deleted: true };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Analysis Operations (v1.4.0)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Get analysis records and summaries for a specific run
+ */
+export async function getAnalysis(
+  client: OpsHttpClient,
+  runId: string
+): Promise<RunAnalysis> {
+  return client.get<RunAnalysis>(`/runs/${encodeURIComponent(runId)}/analysis`);
+}
+
+/**
+ * Get analysis summaries for a project over time
+ */
+export async function getProjectAnalysis(
+  client: OpsHttpClient,
+  projectId: string,
+  query?: ProjectAnalysisQuery
+): Promise<{ data: AnalysisSummary[]; total: number }> {
+  return client.get<{ data: AnalysisSummary[]; total: number }>(
+    `/projects/${encodeURIComponent(projectId)}/analysis`,
+    toApiQuery(query)
+  );
+}
+
+/**
+ * Query analysis records across projects with filters
+ */
+export async function queryAnalysisRecords(
+  client: OpsHttpClient,
+  query?: AnalysisRecordsQuery
+): Promise<{ data: AnalysisRecord[]; total: number }> {
+  return client.get<{ data: AnalysisRecord[]; total: number }>(
+    '/analysis/records',
+    toApiQuery(query)
+  );
 }

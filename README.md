@@ -672,6 +672,8 @@ Save a new validation run.
 | `recommendations` | `Recommendation[]` | No | Array of issues/recommendations |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
+| `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.3.0) |
+| `analysisSummary` | `AnalysisSummaryInput` | No | System metrics + epistemic assessment (v0.3.0) |
 
 ```typescript
 const result = await client.runs.save({
@@ -847,6 +849,57 @@ Delete a run.
 
 ```typescript
 await client.runs.delete('run-uuid-here');
+```
+
+#### `client.runs.getAnalysis(runId)`
+
+Get structured analysis records and summaries for a specific run (v0.3.0).
+
+```typescript
+const analysis = await client.runs.getAnalysis('run-uuid-here');
+console.log(analysis.records);   // Convention inventories, tension maps, decay vectors, etc.
+console.log(analysis.summaries); // Per-agent system metrics, epistemic assessments
+```
+
+#### `client.runs.getProjectAnalysis(projectId, query)`
+
+Get analysis summaries for a project over time (v0.3.0).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `agentName` | `string` | No | Filter by agent (e.g., `'nietzsche-analyst'`) |
+| `agentType` | `string` | No | Filter by type (`'analyst'`, `'validator'`, etc.) |
+| `decision` | `string` | No | Filter by decision (`'VITAL'`, `'FLOWING'`, etc.) |
+| `limit` | `number` | No | Max results |
+| `offset` | `number` | No | Pagination offset |
+
+```typescript
+const { data, total } = await client.runs.getProjectAnalysis('my-project', {
+  agentName: 'nietzsche-analyst',
+  limit: 10,
+});
+// Track active/reactive ratio trend over time
+data.forEach(s => console.log(s.decision, s.systemMetrics));
+```
+
+#### `client.runs.queryAnalysisRecords(query)`
+
+Cross-project query for analysis records with filters (v0.3.0).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `recordType` | `string` | No | Filter by type (`'convention'`, `'tension'`, `'decay_vector'`) |
+| `classification` | `string` | No | Filter by classification (`'CALCIFIED'`, `'IMMINENT'`) |
+| `agentName` | `string` | No | Filter by agent name |
+| `agentType` | `string` | No | Filter by agent type |
+| `severity` | `string` | No | Filter by severity |
+
+```typescript
+// Find all calcified conventions across all projects
+const { data } = await client.runs.queryAnalysisRecords({
+  recordType: 'convention',
+  classification: 'CALCIFIED',
+});
 ```
 
 ---

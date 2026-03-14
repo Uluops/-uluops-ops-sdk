@@ -134,6 +134,10 @@ export interface SaveRunInput {
   definitionName?: string;
   definitionVersion?: string;
   definitionHash?: string;
+  /** Structured analysis records (v1.4.0 — optional) */
+  analysisRecords?: AnalysisRecordInput[];
+  /** Analysis summary with system metrics and epistemic assessment (v1.4.0 — optional) */
+  analysisSummary?: AnalysisSummaryInput;
 }
 
 /**
@@ -153,6 +157,10 @@ export interface SaveRunResponse {
   agents: AgentSnapshot[];
   correlation: CorrelationResult;
   deduplicated: boolean;
+  /** Analysis records persisted (v1.4.0 — present when analysis data was provided) */
+  analysisRecords?: AnalysisRecord[];
+  /** Analysis summary persisted (v1.4.0 — present when analysis data was provided) */
+  analysisSummary?: AnalysisSummary;
 }
 
 /**
@@ -276,6 +284,112 @@ export interface RunDetails {
     status: string;
     correlation: 'new' | 'recurring' | 'regression';
   }>;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Analysis Types (v1.4.0)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Analysis record input for structured analytical output
+ */
+export interface AnalysisRecordInput {
+  recordType: string;
+  recordId: string;
+  title: string;
+  classification?: string | null;
+  severity?: string | null;
+  data: Record<string, unknown>;
+}
+
+/**
+ * Category score breakdown
+ */
+export interface CategoryScore {
+  name: string;
+  weight: number;
+  score: number;
+}
+
+/**
+ * Analysis summary input for system-level metrics
+ */
+export interface AnalysisSummaryInput {
+  decision: string;
+  score: number;
+  decisionVocabulary?: string | null;
+  systemMetrics?: Record<string, unknown> | null;
+  categoryScores?: CategoryScore[] | null;
+  epistemicAssessment?: Record<string, unknown> | null;
+  auditImplications?: string[] | null;
+}
+
+/**
+ * Analysis record returned from API
+ */
+export interface AnalysisRecord {
+  id: string;
+  runId: string;
+  agentName: string;
+  agentType: string;
+  recordType: string;
+  recordId: string;
+  title: string;
+  classification: string | null;
+  severity: string | null;
+  recordData: Record<string, unknown>;
+  createdAt: string;
+}
+
+/**
+ * Analysis summary returned from API
+ */
+export interface AnalysisSummary {
+  id: string;
+  runId: string;
+  agentName: string;
+  agentType: string;
+  decision: string;
+  score: number;
+  decisionVocabulary: string | null;
+  systemMetrics: Record<string, unknown> | null;
+  categoryScores: CategoryScore[] | null;
+  epistemicAssessment: Record<string, unknown> | null;
+  auditImplications: string[] | null;
+  createdAt: string;
+}
+
+/**
+ * Analysis data for a run
+ */
+export interface RunAnalysis {
+  records: AnalysisRecord[];
+  summaries: AnalysisSummary[];
+  total: number;
+}
+
+/**
+ * Project analysis query options
+ */
+export interface ProjectAnalysisQuery {
+  agentName?: string;
+  agentType?: string;
+  decision?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Analysis records query options (cross-project)
+ */
+export interface AnalysisRecordsQuery {
+  recordType?: string;
+  classification?: string;
+  agentName?: string;
+  agentType?: string;
+  severity?: string;
+  limit?: number;
+  offset?: number;
 }
 
 /** @deprecated Use AgentSnapshot instead */
