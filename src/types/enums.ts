@@ -146,11 +146,13 @@ export const USER_ROLES = ['viewer', 'developer', 'publisher', 'admin'] as const
  */
 export const SubscriptionTier = {
   Free: 'free',
+  Hobbyist: 'hobbyist',
   Pro: 'pro',
+  Team: 'team',
   Enterprise: 'enterprise',
 } as const;
 export type SubscriptionTier = (typeof SubscriptionTier)[keyof typeof SubscriptionTier];
-export const SUBSCRIPTION_TIERS = ['free', 'pro', 'enterprise'] as const;
+export const SUBSCRIPTION_TIERS = ['free', 'hobbyist', 'pro', 'team', 'enterprise'] as const;
 
 /**
  * Avatar MIME types
