@@ -133,6 +133,8 @@ export interface OpsClientConfig {
   debug?: boolean;
   /** Callback when session token is refreshed */
   onTokenRefresh?: (token: string) => void;
+  /** Org slug for multi-tenancy — sets X-Org-Slug header on all requests */
+  orgSlug?: string;
 }
 
 /**

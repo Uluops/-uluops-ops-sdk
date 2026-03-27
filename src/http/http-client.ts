@@ -44,6 +44,8 @@ export interface HttpClientConfig {
   password?: string;
   sessionToken?: string;
   onTokenRefresh?: (token: string) => void;
+  /** Org slug for multi-tenancy — sets X-Org-Slug header on all requests */
+  orgSlug?: string;
 }
 
 /**
@@ -57,6 +59,9 @@ export class OpsHttpClient extends HttpClient {
       sdkName: '@uluops/ops-sdk',
       sdkVersion: SDK_VERSION,
       loggerPrefix: '[ops-sdk:http]',
+      defaultHeaders: {
+        ...(config.orgSlug ? { 'X-Org-Slug': config.orgSlug } : {}),
+      },
     });
   }
 }
