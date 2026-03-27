@@ -30,8 +30,8 @@ describe('Run Operations', () => {
           return (
             body.project === 'my-project' &&
             body.workflowType === 'post-implementation' &&
-            body.validators.length === 1 &&
-            body.validators[0].name === 'code-validator'
+            body.agents.length === 1 &&
+            body.agents[0].name === 'code-validator'
           );
         })
         .reply(201, {
@@ -44,7 +44,7 @@ describe('Run Operations', () => {
       const result = await runOps.save(client, {
         project: 'my-project',
         workflowType: 'post-implementation',
-        validators: [
+        agents: [
           { name: 'code-validator', score: 85, status: 'PASS' },
         ],
         recommendations: [],
@@ -60,7 +60,7 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .post('/runs', (body) => {
           return (
-            body.validators.length === 1 &&
+            body.agents.length === 1 &&
             body.recommendations.length === 1 &&
             body.recommendations[0].title === 'Fix bug' &&
             body.recommendations[0].priority === 'critical'
@@ -76,12 +76,12 @@ describe('Run Operations', () => {
       const result = await runOps.save(client, {
         project: 'my-project',
         workflowType: 'post-implementation',
-        validators: [
+        agents: [
           { name: 'code-validator', score: 70, status: 'FAIL' },
         ],
         recommendations: [
           {
-            validator: 'code-validator',
+            agent: 'code-validator',
             title: 'Fix bug',
             priority: 'critical',
           },
@@ -96,7 +96,7 @@ describe('Run Operations', () => {
 
       nock(BASE_URL)
         .post('/runs', (body) => {
-          const tokens = body.validators[0].tokens;
+          const tokens = body.agents[0].tokens;
           return (
             tokens.inputTokens === 1000 &&
             tokens.outputTokens === 500
@@ -112,7 +112,7 @@ describe('Run Operations', () => {
       await runOps.save(client, {
         project: 'my-project',
         workflowType: 'ship',
-        validators: [
+        agents: [
           {
             name: 'test-architect',
             score: 90,
@@ -146,9 +146,9 @@ describe('Run Operations', () => {
       const result = await runOps.validate(client, {
         project: 'my-project',
         workflowType: 'post-implementation',
-        validators: [{ name: 'code-validator', score: 85, status: 'PASS' }],
+        agents: [{ name: 'code-validator', score: 85, status: 'PASS' }],
         recommendations: [
-          { validator: 'code-validator', title: 'New issue', priority: 'suggested' },
+          { agent: 'code-validator', title: 'New issue', priority: 'suggested' },
         ],
       });
 

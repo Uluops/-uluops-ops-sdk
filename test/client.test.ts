@@ -204,7 +204,7 @@ describe('OpsClient', () => {
       const result = await client.runs.save({
         project: 'my-project',
         workflowType: 'post-implementation',
-        validators: [
+        agents: [
           { name: 'code-validator', score: 85, status: 'PASS' },
         ],
         recommendations: [],
@@ -483,12 +483,12 @@ describe('OpsClient', () => {
           // Verify camelCase for top-level fields
           expect(body.workflowType).toBe('post-implementation');
           expect(body.project).toBe('my-project');
-          // Verify validator tokens stay camelCase
-          expect(body.validators[0].name).toBe('code-validator');
-          expect(body.validators[0].tokens.inputTokens).toBe(1000);
-          expect(body.validators[0].tokens.outputTokens).toBe(500);
-          expect(body.validators[0].tokens.cacheCreationTokens).toBe(100);
-          expect(body.validators[0].durationMs).toBe(5000);
+          // Verify agent tokens stay camelCase
+          expect(body.agents[0].name).toBe('code-validator');
+          expect(body.agents[0].tokens.inputTokens).toBe(1000);
+          expect(body.agents[0].tokens.outputTokens).toBe(500);
+          expect(body.agents[0].tokens.cacheCreationTokens).toBe(100);
+          expect(body.agents[0].durationMs).toBe(5000);
           // Verify recommendation fields stay camelCase
           expect(body.recommendations[0].failureCode).toBe('SEM-VAL/H');
           expect(body.recommendations[0].failureDomain).toBe('SEM');
@@ -506,7 +506,7 @@ describe('OpsClient', () => {
       await client.runs.save({
         project: 'my-project',
         workflowType: 'post-implementation',
-        validators: [
+        agents: [
           {
             name: 'code-validator',
             score: 85,
@@ -521,7 +521,7 @@ describe('OpsClient', () => {
         ],
         recommendations: [
           {
-            validator: 'code-validator',
+            agent: 'code-validator',
             title: 'Test issue',
             priority: 'critical',
             failureCode: 'SEM-VAL/H',

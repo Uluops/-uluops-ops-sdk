@@ -107,6 +107,9 @@ export function validateSaveRunInput(data: unknown) {
   return validate(SaveRunInputSchema, data, 'save run');
 }
 
+/** @deprecated Use validateSaveRunInput — retained for backward compatibility */
+export const validateSaveFeaturesListInput = validateSaveRunInput;
+
 export function validateArchiveRunsInput(data: unknown) {
   return validate(ArchiveRunsInputSchema, data, 'archive runs');
 }
