@@ -7,7 +7,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 0.1.5** | [Changelog](./CHANGELOG.md)
+**Current version: 0.3.1** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -26,13 +26,13 @@ const client = new OpsClient({
 const result = await client.runs.save({
   project: 'my-project',
   workflowType: 'post-implementation',
-  validators: [
+  agents: [
     { name: 'code-validator', score: 85, status: 'PASS' },
     { name: 'test-architect', score: 72, status: 'APPROVED' },
   ],
   recommendations: [
     {
-      validator: 'code-validator',
+      agent: 'code-validator',
       title: 'Missing error handling',
       priority: 'suggested',
       filePath: 'src/api/client.ts',
@@ -97,7 +97,7 @@ for (const [domain, trend] of Object.entries(burndown.trends)) {
 
 The UluOps SDK provides programmatic access to the UluOps validation tracker API, enabling you to:
 
-- **Track Validation Runs**: Save validation pipeline results with validator scores and recommendations
+- **Track Validation Runs**: Save validation pipeline results with agent scores and recommendations
 - **Manage Issues**: Create, search, update, and track issues across projects
 - **Analyze Trends**: Get burndown charts, velocity metrics, and taxonomy distribution analytics
 - **Automate Workflows**: Integrate validation tracking into CI/CD pipelines
@@ -337,15 +337,17 @@ Update user profile information.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `displayName` | `string` | No | Display name |
+| `username` | `string` | No | Username (lowercase, 3-30 chars) |
+| `name` | `string` | No | Display name |
 | `bio` | `string` | No | User bio |
-| `avatarUrl` | `string` | No | Avatar URL |
+| `avatar` | `string` | No | Avatar image (base64 encoded) |
+| `avatarMimeType` | `string` | No | Avatar MIME type (e.g., `image/png`) |
 
 > **Note:** At least one field must be provided.
 
 ```typescript
 const { user } = await client.auth.updateProfile({
-  displayName: 'John Doe',
+  name: 'John Doe',
   bio: 'Software Engineer',
 });
 ```
@@ -393,12 +395,12 @@ Reset password using a reset token.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `token` | `string` | Yes | Reset token from email |
-| `newPassword` | `string` | Yes | New password |
+| `password` | `string` | Yes | New password |
 
 ```typescript
 await client.auth.resetPassword({
   token: 'reset-token-from-email',
-  newPassword: 'newSecurePassword',
+  password: 'newSecurePassword',
 });
 ```
 
@@ -599,7 +601,7 @@ List issues for a project with filters.
 | `status` | `Status` | No | Filter by status |
 | `priority` | `Priority` | No | Filter by priority |
 | `severity` | `Severity` | No | Filter by severity |
-| `validator` | `string` | No | Filter by validator |
+| `agent` | `string` | No | Filter by agent |
 | `limit` | `number` | No | Max results (default: 50) |
 | `offset` | `number` | No | Pagination offset |
 
@@ -668,7 +670,7 @@ Save a new validation run.
 |-----------|------|----------|-------------|
 | `project` | `string` | Yes | Project name or ID |
 | `workflowType` | `string` | Yes | Workflow type (e.g., `'post-implementation'`) |
-| `validators` | `Validator[]` | Yes | Array of validator results |
+| `agents` | `AgentInput[]` | Yes | Array of agent results |
 | `recommendations` | `Recommendation[]` | No | Array of issues/recommendations |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
@@ -679,7 +681,7 @@ Save a new validation run.
 const result = await client.runs.save({
   project: 'my-project',
   workflowType: 'post-implementation',
-  validators: [
+  agents: [
     {
       name: 'code-validator',
       score: 85,
@@ -695,7 +697,7 @@ const result = await client.runs.save({
   ],
   recommendations: [
     {
-      validator: 'code-validator',
+      agent: 'code-validator',
       title: 'Missing error handling in API client',
       priority: 'suggested',
       severity: 'medium',
@@ -723,7 +725,7 @@ Preview what a save would do without persisting.
 const preview = await client.runs.validate({
   project: 'my-project',
   workflowType: 'post-implementation',
-  validators: [...],
+  agents: [...],
   recommendations: [...],
 });
 
@@ -771,7 +773,7 @@ Get detailed run information with recommendations.
 
 ```typescript
 const details = await client.runs.getDetails('my-project', 5);
-console.log(details.validators);
+console.log(details.agents);
 console.log(details.recommendations);
 ```
 
@@ -827,8 +829,8 @@ Update run metadata (tokens, scores).
 const run = await client.runs.update({
   project: 'my-project',
   runNumber: 5,
-  validators: [
-    { name: 'code-validator', score: 90, input_tokens: 1500 },
+  agents: [
+    { name: 'code-validator', score: 90, tokens: { inputTokens: 1500 } },
   ],
 });
 ```
@@ -839,7 +841,7 @@ Update run metadata by run UUID (alternative to `update` which uses project+runN
 
 ```typescript
 const run = await client.runs.updateById('run-uuid-here', {
-  validators: [{ name: 'code-validator', score: 92 }],
+  agents: [{ name: 'code-validator', score: 92 }],
 });
 ```
 
@@ -947,7 +949,7 @@ Search issues across projects.
 |-----------|------|----------|-------------|
 | `query` | `string` | Yes | Search query |
 | `projects` | `string[]` | No | Filter by projects |
-| `validators` | `string[]` | No | Filter by validators |
+| `agents` | `string[]` | No | Filter by agents |
 | `status` | `Status` | No | Filter by status |
 | `priority` | `Priority` | No | Filter by priority |
 | `severities` | `Severity[]` | No | Filter by severities |
@@ -1123,9 +1125,9 @@ const issues = await client.issues.listByProject('my-project', {
 
 Get insights and metrics about validation trends.
 
-#### `client.analytics.getValidatorPerformance(query)`
+#### `client.analytics.getAgentPerformance(query)`
 
-Get performance metrics by validator.
+Get performance metrics by agent.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1133,25 +1135,25 @@ Get performance metrics by validator.
 | `days` | `number` | No | Time window (default: 30) |
 
 ```typescript
-const performance = await client.analytics.getValidatorPerformance({ days: 30 });
-for (const validator of performance) {
-  console.log(`${validator.validator}: avg=${validator.avgScore}, pass=${validator.passRate}`);
+const performance = await client.analytics.getAgentPerformance({ days: 30 });
+for (const agent of performance) {
+  console.log(`${agent.agent}: avg=${agent.avgScore}, pass=${agent.passRate}`);
 }
 ```
 
-#### `client.analytics.getValidatorReliability(query)`
+#### `client.analytics.getAgentReliability(query)`
 
-Get validator reliability statistics (false positive rates, resolution rates).
+Get agent reliability statistics (false positive rates, resolution rates).
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `validator` | `string` | No | Filter by validator |
+| `agent` | `string` | No | Filter by agent |
 | `days` | `number` | No | Time window (default: 90) |
 
 ```typescript
-const { validators } = await client.analytics.getValidatorReliability({ days: 90 });
-for (const v of validators) {
-  console.log(`${v.validator}: reliability=${v.reliabilityScore}`);
+const { agents } = await client.analytics.getAgentReliability({ days: 90 });
+for (const a of agents) {
+  console.log(`${a.agent}: reliability=${a.reliabilityScore}`);
 }
 ```
 
@@ -1258,9 +1260,9 @@ console.log('Summary:', discovery.summary);
 // { totalNew: 8, totalRecurring: 22, newRate: 0.27 }
 ```
 
-#### `client.analytics.getValidatorMatrix(query)`
+#### `client.analytics.getAgentMatrix(query)`
 
-Get validator-taxonomy coverage matrix.
+Get agent-taxonomy coverage matrix.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1269,11 +1271,11 @@ Get validator-taxonomy coverage matrix.
 | `minIssues` | `number` | No | Min issues for inclusion |
 
 ```typescript
-const matrix = await client.analytics.getValidatorMatrix();
+const matrix = await client.analytics.getAgentMatrix();
 console.log('Coverage matrix:', matrix.matrix);
 console.log('Blind spots:', matrix.blindSpots); // Domains not detected
-console.log('Single points:', matrix.singlePoints); // Only one validator detects
-console.log('High overlap:', matrix.highOverlap); // 3+ validators detect
+console.log('Single points:', matrix.singlePoints); // Only one agent detects
+console.log('High overlap:', matrix.highOverlap); // 3+ agents detect
 ```
 
 #### `client.analytics.getTrendSummary(query)`
@@ -1291,20 +1293,20 @@ for (const trend of trends) {
 
 Get analytics by specific metric name.
 
-Available metrics: `validator_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`, `category_performance`.
+Available metrics: `agent_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`, `category_performance`.
 
 ```typescript
 const costData = await client.analytics.getByMetric('cost_analysis', { days: 30 });
 const regressions = await client.analytics.getByMetric('regression_analysis', { project: 'my-project' });
 ```
 
-#### `client.analytics.listValidators(query)`
+#### `client.analytics.listAgents(query)`
 
-List validators with summary info (derived from performance data).
+List agents with summary info (derived from performance data).
 
 ```typescript
-const validators = await client.analytics.listValidators();
-for (const v of validators) {
+const agents = await client.analytics.listAgents();
+for (const v of agents) {
   console.log(`${v.name}: avg=${v.avgScore}, runs=${v.totalRuns}, pass=${v.passRate}`);
 }
 ```

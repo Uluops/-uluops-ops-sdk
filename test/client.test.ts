@@ -251,7 +251,7 @@ describe('OpsClient', () => {
             fixed: [{ issueId: 'issue-1', title: 'Fixed bug' }],
             new: [{ issueId: 'issue-2', title: 'New issue' }],
             unchanged: [],
-            validatorChanges: [],
+            agentChanges: [],
           },
         });
 

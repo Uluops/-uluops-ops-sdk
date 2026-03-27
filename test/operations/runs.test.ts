@@ -172,7 +172,7 @@ describe('Run Operations', () => {
             fixed: [{ issueId: 'issue-1', title: 'Fixed bug' }],
             new: [{ issueId: 'issue-2', title: 'New issue' }],
             unchanged: [{ issueId: 'issue-3', title: 'Still there' }],
-            validatorChanges: [
+            agentChanges: [
               { name: 'code-validator', baseScore: 75, compareScore: 85, change: 10 },
             ],
           },
@@ -192,11 +192,11 @@ describe('Run Operations', () => {
       expect(result.new).toHaveLength(1);
       expect(result.new[0].issueId).toBe('issue-2');
       expect(result.unchanged).toHaveLength(1);
-      expect(result.validatorChanges).toHaveLength(1);
-      expect(result.validatorChanges[0].name).toBe('code-validator');
-      expect(result.validatorChanges[0].baseScore).toBe(75);
-      expect(result.validatorChanges[0].compareScore).toBe(85);
-      expect(result.validatorChanges[0].change).toBe(10);
+      expect(result.agentChanges).toHaveLength(1);
+      expect(result.agentChanges[0].name).toBe('code-validator');
+      expect(result.agentChanges[0].baseScore).toBe(75);
+      expect(result.agentChanges[0].compareScore).toBe(85);
+      expect(result.agentChanges[0].change).toBe(10);
     });
   });
 
