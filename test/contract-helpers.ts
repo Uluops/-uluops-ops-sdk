@@ -72,8 +72,29 @@ export const INTEGRATION_TEST_CONFIG = {
 let idCounter = 0;
 function generateId(): string {
   idCounter++;
-  return `00000000-0000-0000-0000-${String(idCounter).padStart(12, '0')}`;
+  return `00000000-0000-4000-a000-${String(idCounter).padStart(12, '0')}`;
 }
+
+/** Pre-built test UUIDs for consistent use across test files */
+export const TEST_IDS = {
+  user1: '00000000-0000-4000-a000-000000000001',
+  user2: '00000000-0000-4000-a000-000000000002',
+  user3: '00000000-0000-4000-a000-000000000003',
+  proj1: '00000000-0000-4000-a000-000000000011',
+  proj2: '00000000-0000-4000-a000-000000000012',
+  proj3: '00000000-0000-4000-a000-000000000013',
+  issue1: '00000000-0000-4000-a000-000000000021',
+  issue2: '00000000-0000-4000-a000-000000000022',
+  issue3: '00000000-0000-4000-a000-000000000023',
+  run1: '00000000-0000-4000-a000-000000000031',
+  run2: '00000000-0000-4000-a000-000000000032',
+  key1: '00000000-0000-4000-a000-000000000041',
+  key2: '00000000-0000-4000-a000-000000000042',
+  session1: '00000000-0000-4000-a000-000000000051',
+  session2: '00000000-0000-4000-a000-000000000052',
+  note1: '00000000-0000-4000-a000-000000000061',
+  occ1: '00000000-0000-4000-a000-000000000071',
+} as const;
 
 function generateFingerprint(): string {
   return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');

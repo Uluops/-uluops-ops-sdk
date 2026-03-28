@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "SDK for the UluOps validation tracker API",
   "type": "module",
   "main": "dist/index.js",
@@ -82,7 +82,7 @@
   },
   "dependencies": {
     "@uluops/sdk-core": "^0.1.1",
-    "zod": "^3.24.1"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.12.0",

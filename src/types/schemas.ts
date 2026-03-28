@@ -173,19 +173,19 @@ export const SaveRunInputSchema = z.object({
     title: z.string().min(1).max(500),
     classification: z.string().max(50).nullish(),
     severity: SeveritySchema.nullish(),
-    data: z.record(z.unknown()),
+    data: z.record(z.string(), z.unknown()),
   })).max(100).optional(),
   analysisSummary: z.object({
     decision: z.string().min(1).max(50),
     score: z.number().min(0).max(100),
     decisionVocabulary: z.string().max(100).nullish(),
-    systemMetrics: z.record(z.unknown()).nullish(),
+    systemMetrics: z.record(z.string(), z.unknown()).nullish(),
     categoryScores: z.array(z.object({
       name: z.string(),
       weight: z.number().min(1),
       score: z.number().min(0),
     })).nullish(),
-    epistemicAssessment: z.record(z.unknown()).nullish(),
+    epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
     auditImplications: z.array(z.string()).nullish(),
   }).optional(),
 });

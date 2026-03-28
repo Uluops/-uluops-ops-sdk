@@ -17,6 +17,7 @@ import {
   IssueResponseSchema,
 } from '../setup.js';
 import {
+  TEST_IDS,
   ProjectSummaryResponseSchema,
   TrendDataPointResponseSchema,
   BulkStatusUpdateResultResponseSchema,
@@ -60,7 +61,7 @@ describe('Project Operations', () => {
 
   describe('get', () => {
     it('should get project by ID', async () => {
-      const projectId = '11111111-1111-1111-1111-111111111111';
+      const projectId = TEST_IDS.proj1;
       const mockProject = createMockProject({ id: projectId, name: 'Project A' });
 
       mockValidatedEndpoint(
@@ -131,7 +132,7 @@ describe('Project Operations', () => {
 
   describe('update', () => {
     it('should update project', async () => {
-      const projectId = '22222222-2222-2222-2222-222222222222';
+      const projectId = TEST_IDS.proj2;
       const mockProject = createMockProject({ id: projectId, name: 'Updated Name' });
 
       nock(BASE_URL)
@@ -147,15 +148,15 @@ describe('Project Operations', () => {
   describe('deleteProject', () => {
     it('should hard delete project with confirmation', async () => {
       nock(BASE_URL)
-        .delete('/projects/proj-1', {
+        .delete(`/projects/${TEST_IDS.proj1}`, {
           confirm: true,
-          confirmationPhrase: 'proj-1',
+          confirmationPhrase: TEST_IDS.proj1,
         })
         .reply(200, { data: {} });
 
-      const result = await projectOps.deleteProject(client, 'proj-1', {
+      const result = await projectOps.deleteProject(client, TEST_IDS.proj1, {
         confirm: true,
-        confirmationPhrase: 'proj-1',
+        confirmationPhrase: TEST_IDS.proj1,
       });
       expect(result).toEqual({ deleted: true });
     });
@@ -164,15 +165,15 @@ describe('Project Operations', () => {
   describe('softDelete', () => {
     it('should soft delete project', async () => {
       nock(BASE_URL)
-        .delete('/projects/proj-1/soft', {
+        .delete(`/projects/${TEST_IDS.proj1}/soft`, {
           confirm: true,
-          confirmationPhrase: 'proj-1',
+          confirmationPhrase: TEST_IDS.proj1,
         })
         .reply(200, { data: {} });
 
-      const result = await projectOps.softDelete(client, 'proj-1', {
+      const result = await projectOps.softDelete(client, TEST_IDS.proj1, {
         confirm: true,
-        confirmationPhrase: 'proj-1',
+        confirmationPhrase: TEST_IDS.proj1,
       });
       expect(result).toEqual({ deleted: true });
     });
@@ -185,12 +186,12 @@ describe('Project Operations', () => {
       mockValidatedEndpoint(
         BASE_URL,
         'post',
-        '/projects/proj-1/restore',
+        `/projects/${TEST_IDS.proj1}/restore`,
         mockProject,
         ProjectResponseSchema
       );
 
-      const project = await projectOps.restore(client, 'proj-1');
+      const project = await projectOps.restore(client, TEST_IDS.proj1);
 
       expect(project.deletedAt).toBeNull();
     });
@@ -226,12 +227,12 @@ describe('Project Operations', () => {
       mockValidatedEndpoint(
         BASE_URL,
         'get',
-        '/projects/proj-1/summary',
+        `/projects/${TEST_IDS.proj1}/summary`,
         mockSummary,
         ProjectSummaryResponseSchema
       );
 
-      const summary = await projectOps.getSummary(client, 'proj-1');
+      const summary = await projectOps.getSummary(client, TEST_IDS.proj1);
 
       expect(summary.project).toBeDefined();
       expect(summary.stats.totalRuns).toBe(50);
@@ -252,12 +253,12 @@ describe('Project Operations', () => {
       mockValidatedListEndpoint(
         BASE_URL,
         'get',
-        '/projects/proj-1/trends',
+        `/projects/${TEST_IDS.proj1}/trends`,
         mockTrends,
         TrendDataPointResponseSchema
       );
 
-      const trends = await projectOps.getTrends(client, 'proj-1');
+      const trends = await projectOps.getTrends(client, TEST_IDS.proj1);
 
       expect(trends).toHaveLength(2);
       expect(trends[0].date).toBe('2024-01-01');
@@ -271,11 +272,11 @@ describe('Project Operations', () => {
       const mockTrends = [createMockTrendDataPoint({ date: '2024-01-01', openIssues: 5 })];
 
       nock(BASE_URL)
-        .get('/projects/proj-1/trends')
+        .get(`/projects/${TEST_IDS.proj1}/trends`)
         .query({ days: 7 })
         .reply(200, { data: mockTrends });
 
-      const trends = await projectOps.getTrends(client, 'proj-1', { days: 7 });
+      const trends = await projectOps.getTrends(client, TEST_IDS.proj1, { days: 7 });
 
       expect(trends).toHaveLength(1);
     });
@@ -291,12 +292,12 @@ describe('Project Operations', () => {
       mockValidatedListEndpoint(
         BASE_URL,
         'get',
-        '/projects/proj-1/issues',
+        `/projects/${TEST_IDS.proj1}/issues`,
         mockIssues,
         IssueResponseSchema
       );
 
-      const issues = await projectOps.listIssues(client, 'proj-1');
+      const issues = await projectOps.listIssues(client, TEST_IDS.proj1);
 
       expect(issues).toHaveLength(2);
       expect(issues[0].title).toBe('Bug 1');
@@ -309,7 +310,7 @@ describe('Project Operations', () => {
       const mockIssues = [createMockIssue({ title: 'Critical Bug', priority: 'critical' })];
 
       nock(BASE_URL)
-        .get('/projects/proj-1/issues')
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
         .query({
           status: 'open',
           priority: 'critical',
@@ -317,7 +318,7 @@ describe('Project Operations', () => {
         })
         .reply(200, { data: mockIssues });
 
-      const issues = await projectOps.listIssues(client, 'proj-1', {
+      const issues = await projectOps.listIssues(client, TEST_IDS.proj1, {
         status: 'open',
         priority: 'critical',
         limit: 10,
@@ -336,10 +337,10 @@ describe('Project Operations', () => {
       ];
 
       nock(BASE_URL)
-        .get('/projects/proj-1/issues')
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
         .reply(200, { data: mockIssues, count: 42 });
 
-      const result = await projectOps.listIssuesWithCount(client, 'proj-1');
+      const result = await projectOps.listIssuesWithCount(client, TEST_IDS.proj1);
 
       expect(result.issues).toHaveLength(2);
       expect(result.count).toBe(42);
@@ -350,11 +351,11 @@ describe('Project Operations', () => {
       const mockIssues = [createMockIssue({ title: 'Critical Bug' })];
 
       nock(BASE_URL)
-        .get('/projects/proj-1/issues')
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
         .query({ status: 'open', priority: 'critical' })
         .reply(200, { data: mockIssues, count: 1 });
 
-      const result = await projectOps.listIssuesWithCount(client, 'proj-1', {
+      const result = await projectOps.listIssuesWithCount(client, TEST_IDS.proj1, {
         status: 'open',
         priority: 'critical',
       });
@@ -370,10 +371,10 @@ describe('Project Operations', () => {
       ];
 
       nock(BASE_URL)
-        .get('/projects/proj-1/issues')
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
         .reply(200, { data: mockIssues });
 
-      const result = await projectOps.listIssuesWithCount(client, 'proj-1');
+      const result = await projectOps.listIssuesWithCount(client, TEST_IDS.proj1);
 
       expect(result.issues).toHaveLength(2);
       expect(result.count).toBe(2);
@@ -382,9 +383,9 @@ describe('Project Operations', () => {
 
   describe('bulkUpdateIssueStatus', () => {
     it('should bulk update issue statuses', async () => {
-      const projectId = '33333333-3333-3333-3333-333333333333';
-      const issueId1 = '44444444-4444-4444-4444-444444444441';
-      const issueId2 = '44444444-4444-4444-4444-444444444442';
+      const projectId = TEST_IDS.proj3;
+      const issueId1 = TEST_IDS.issue1;
+      const issueId2 = TEST_IDS.issue2;
       const mockResults = [
         createMockBulkStatusUpdateResult({ issueId: issueId1, success: true }),
         createMockBulkStatusUpdateResult({ issueId: issueId2, success: true }),
@@ -418,16 +419,16 @@ describe('Project Operations', () => {
       const mockResult = createMockMergeIssuesResult({ mergedCount: 2 });
 
       nock(BASE_URL)
-        .post('/projects/proj-1/issues/merge', {
-          targetIssueId: 'issue-1',
-          sourceIssueIds: ['issue-2', 'issue-3'],
+        .post(`/projects/${TEST_IDS.proj1}/issues/merge`, {
+          targetIssueId: TEST_IDS.issue1,
+          sourceIssueIds: [TEST_IDS.issue2, TEST_IDS.issue3],
           strategy: 'keep_target',
         })
         .reply(200, { data: mockResult });
 
-      const result = await projectOps.mergeIssues(client, 'proj-1', {
-        targetIssueId: 'issue-1',
-        sourceIssueIds: ['issue-2', 'issue-3'],
+      const result = await projectOps.mergeIssues(client, TEST_IDS.proj1, {
+        targetIssueId: TEST_IDS.issue1,
+        sourceIssueIds: [TEST_IDS.issue2, TEST_IDS.issue3],
         strategy: 'keep_target',
       });
 

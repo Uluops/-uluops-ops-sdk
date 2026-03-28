@@ -4,6 +4,7 @@ import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as adminOps from '../../src/operations/admin.js';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import {
+  TEST_IDS,
   createMockAdminStats,
   createMockAdminUser,
   createMockAdminSession,
@@ -127,14 +128,14 @@ describe('Admin Operations', () => {
   describe('getUser', () => {
     it('should get user by ID with stats', async () => {
       const mockUser = createMockAdminUser({
-        id: 'user-1',
+        id: TEST_IDS.user1,
         email: 'user@example.com',
         role: 'developer',
         subscriptionTier: 'pro',
       });
 
       nock(BASE_URL)
-        .get('/admin/users/user-1')
+        .get(`/admin/users/${TEST_IDS.user1}`)
         .reply(200, {
           data: {
             user: mockUser,
@@ -147,7 +148,7 @@ describe('Admin Operations', () => {
           },
         });
 
-      const result = await adminOps.getUser(client, 'user-1');
+      const result = await adminOps.getUser(client, TEST_IDS.user1);
 
       expect(result.user.email).toBe('user@example.com');
       expect(result.stats.projectCount).toBe(5);
@@ -212,29 +213,29 @@ describe('Admin Operations', () => {
 
   describe('updateUser', () => {
     it('should update user role', async () => {
-      const mockUser = createMockAdminUser({ id: 'user-1', role: 'admin' });
+      const mockUser = createMockAdminUser({ id: TEST_IDS.user1, role: 'admin' });
 
       nock(BASE_URL)
-        .patch('/admin/users/user-1', { role: 'admin' })
+        .patch(`/admin/users/${TEST_IDS.user1}`, { role: 'admin' })
         .reply(200, {
           data: { user: mockUser },
         });
 
-      const result = await adminOps.updateUser(client, 'user-1', { role: 'admin' });
+      const result = await adminOps.updateUser(client, TEST_IDS.user1, { role: 'admin' });
 
       expect(result.user.role).toBe('admin');
     });
 
     it('should update subscription tier', async () => {
-      const mockUser = createMockAdminUser({ id: 'user-1', subscriptionTier: 'enterprise' });
+      const mockUser = createMockAdminUser({ id: TEST_IDS.user1, subscriptionTier: 'enterprise' });
 
       nock(BASE_URL)
-        .patch('/admin/users/user-1', { subscriptionTier: 'enterprise' })
+        .patch(`/admin/users/${TEST_IDS.user1}`, { subscriptionTier: 'enterprise' })
         .reply(200, {
           data: { user: mockUser },
         });
 
-      const result = await adminOps.updateUser(client, 'user-1', {
+      const result = await adminOps.updateUser(client, TEST_IDS.user1, {
         subscriptionTier: 'enterprise',
       });
 
@@ -244,15 +245,15 @@ describe('Admin Operations', () => {
 
   describe('deactivateUser', () => {
     it('should deactivate user', async () => {
-      const mockUser = createMockAdminUser({ id: 'user-1', isActive: false });
+      const mockUser = createMockAdminUser({ id: TEST_IDS.user1, isActive: false });
 
       nock(BASE_URL)
-        .delete('/admin/users/user-1')
+        .delete(`/admin/users/${TEST_IDS.user1}`)
         .reply(200, {
           data: { user: mockUser },
         });
 
-      const result = await adminOps.deactivateUser(client, 'user-1');
+      const result = await adminOps.deactivateUser(client, TEST_IDS.user1);
 
       expect(result.user.isActive).toBe(false);
     });
@@ -260,15 +261,15 @@ describe('Admin Operations', () => {
 
   describe('reactivateUser', () => {
     it('should reactivate user', async () => {
-      const mockUser = createMockAdminUser({ id: 'user-1', isActive: true, deactivatedAt: null });
+      const mockUser = createMockAdminUser({ id: TEST_IDS.user1, isActive: true, deactivatedAt: null });
 
       nock(BASE_URL)
-        .post('/admin/users/user-1/reactivate')
+        .post(`/admin/users/${TEST_IDS.user1}/reactivate`)
         .reply(200, {
           data: { user: mockUser },
         });
 
-      const result = await adminOps.reactivateUser(client, 'user-1');
+      const result = await adminOps.reactivateUser(client, TEST_IDS.user1);
 
       expect(result.user.isActive).toBe(true);
     });
@@ -279,10 +280,10 @@ describe('Admin Operations', () => {
       const mockResponse = createMockMessage('Password reset email sent');
 
       nock(BASE_URL)
-        .post('/admin/users/user-1/reset-password')
+        .post(`/admin/users/${TEST_IDS.user1}/reset-password`)
         .reply(200, { data: mockResponse });
 
-      const result = await adminOps.resetUserPassword(client, 'user-1');
+      const result = await adminOps.resetUserPassword(client, TEST_IDS.user1);
 
       expect(result.message).toBe('Password reset email sent');
     });
@@ -303,9 +304,9 @@ describe('Admin Operations', () => {
             success: 3,
             failed: 0,
             results: [
-              { userId: 'user-1', success: true },
-              { userId: 'user-2', success: true },
-              { userId: 'user-3', success: true },
+              { userId: TEST_IDS.user1, success: true },
+              { userId: TEST_IDS.user2, success: true },
+              { userId: TEST_IDS.user3, success: true },
             ],
           },
         });
@@ -324,7 +325,7 @@ describe('Admin Operations', () => {
   describe('listSessions', () => {
     it('should list all sessions', async () => {
       const session = createMockAdminSession({
-        userId: 'user-1',
+        userId: TEST_IDS.user1,
         userEmail: 'user@example.com',
         userAgent: 'Chrome',
       });
@@ -345,12 +346,12 @@ describe('Admin Operations', () => {
     });
 
     it('should filter sessions by user', async () => {
-      const session = createMockAdminSession({ userId: 'user-1' });
+      const session = createMockAdminSession({ userId: TEST_IDS.user1 });
       const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
 
       nock(BASE_URL)
         .get('/admin/sessions')
-        .query({ userId: 'user-1' })
+        .query({ userId: TEST_IDS.user1 })
         .reply(200, {
           data: {
             sessions: [session],
@@ -358,9 +359,9 @@ describe('Admin Operations', () => {
           },
         });
 
-      const result = await adminOps.listSessions(client, { userId: 'user-1' });
+      const result = await adminOps.listSessions(client, { userId: TEST_IDS.user1 });
 
-      expect(result.sessions[0].userId).toBe('user-1');
+      expect(result.sessions[0].userId).toBe(TEST_IDS.user1);
     });
   });
 
@@ -369,10 +370,10 @@ describe('Admin Operations', () => {
       const mockResponse = createMockMessage('Session terminated');
 
       nock(BASE_URL)
-        .delete('/admin/sessions/sess-1')
+        .delete(`/admin/sessions/${TEST_IDS.session1}`)
         .reply(200, { data: mockResponse });
 
-      const result = await adminOps.terminateSession(client, 'sess-1');
+      const result = await adminOps.terminateSession(client, TEST_IDS.session1);
 
       expect(result.message).toBe('Session terminated');
     });
@@ -383,10 +384,10 @@ describe('Admin Operations', () => {
       const mockResponse = createMockMessage('3 sessions terminated');
 
       nock(BASE_URL)
-        .delete('/admin/sessions/user/user-1')
+        .delete(`/admin/sessions/user/${TEST_IDS.user1}`)
         .reply(200, { data: mockResponse });
 
-      const result = await adminOps.terminateUserSessions(client, 'user-1');
+      const result = await adminOps.terminateUserSessions(client, TEST_IDS.user1);
 
       expect(result.message).toBe('3 sessions terminated');
     });
@@ -395,7 +396,7 @@ describe('Admin Operations', () => {
   describe('listKeys', () => {
     it('should list all API keys', async () => {
       const key = createMockAdminApiKey({
-        userId: 'user-1',
+        userId: TEST_IDS.user1,
         userEmail: 'user@example.com',
         name: 'Production Key',
       });
@@ -417,12 +418,12 @@ describe('Admin Operations', () => {
     });
 
     it('should filter keys by user', async () => {
-      const key = createMockAdminApiKey({ userId: 'user-1' });
+      const key = createMockAdminApiKey({ userId: TEST_IDS.user1 });
       const pagination = createMockPagination({ total: 1, page: 1, limit: 20 });
 
       nock(BASE_URL)
         .get('/admin/keys')
-        .query({ userId: 'user-1' })
+        .query({ userId: TEST_IDS.user1 })
         .reply(200, {
           data: {
             keys: [key],
@@ -430,9 +431,9 @@ describe('Admin Operations', () => {
           },
         });
 
-      const result = await adminOps.listKeys(client, { userId: 'user-1' });
+      const result = await adminOps.listKeys(client, { userId: TEST_IDS.user1 });
 
-      expect(result.keys[0].userId).toBe('user-1');
+      expect(result.keys[0].userId).toBe(TEST_IDS.user1);
     });
 
     it('should search keys', async () => {
@@ -460,10 +461,10 @@ describe('Admin Operations', () => {
       const mockResponse = createMockMessage('API key revoked');
 
       nock(BASE_URL)
-        .delete('/admin/keys/key-1')
+        .delete(`/admin/keys/${TEST_IDS.key1}`)
         .reply(200, { data: mockResponse });
 
-      const result = await adminOps.revokeKey(client, 'key-1');
+      const result = await adminOps.revokeKey(client, TEST_IDS.key1);
 
       expect(result.message).toBe('API key revoked');
     });

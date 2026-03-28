@@ -16,6 +16,7 @@ import {
   IssueResponseSchema,
 } from '../setup.js';
 import {
+  TEST_IDS,
   IssueDetailsResponseSchema,
   IssueNoteResponseSchema,
   StatusHistoryResponseSchema,
@@ -43,14 +44,14 @@ describe('Issue Operations', () => {
 
       nock(BASE_URL)
         .post('/issues', {
-          project: 'proj-1',
+          project: TEST_IDS.proj1,
           title: 'Manual bug report',
           priority: 'critical',
         })
         .reply(201, { data: mockIssue });
 
       const issue = await issueOps.create(client, {
-        project: 'proj-1',
+        project: TEST_IDS.proj1,
         title: 'Manual bug report',
         priority: 'critical',
       });
@@ -70,7 +71,7 @@ describe('Issue Operations', () => {
       nock(BASE_URL)
         .post('/issues', (body) => {
           return (
-            body.project === 'proj-1' &&
+            body.project === TEST_IDS.proj1 &&
             body.title === 'Security vulnerability' &&
             body.severity === 'critical' &&
             body.failureCode === 'SEM-VAL/C' &&
@@ -80,7 +81,7 @@ describe('Issue Operations', () => {
         .reply(201, { data: mockIssue });
 
       const issue = await issueOps.create(client, {
-        project: 'proj-1',
+        project: TEST_IDS.proj1,
         title: 'Security vulnerability',
         priority: 'critical',
         severity: 'critical',
@@ -120,7 +121,7 @@ describe('Issue Operations', () => {
         .get('/issues/search')
         .query({
           query: 'bug',
-          projects: 'proj-1,proj-2',
+          projects: `${TEST_IDS.proj1},${TEST_IDS.proj2}`,
           status: 'open',
           priority: 'critical',
         })
@@ -128,7 +129,7 @@ describe('Issue Operations', () => {
 
       const issues = await issueOps.search(client, {
         query: 'bug',
-        projects: ['proj-1', 'proj-2'],
+        projects: [TEST_IDS.proj1, TEST_IDS.proj2],
         status: 'open',
         priority: 'critical',
       });
@@ -143,10 +144,10 @@ describe('Issue Operations', () => {
 
       nock(BASE_URL)
         .get('/issues/by-fingerprint/abc123def456')
-        .query({ project: 'proj-1' })
+        .query({ project: TEST_IDS.proj1 })
         .reply(200, { data: mockIssue });
 
-      const issue = await issueOps.getByFingerprint(client, 'abc123def456', 'proj-1');
+      const issue = await issueOps.getByFingerprint(client, 'abc123def456', TEST_IDS.proj1);
 
       expect(issue.fingerprint).toBe('abc123def456');
     });
@@ -161,10 +162,10 @@ describe('Issue Operations', () => {
 
       nock(BASE_URL)
         .patch('/issues/by-fingerprint/abc123/status')
-        .query({ project: 'proj-1' })
+        .query({ project: TEST_IDS.proj1 })
         .reply(200, { data: mockResult });
 
-      const result = await issueOps.updateStatusByFingerprint(client, 'abc123', 'proj-1', {
+      const result = await issueOps.updateStatusByFingerprint(client, 'abc123', TEST_IDS.proj1, {
         status: 'completed',
         reason: 'Fixed in latest release',
       });
@@ -175,7 +176,7 @@ describe('Issue Operations', () => {
 
   describe('get', () => {
     it('should get issue by ID', async () => {
-      const issueId = '11111111-1111-1111-1111-111111111111';
+      const issueId = TEST_IDS.issue1;
       const mockIssue = createMockIssue({
         id: issueId,
         title: 'Some bug',
@@ -199,9 +200,9 @@ describe('Issue Operations', () => {
 
   describe('getDetails', () => {
     it('should get full issue details', async () => {
-      const issueId = '22222222-2222-2222-2222-222222222222';
-      const runId1 = '33333333-3333-3333-3333-333333333331';
-      const runId2 = '33333333-3333-3333-3333-333333333332';
+      const issueId = TEST_IDS.issue2;
+      const runId1 = TEST_IDS.run1;
+      const runId2 = TEST_IDS.run2;
       const mockDetails = createMockIssueDetails();
       // Override to ensure we get the expected data with valid UUIDs
       mockDetails.occurrences = [
@@ -231,7 +232,7 @@ describe('Issue Operations', () => {
 
   describe('getHistory', () => {
     it('should get issue status history', async () => {
-      const issueId = '99999999-9999-9999-9999-999999999991';
+      const issueId = '00000000-0000-4000-a000-000000000091';
       const mockHistory = [
         createMockStatusHistory({ from: null, to: 'open', reason: null }),
         createMockStatusHistory({
@@ -264,7 +265,7 @@ describe('Issue Operations', () => {
 
   describe('updateStatus', () => {
     it('should update issue status', async () => {
-      const issueId = '44444444-4444-4444-4444-444444444441';
+      const issueId = '00000000-0000-4000-a000-000000000092';
       const mockIssue = createMockIssue({ id: issueId, status: 'completed' });
 
       nock(BASE_URL)
@@ -283,7 +284,7 @@ describe('Issue Operations', () => {
     });
 
     it('should update status without reason', async () => {
-      const issueId = '44444444-4444-4444-4444-444444444442';
+      const issueId = '00000000-0000-4000-a000-000000000093';
       const mockIssue = createMockIssue({ id: issueId, status: 'wontfix' });
 
       nock(BASE_URL)
@@ -300,7 +301,7 @@ describe('Issue Operations', () => {
 
   describe('edit', () => {
     it('should edit issue metadata', async () => {
-      const issueId = '55555555-5555-5555-5555-555555555551';
+      const issueId = '00000000-0000-4000-a000-000000000094';
       const mockIssue = createMockIssue({
         id: issueId,
         title: 'Updated title',
@@ -324,7 +325,7 @@ describe('Issue Operations', () => {
     });
 
     it('should update file location', async () => {
-      const issueId = '55555555-5555-5555-5555-555555555552';
+      const issueId = '00000000-0000-4000-a000-000000000095';
       const mockIssue = createMockIssue({
         id: issueId,
         filePath: 'src/new-location.ts',
@@ -349,7 +350,7 @@ describe('Issue Operations', () => {
 
   describe('addNote', () => {
     it('should add note to issue', async () => {
-      const issueId = '66666666-6666-6666-6666-666666666661';
+      const issueId = '00000000-0000-4000-a000-000000000096';
       const mockNote = createMockIssueNote({
         content: 'Investigation notes here',
         noteType: 'context',
@@ -371,7 +372,7 @@ describe('Issue Operations', () => {
     });
 
     it('should add resolution note', async () => {
-      const issueId = '66666666-6666-6666-6666-666666666662';
+      const issueId = '00000000-0000-4000-a000-000000000097';
       const mockNote = createMockIssueNote({
         content: 'Fixed by updating validation logic',
         noteType: 'resolution',
@@ -397,7 +398,7 @@ describe('Issue Operations', () => {
 
   describe('restore', () => {
     it('should restore deleted issue', async () => {
-      const issueId = '77777777-7777-7777-7777-777777777771';
+      const issueId = '00000000-0000-4000-a000-000000000098';
       const mockIssue = createMockIssue({ id: issueId, status: 'open', deletedAt: null });
 
       mockValidatedEndpoint(BASE_URL, 'post', `/issues/${issueId}/restore`, mockIssue, IssueResponseSchema);
@@ -410,7 +411,7 @@ describe('Issue Operations', () => {
 
   describe('undoLastChange', () => {
     it('should undo last status change', async () => {
-      const issueId = '88888888-8888-8888-8888-888888888881';
+      const issueId = '00000000-0000-4000-a000-000000000099';
       const mockIssue = createMockIssue({ id: issueId, status: 'open' });
 
       mockValidatedEndpoint(BASE_URL, 'post', `/issues/${issueId}/undo`, mockIssue, IssueResponseSchema);
@@ -423,8 +424,8 @@ describe('Issue Operations', () => {
 
   describe('bulkUpdateStatus', () => {
     it('should bulk update issue statuses', async () => {
-      const issueId1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-      const issueId2 = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+      const issueId1 = TEST_IDS.issue1;
+      const issueId2 = TEST_IDS.issue2;
       const mockResults = [
         createMockBulkStatusUpdateResult({ issueId: issueId1, success: true }),
         createMockBulkStatusUpdateResult({ issueId: issueId2, success: true }),
@@ -461,12 +462,12 @@ describe('Issue Operations', () => {
       mockValidatedListEndpoint(
         BASE_URL,
         'get',
-        '/projects/proj-1/issues',
+        `/projects/${TEST_IDS.proj1}/issues`,
         mockIssues,
         IssueResponseSchema
       );
 
-      const issues = await issueOps.listByProject(client, 'proj-1');
+      const issues = await issueOps.listByProject(client, TEST_IDS.proj1);
 
       expect(issues).toHaveLength(2);
       expect(issues[0].title).toBe('Bug 1');
@@ -483,7 +484,7 @@ describe('Issue Operations', () => {
       ];
 
       nock(BASE_URL)
-        .get('/projects/proj-1/issues')
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
         .query({
           status: 'open',
           priority: 'critical',
@@ -492,7 +493,7 @@ describe('Issue Operations', () => {
         })
         .reply(200, { data: mockIssues });
 
-      const issues = await issueOps.listByProject(client, 'proj-1', {
+      const issues = await issueOps.listByProject(client, TEST_IDS.proj1, {
         status: 'open',
         priority: 'critical',
         failureDomain: 'SEM',

@@ -4,6 +4,7 @@ import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as runOps from '../../src/operations/runs.js';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import {
+  TEST_IDS,
   createMockRun,
   createMockValidatorSnapshot,
   createMockIssue,
@@ -169,9 +170,9 @@ describe('Run Operations', () => {
           data: {
             baseRun,
             compareRun,
-            fixed: [{ issueId: 'issue-1', title: 'Fixed bug' }],
-            new: [{ issueId: 'issue-2', title: 'New issue' }],
-            unchanged: [{ issueId: 'issue-3', title: 'Still there' }],
+            fixed: [{ issueId: TEST_IDS.issue1, title: 'Fixed bug' }],
+            new: [{ issueId: TEST_IDS.issue2, title: 'New issue' }],
+            unchanged: [{ issueId: TEST_IDS.issue3, title: 'Still there' }],
             agentChanges: [
               { name: 'code-validator', baseScore: 75, compareScore: 85, change: 10 },
             ],
@@ -187,10 +188,10 @@ describe('Run Operations', () => {
       expect(result.baseRun.runNumber).toBe(1);
       expect(result.compareRun.runNumber).toBe(2);
       expect(result.fixed).toHaveLength(1);
-      expect(result.fixed[0].issueId).toBe('issue-1');
+      expect(result.fixed[0].issueId).toBe(TEST_IDS.issue1);
       expect(result.fixed[0].title).toBe('Fixed bug');
       expect(result.new).toHaveLength(1);
-      expect(result.new[0].issueId).toBe('issue-2');
+      expect(result.new[0].issueId).toBe(TEST_IDS.issue2);
       expect(result.unchanged).toHaveLength(1);
       expect(result.agentChanges).toHaveLength(1);
       expect(result.agentChanges[0].name).toBe('code-validator');
@@ -275,12 +276,12 @@ describe('Run Operations', () => {
       const run2 = createMockRun({ runNumber: 2 });
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1')
+        .get(`/runs/project/${TEST_IDS.proj1}`)
         .reply(200, {
           data: [run1, run2],
         });
 
-      const runs = await runOps.listByProject(client, 'proj-1');
+      const runs = await runOps.listByProject(client, TEST_IDS.proj1);
 
       expect(runs).toHaveLength(2);
       expect(runs[0].runNumber).toBe(1);
@@ -291,13 +292,13 @@ describe('Run Operations', () => {
       const run = createMockRun({ runNumber: 11 });
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1')
+        .get(`/runs/project/${TEST_IDS.proj1}`)
         .query({ limit: 5, offset: 10 })
         .reply(200, {
           data: [run],
         });
 
-      const runs = await runOps.listByProject(client, 'proj-1', {
+      const runs = await runOps.listByProject(client, TEST_IDS.proj1, {
         limit: 5,
         offset: 10,
       });
@@ -316,12 +317,12 @@ describe('Run Operations', () => {
       };
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1')
+        .get(`/runs/project/${TEST_IDS.proj1}`)
         .reply(200, {
           data: [run],
         });
 
-      const runs = await runOps.listByProject(client, 'proj-1');
+      const runs = await runOps.listByProject(client, TEST_IDS.proj1);
 
       expect(runs).toHaveLength(1);
       expect(runs[0].totalRecommendations).toBe(5);
@@ -335,12 +336,12 @@ describe('Run Operations', () => {
       const mockRun = createMockRun({ runNumber: 100, workflowType: 'ship' });
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1/latest')
+        .get(`/runs/project/${TEST_IDS.proj1}/latest`)
         .reply(200, {
           data: mockRun,
         });
 
-      const run = await runOps.getLatest(client, 'proj-1');
+      const run = await runOps.getLatest(client, TEST_IDS.proj1);
 
       expect(run.runNumber).toBe(100);
     });
@@ -349,13 +350,13 @@ describe('Run Operations', () => {
       const mockRun = createMockRun({ runNumber: 95, workflowType: 'post-implementation' });
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1/latest')
+        .get(`/runs/project/${TEST_IDS.proj1}/latest`)
         .query({ workflowType: 'post-implementation' })
         .reply(200, {
           data: mockRun,
         });
 
-      const run = await runOps.getLatest(client, 'proj-1', 'post-implementation');
+      const run = await runOps.getLatest(client, TEST_IDS.proj1, 'post-implementation');
 
       expect(run.workflowType).toBe('post-implementation');
     });
@@ -367,7 +368,7 @@ describe('Run Operations', () => {
       const mockIssue = createMockIssue({ title: 'Fix this' });
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1/details')
+        .get(`/runs/project/${TEST_IDS.proj1}/details`)
         .reply(200, {
           data: {
             run: mockRun,
@@ -378,7 +379,7 @@ describe('Run Operations', () => {
           },
         });
 
-      const details = await runOps.getDetails(client, 'proj-1');
+      const details = await runOps.getDetails(client, TEST_IDS.proj1);
 
       expect(details.recommendations).toHaveLength(1);
       expect(details.recommendations[0].correlation).toBe('new');
@@ -391,7 +392,7 @@ describe('Run Operations', () => {
       const mockRun = createMockRun({ runNumber: 5 });
 
       nock(BASE_URL)
-        .get('/runs/project/proj-1/details')
+        .get(`/runs/project/${TEST_IDS.proj1}/details`)
         .query({ runNumber: 5 })
         .reply(200, {
           data: {
@@ -401,7 +402,7 @@ describe('Run Operations', () => {
           },
         });
 
-      const details = await runOps.getDetails(client, 'proj-1', 5);
+      const details = await runOps.getDetails(client, TEST_IDS.proj1, 5);
 
       expect(details.run.runNumber).toBe(5);
     });
@@ -446,7 +447,7 @@ describe('Run Operations', () => {
 
   describe('deleteRun', () => {
     it('should delete run with confirmation header', async () => {
-      const runId = 'run-uuid-123';
+      const runId = TEST_IDS.run1;
       nock(BASE_URL)
         .delete(`/runs/${runId}`)
         .matchHeader('X-Confirm-Delete', runId)

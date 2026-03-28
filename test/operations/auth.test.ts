@@ -4,6 +4,7 @@ import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as authOps from '../../src/operations/auth.js';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import {
+  TEST_IDS,
   createMockAuthUser,
   createMockPublicUser,
   createMockLoginResponse,
@@ -54,7 +55,7 @@ describe('Auth Operations', () => {
   describe('login', () => {
     it('should login and return token', async () => {
       const mockResponse = createMockLoginResponse({
-        user: createMockAuthUser({ id: 'user-1', email: 'user@example.com' }),
+        user: createMockAuthUser({ id: TEST_IDS.user1, email: 'user@example.com' }),
         token: 'jwt-token-xyz',
       });
 
@@ -71,7 +72,7 @@ describe('Auth Operations', () => {
       });
 
       expect(result.token).toBe('jwt-token-xyz');
-      expect(result.user.id).toBe('user-1');
+      expect(result.user.id).toBe(TEST_IDS.user1);
     });
   });
 
@@ -158,7 +159,7 @@ describe('Auth Operations', () => {
   describe('getMe', () => {
     it('should get current user', async () => {
       const mockUser = createMockAuthUser({
-        id: 'user-1',
+        id: TEST_IDS.user1,
         email: 'user@example.com',
         role: 'developer',
       });
@@ -169,7 +170,7 @@ describe('Auth Operations', () => {
 
       const user = await authOps.getMe(client);
 
-      expect(user.id).toBe('user-1');
+      expect(user.id).toBe(TEST_IDS.user1);
       expect(user.email).toBe('user@example.com');
       expect(user.role).toBe('developer');
     });
@@ -178,7 +179,7 @@ describe('Auth Operations', () => {
   describe('getProfile', () => {
     it('should get full user profile', async () => {
       const mockUser = createMockPublicUser({
-        id: 'user-1',
+        id: TEST_IDS.user1,
         email: 'user@example.com',
         name: 'Test User',
       });
@@ -198,7 +199,7 @@ describe('Auth Operations', () => {
   describe('updateProfile', () => {
     it('should update user profile', async () => {
       const mockUser = createMockPublicUser({
-        id: 'user-1',
+        id: TEST_IDS.user1,
         name: 'New Name',
       });
 
@@ -274,10 +275,10 @@ describe('Auth Operations', () => {
   describe('revokeApiKey', () => {
     it('should revoke API key', async () => {
       nock(BASE_URL)
-        .delete('/auth/keys/key-1')
+        .delete(`/auth/keys/${TEST_IDS.key1}`)
         .reply(200, { data: {} });
 
-      await expect(authOps.revokeApiKey(client, 'key-1')).resolves.toBeUndefined();
+      await expect(authOps.revokeApiKey(client, TEST_IDS.key1)).resolves.toBeUndefined();
     });
   });
 
@@ -300,10 +301,10 @@ describe('Auth Operations', () => {
   describe('revokeSession', () => {
     it('should revoke session', async () => {
       nock(BASE_URL)
-        .delete('/auth/sessions/sess-1')
+        .delete(`/auth/sessions/${TEST_IDS.session1}`)
         .reply(200, { data: {} });
 
-      await expect(authOps.revokeSession(client, 'sess-1')).resolves.toBeUndefined();
+      await expect(authOps.revokeSession(client, TEST_IDS.session1)).resolves.toBeUndefined();
     });
   });
 });

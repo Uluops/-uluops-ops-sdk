@@ -27,7 +27,7 @@ import {
 export class InputValidationError extends Error {
   constructor(
     message: string,
-    public readonly errors: z.ZodError['errors']
+    public readonly errors: z.ZodError['issues']
   ) {
     super(message);
     this.name = 'InputValidationError';
@@ -37,20 +37,20 @@ export class InputValidationError extends Error {
 /**
  * Generic validation function
  */
-function formatZodError(e: z.ZodIssue): string {
+function formatZodIssue(e: z.ZodError['issues'][number]): string {
   const field = e.path.join('.') || '(root)';
-  if (e.code === 'invalid_enum_value') {
-    const opts = (e as z.ZodInvalidEnumValueIssue).options.join(', ');
-    return `${field} must be one of: ${opts} (got '${(e as z.ZodInvalidEnumValueIssue).received}')`;
+  if (e.code === 'invalid_value' && 'values' in e) {
+    const opts = (e.values as string[]).join(', ');
+    return `${field} must be one of: ${opts}`;
   }
   return `${field}: ${e.message}`;
 }
 
-function validate<T>(schema: z.ZodSchema<T>, data: unknown, context: string): T {
+function validate<T>(schema: z.ZodType<T>, data: unknown, context: string): T {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const messages = result.error.errors.map(formatZodError).join(', ');
-    throw new InputValidationError(`Invalid ${context}: ${messages}`, result.error.errors);
+    const messages = result.error.issues.map(formatZodIssue).join(', ');
+    throw new InputValidationError(`Invalid ${context}: ${messages}`, result.error.issues);
   }
   return result.data;
 }
