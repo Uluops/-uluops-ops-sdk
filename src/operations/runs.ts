@@ -120,6 +120,7 @@ export async function update(
     averageScore: input.averageScore,
     rawMarkdown: input.rawMarkdown,
     agents: input.agents,
+    recommendations: input.recommendations,
   });
 }
 
@@ -186,6 +187,7 @@ export async function updateById(
     averageScore: input.averageScore,
     rawMarkdown: input.rawMarkdown,
     agents: input.agents,
+    recommendations: input.recommendations,
   });
 }
 

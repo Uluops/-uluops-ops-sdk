@@ -239,6 +239,7 @@ export interface UpdateRunInput {
   allGatesPassed?: boolean;
   averageScore?: number | null;
   rawMarkdown?: string | null;
+  recommendations?: RecommendationInput[];
   agents?: Array<{
     name: string;
     score?: number;
