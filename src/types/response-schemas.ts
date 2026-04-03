@@ -121,59 +121,11 @@ export const MessageResponseSchema = z.object({
   message: z.string(),
 });
 
-// ============================================
-// ADMIN RESPONSE SCHEMAS
-// ============================================
-
-export const AdminStatsResponseSchema = z.object({
-  totalUsers: z.number().int().nonnegative(),
-  activeUsers: z.number().int().nonnegative(),
-  totalProjects: z.number().int().nonnegative().optional(),
-  totalRuns: z.number().int().nonnegative().optional(),
-  totalIssues: z.number().int().nonnegative().optional(),
-  totalSessions: z.number().int().nonnegative().optional(),
-  totalApiKeys: z.number().int().nonnegative().optional(),
-  storageUsedMb: z.number().nonnegative().optional(),
-});
-
 export const PaginationResponseSchema = z.object({
   total: z.number().int().nonnegative(),
   page: z.number().int().positive(),
   limit: z.number().int().positive(),
   totalPages: z.number().int().nonnegative().optional(),
-});
-
-export const AdminUserResponseSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  role: UserRoleResponseSchema.optional(),
-  subscriptionTier: SubscriptionTierResponseSchema.optional(),
-  isActive: z.boolean().optional(),
-  deactivatedAt: NullableDateTimeSchema.optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  updatedAt: DateTimeStringSchema.optional(),
-});
-
-export const AdminSessionResponseSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  userEmail: z.string().optional(),
-  userAgent: z.string().nullable().optional(),
-  ipAddress: z.string().nullable().optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  lastActiveAt: DateTimeStringSchema.optional(),
-  expiresAt: DateTimeStringSchema.optional(),
-});
-
-export const AdminApiKeyResponseSchema = z.object({
-  id: z.string(),
-  userId: z.string().optional(),
-  userEmail: z.string().optional(),
-  name: z.string().nullable().optional(),
-  prefix: z.string().optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  lastUsedAt: NullableDateTimeSchema.optional(),
-  expiresAt: NullableDateTimeSchema.optional(),
 });
 
 // ============================================
@@ -478,5 +430,3 @@ export type LoginResponseData = z.infer<typeof LoginResponseSchema>;
 export type RegisterResponseData = z.infer<typeof RegisterResponseSchema>;
 export type PublicApiKeyResponse = z.infer<typeof PublicApiKeyResponseSchema>;
 export type PublicSessionResponse = z.infer<typeof PublicSessionResponseSchema>;
-export type AdminStatsResponse = z.infer<typeof AdminStatsResponseSchema>;
-export type AdminUserResponseData = z.infer<typeof AdminUserResponseSchema>;

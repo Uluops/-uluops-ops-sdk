@@ -12,9 +12,6 @@ import {
   ChangePasswordInputSchema,
   ResetPasswordInputSchema,
   CreateApiKeyInputSchema,
-  AdminCreateUserInputSchema,
-  AdminUpdateUserInputSchema,
-  BulkDeactivateInputSchema,
   BulkStatusUpdateInputSchema,
   DeleteProjectInputSchema,
   RenameProjectInputSchema,
@@ -138,21 +135,6 @@ export function validateBulkStatusUpdateInput(data: unknown) {
   return validate(BulkStatusUpdateInputSchema, data, 'bulk status update');
 }
 
-// ============================================
-// ADMIN VALIDATORS
-// ============================================
-
-export function validateAdminCreateUserInput(data: unknown) {
-  return validate(AdminCreateUserInputSchema, data, 'admin user creation');
-}
-
-export function validateAdminUpdateUserInput(data: unknown) {
-  return validate(AdminUpdateUserInputSchema, data, 'admin user update');
-}
-
-export function validateBulkDeactivateInput(data: unknown) {
-  return validate(BulkDeactivateInputSchema, data, 'bulk deactivation');
-}
 
 // ============================================
 // SIMPLE VALIDATORS

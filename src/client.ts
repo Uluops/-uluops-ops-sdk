@@ -6,8 +6,6 @@ import * as runOps from './operations/runs.js';
 import * as issueOps from './operations/issues.js';
 import * as analyticsOps from './operations/analytics.js';
 import * as taxonomyOps from './operations/taxonomy.js';
-import * as adminOps from './operations/admin.js';
-
 import type {
   RegisterInput,
   LoginInput,
@@ -22,16 +20,6 @@ import type {
   PublicSession,
   AuthUser,
   PublicUser,
-  AdminCreateUserInput,
-  AdminUpdateUserInput,
-  AdminSession,
-  AdminApiKey,
-  AdminStats,
-  UserStats,
-  BulkResult,
-  ListUsersQuery,
-  ListSessionsQuery,
-  ListKeysQuery,
 } from './types/auth.js';
 
 import type {
@@ -109,7 +97,7 @@ import type {
   TaxonomySchema,
 } from './types/analytics.js';
 
-import type { MessageResponse, Pagination, DeleteResult } from './types/responses.js';
+import type { MessageResponse, DeleteResult } from './types/responses.js';
 
 /**
  * OpsClient configuration options
@@ -484,52 +472,4 @@ export class OpsClient {
       taxonomyOps.get(this.httpClient),
   };
 
-  // ============================================
-  // ADMIN OPERATIONS
-  // ============================================
-
-  /** Administrative operations (requires admin role) */
-  readonly admin = {
-    getStats: (): Promise<AdminStats> =>
-      adminOps.getStats(this.httpClient),
-
-    listUsers: (query?: ListUsersQuery): Promise<{ users: PublicUser[]; pagination: Pagination }> =>
-      adminOps.listUsers(this.httpClient, query),
-
-    getUser: (userId: string): Promise<{ user: PublicUser; stats: UserStats }> =>
-      adminOps.getUser(this.httpClient, userId),
-
-    createUser: (input: AdminCreateUserInput): Promise<{ user: PublicUser; temporaryPassword?: string }> =>
-      adminOps.createUser(this.httpClient, input),
-
-    updateUser: (userId: string, input: AdminUpdateUserInput): Promise<{ user: PublicUser }> =>
-      adminOps.updateUser(this.httpClient, userId, input),
-
-    deactivateUser: (userId: string): Promise<{ user: PublicUser }> =>
-      adminOps.deactivateUser(this.httpClient, userId),
-
-    reactivateUser: (userId: string): Promise<{ user: PublicUser }> =>
-      adminOps.reactivateUser(this.httpClient, userId),
-
-    resetUserPassword: (userId: string): Promise<{ message: string }> =>
-      adminOps.resetUserPassword(this.httpClient, userId),
-
-    bulkDeactivate: (userIds: string[]): Promise<BulkResult> =>
-      adminOps.bulkDeactivate(this.httpClient, userIds),
-
-    listSessions: (query?: ListSessionsQuery): Promise<{ sessions: AdminSession[]; pagination: Pagination }> =>
-      adminOps.listSessions(this.httpClient, query),
-
-    terminateSession: (sessionId: string): Promise<{ message: string }> =>
-      adminOps.terminateSession(this.httpClient, sessionId),
-
-    terminateUserSessions: (userId: string): Promise<{ message: string }> =>
-      adminOps.terminateUserSessions(this.httpClient, userId),
-
-    listKeys: (query?: ListKeysQuery): Promise<{ keys: AdminApiKey[]; pagination: Pagination }> =>
-      adminOps.listKeys(this.httpClient, query),
-
-    revokeKey: (keyId: string): Promise<{ message: string }> =>
-      adminOps.revokeKey(this.httpClient, keyId),
-  };
 }

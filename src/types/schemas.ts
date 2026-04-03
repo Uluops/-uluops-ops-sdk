@@ -305,59 +305,6 @@ export const AgentMatrixQuerySchema = AnalyticsQuerySchema.extend({
   minIssues: z.coerce.number().int().min(1).max(1000).optional(),
 });
 
-// ============================================
-// ADMIN SCHEMAS
-// ============================================
-
-export const AdminCreateUserInputSchema = z.object({
-  email: z.string().email().max(255),
-  password: PasswordSchema.optional(),
-  role: UserRoleSchema,
-  subscriptionTier: SubscriptionTierSchema,
-  sendWelcomeEmail: z.boolean().optional(),
-});
-
-export const AdminUpdateUserInputSchema = z
-  .object({
-    email: z.string().email().max(255).optional(),
-    role: UserRoleSchema.optional(),
-    subscriptionTier: SubscriptionTierSchema.optional(),
-  })
-  .refine((data) => Object.values(data).some((v) => v !== undefined), {
-    message: 'At least one field must be provided',
-  });
-
-export const BulkDeactivateInputSchema = z.object({
-  userIds: z.array(UuidSchema).min(1).max(50),
-});
-
-export const ListUsersQuerySchema = z.object({
-  search: z.string().optional(),
-  role: z.union([UserRoleSchema, z.array(UserRoleSchema)]).optional(),
-  subscriptionTier: z.union([SubscriptionTierSchema, z.array(SubscriptionTierSchema)]).optional(),
-  isActive: z.coerce.boolean().optional(),
-  sortBy: z.enum(['email', 'createdAt', 'updatedAt', 'role']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-  page: z.coerce.number().int().positive().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-});
-
-export const ListSessionsQuerySchema = z.object({
-  userId: UuidSchema.optional(),
-  sortBy: z.enum(['createdAt', 'lastActiveAt', 'expiresAt']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-  page: z.coerce.number().int().positive().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-});
-
-export const ListKeysQuerySchema = z.object({
-  userId: UuidSchema.optional(),
-  search: z.string().max(100).optional(),
-  sortBy: z.enum(['createdAt', 'lastUsedAt', 'expiresAt']).optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-  page: z.coerce.number().int().positive().optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-});
 
 // ============================================
 // TYPE EXPORTS (inferred from schemas)
