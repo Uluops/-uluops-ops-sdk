@@ -30,6 +30,7 @@ const OPS_ENV_VARS: EnvVarConfig = {
   apiKey: ENV_VARS.API_KEY,
   email: ENV_VARS.EMAIL,
   password: ENV_VARS.PASSWORD,
+  sessionToken: ENV_VARS.SESSION_TOKEN,
   baseUrl: ENV_VARS.BASE_URL,
   debug: ENV_VARS.DEBUG,
 };
@@ -53,6 +54,7 @@ export function loadCredentials(options: {
   apiKey?: string;
   email?: string;
   password?: string;
+  sessionToken?: string;
   profile?: string;
 } = {}): CoreCredentials {
   return coreLoadCredentials({ ...options, envVars: OPS_ENV_VARS });
@@ -65,6 +67,7 @@ export function loadConfig(options: {
   apiKey?: string;
   email?: string;
   password?: string;
+  sessionToken?: string;
   baseUrl?: string;
   profile?: string;
   debug?: boolean;

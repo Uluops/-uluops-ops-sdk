@@ -47,6 +47,7 @@ export const ENV_VARS = {
   API_KEY: 'ULUOPS_API_KEY',
   EMAIL: 'ULUOPS_EMAIL',
   PASSWORD: 'ULUOPS_PASSWORD',
+  SESSION_TOKEN: 'ULUOPS_SESSION_TOKEN',
   BASE_URL: 'ULUOPS_BASE_URL',
   DEBUG: 'ULUOPS_DEBUG',
 } as const;
@@ -56,7 +57,7 @@ export const ENV_VARS = {
  * (node:module) so this module can be imported in browser environments.
  * Keep in sync with package.json "version" field.
  */
-export const SDK_VERSION = '0.3.1';
+export const SDK_VERSION = '0.6.0';
 
 /**
  * User agent string for requests
