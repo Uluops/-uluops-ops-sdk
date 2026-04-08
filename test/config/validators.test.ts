@@ -17,9 +17,6 @@ import {
   validateUpdateIssueStatusInput,
   validateCreateIssueNoteInput,
   validateBulkStatusUpdateInput,
-  validateAdminCreateUserInput,
-  validateAdminUpdateUserInput,
-  validateBulkDeactivateInput,
   validateUuid,
   validateRequiredString,
   validatePositiveInt,
@@ -633,113 +630,6 @@ describe('Config Validators', () => {
         const validationError = error as InputValidationError;
         expect(validationError.errors.length).toBeGreaterThan(0);
       }
-    });
-  });
-
-  describe('validateAdminCreateUserInput', () => {
-    it('should accept valid input and return validated data', () => {
-      const result = validateAdminCreateUserInput({
-        email: 'new@example.com',
-        role: 'developer',
-        subscriptionTier: 'free',
-      });
-      expect(result.email).toBe('new@example.com');
-      expect(result.role).toBe('developer');
-      expect(result.subscriptionTier).toBe('free');
-    });
-
-    it('should accept input with optional password and preserve all fields', () => {
-      const result = validateAdminCreateUserInput({
-        email: 'new@example.com',
-        password: 'securePass123',
-        role: 'admin',
-        subscriptionTier: 'enterprise',
-      });
-      expect(result.password).toBe('securePass123');
-      expect(result.role).toBe('admin');
-      expect(result.subscriptionTier).toBe('enterprise');
-    });
-
-    it('should reject invalid role with error path', () => {
-      try {
-        validateAdminCreateUserInput({
-          email: 'new@example.com',
-          role: 'superadmin',
-          subscriptionTier: 'free',
-        });
-        expect.fail('Should throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(InputValidationError);
-        const validationError = error as InputValidationError;
-        expect(validationError.errors.some(e => e.path.includes('role'))).toBe(true);
-      }
-    });
-
-    it('should reject invalid subscription tier with error path', () => {
-      try {
-        validateAdminCreateUserInput({
-          email: 'new@example.com',
-          role: 'developer',
-          subscriptionTier: 'platinum',
-        });
-        expect.fail('Should throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(InputValidationError);
-        const validationError = error as InputValidationError;
-        expect(validationError.errors.some(e => e.path.includes('subscriptionTier'))).toBe(true);
-      }
-    });
-
-    it('should reject missing required fields', () => {
-      expect(() => validateAdminCreateUserInput({ email: 'new@example.com' })).toThrow(InputValidationError);
-    });
-  });
-
-  describe('validateAdminUpdateUserInput', () => {
-    it('should accept valid role update and return validated data', () => {
-      const result = validateAdminUpdateUserInput({ role: 'admin' });
-      expect(result.role).toBe('admin');
-    });
-
-    it('should accept valid tier update and return it', () => {
-      const result = validateAdminUpdateUserInput({ subscriptionTier: 'pro' });
-      expect(result.subscriptionTier).toBe('pro');
-    });
-
-    it('should reject empty object with error details', () => {
-      try {
-        validateAdminUpdateUserInput({});
-        expect.fail('Should throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(InputValidationError);
-        const validationError = error as InputValidationError;
-        expect(validationError.errors.length).toBeGreaterThan(0);
-      }
-    });
-  });
-
-  describe('validateBulkDeactivateInput', () => {
-    it('should accept valid UUID array and return validated data', () => {
-      const result = validateBulkDeactivateInput({
-        userIds: [TEST_UUID],
-      });
-      expect(result.userIds).toHaveLength(1);
-      expect(result.userIds[0]).toBe(TEST_UUID);
-    });
-
-    it('should reject empty array with error path', () => {
-      try {
-        validateBulkDeactivateInput({ userIds: [] });
-        expect.fail('Should throw');
-      } catch (error) {
-        expect(error).toBeInstanceOf(InputValidationError);
-        const validationError = error as InputValidationError;
-        expect(validationError.errors.some(e => e.path.includes('userIds'))).toBe(true);
-      }
-    });
-
-    it('should reject non-UUID strings', () => {
-      expect(() => validateBulkDeactivateInput({ userIds: ['not-a-uuid'] })).toThrow(InputValidationError);
     });
   });
 

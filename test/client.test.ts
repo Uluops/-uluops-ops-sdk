@@ -425,56 +425,6 @@ describe('OpsClient', () => {
     });
   });
 
-  describe('admin operations', () => {
-    it('should get admin stats', async () => {
-      nock(BASE_URL)
-        .get('/admin/stats')
-        .reply(200, {
-          data: {
-            totalUsers: 100,
-            activeUsers: 80,
-            totalProjects: 50,
-          },
-        });
-
-      const stats = await client.admin.getStats();
-
-      expect(stats.totalUsers).toBe(100);
-      expect(stats.activeUsers).toBe(80);
-    });
-
-    it('should list users with pagination', async () => {
-      nock(BASE_URL)
-        .get('/admin/users')
-        .query({ limit: 10 })
-        .reply(200, {
-          data: {
-            users: [
-              { id: 'user-1', email: 'user1@example.com' },
-            ],
-            pagination: { total: 100, limit: 10, page: 1 },
-          },
-        });
-
-      const result = await client.admin.listUsers({ limit: 10 });
-
-      expect(result.users).toHaveLength(1);
-      expect(result.pagination.total).toBe(100);
-    });
-
-    it('should deactivate user', async () => {
-      nock(BASE_URL)
-        .delete('/admin/users/user-1')
-        .reply(200, {
-          data: { user: { id: 'user-1', isActive: false } },
-        });
-
-      const result = await client.admin.deactivateUser('user-1');
-
-      expect(result.user.isActive).toBe(false);
-    });
-  });
-
   describe('request body transformation', () => {
     it('should send camelCase in save run request', async () => {
       // Verify the exact request body uses camelCase (no snake_case conversion)
@@ -569,40 +519,6 @@ describe('OpsClient', () => {
 
       expect(projects).toEqual([]);
       expect(projects).toHaveLength(0);
-    });
-
-    it('should pass limit and page parameters correctly', async () => {
-      nock(BASE_URL)
-        .get('/admin/users')
-        .query({ limit: 5, page: 3 })
-        .reply(200, {
-          data: {
-            users: [{ id: 'user-11', email: 'user11@example.com' }],
-            pagination: { total: 100, limit: 5, page: 3 },
-          },
-        });
-
-      const result = await client.admin.listUsers({ limit: 5, page: 3 });
-
-      expect(result.pagination.page).toBe(3);
-      expect(result.pagination.limit).toBe(5);
-    });
-
-    it('should handle large page returning empty', async () => {
-      nock(BASE_URL)
-        .get('/admin/users')
-        .query({ limit: 10, page: 100 })
-        .reply(200, {
-          data: {
-            users: [],
-            pagination: { total: 50, limit: 10, page: 100 },
-          },
-        });
-
-      const result = await client.admin.listUsers({ limit: 10, page: 100 });
-
-      expect(result.users).toHaveLength(0);
-      expect(result.pagination.total).toBe(50);
     });
 
     it('should handle project issues with all filter params', async () => {
