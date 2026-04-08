@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 0.3.1** | [Changelog](./CHANGELOG.md)
+**Current version: 0.7.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -31,8 +31,8 @@ const result = await client.runs.save({
   project: 'my-project',
   workflowType: 'post-implementation',
   agents: [
-    { name: 'code-validator', score: 85, status: 'PASS' },
-    { name: 'test-architect', score: 72, status: 'APPROVED' },
+    { name: 'code-validator', score: 85, decision: 'PASS' },
+    { name: 'test-architect', score: 72, decision: 'APPROVED' },
   ],
   recommendations: [
     {
@@ -90,7 +90,6 @@ for (const [domain, trend] of Object.entries(burndown.trends)) {
   - [Analytics Operations](#analytics-operations)
   - [Taxonomy Operations](#taxonomy-operations)
   - [Health Check](#health-check)
-  - [Admin Operations](#admin-operations)
 - [Environment Variables](#environment-variables)
 - [Error Handling](#error-handling)
 - [Advanced Usage](#advanced-usage)
@@ -244,7 +243,7 @@ import type { Run } from '@uluops/ops-sdk/types/runs';
 import type { BurndownResult } from '@uluops/ops-sdk/types/analytics';
 import type { Priority, Status, Severity } from '@uluops/ops-sdk/types/enums';
 import type { ApiResponse } from '@uluops/ops-sdk/types/responses';
-import type { SaveFeaturesListInput } from '@uluops/ops-sdk/types/schemas';
+import type { SaveRunInput } from '@uluops/ops-sdk/types/schemas';
 import type { Credentials } from '@uluops/ops-sdk/types/auth';
 ```
 
@@ -689,14 +688,14 @@ const result = await client.runs.save({
     {
       name: 'code-validator',
       score: 85,
-      status: 'PASS',
+      decision: 'PASS',
       model: 'sonnet',
-      tokens: { input_tokens: 1000, output_tokens: 500 },
+      tokens: { inputTokens: 1000, outputTokens: 500 },
     },
     {
       name: 'test-architect',
       score: 72,
-      status: 'APPROVED',
+      decision: 'APPROVED',
     },
   ],
   recommendations: [
@@ -1362,173 +1361,6 @@ console.log(health.database); // { connected: boolean, latencyMs: number }
 
 ---
 
-### Admin Operations
-
-Administrative operations (requires admin role).
-
-#### `client.admin.getStats()`
-
-Get dashboard statistics.
-
-```typescript
-const stats = await client.admin.getStats();
-console.log(`Users: ${stats.totalUsers} (${stats.activeUsers} active)`);
-console.log(`Projects: ${stats.totalProjects}`);
-console.log(`Runs: ${stats.totalRuns}`);
-console.log(`Issues: ${stats.totalIssues}`);
-```
-
-#### `client.admin.listUsers(query)`
-
-List all users with pagination.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `role` | `string` | No | Filter by role |
-| `search` | `string` | No | Search by email |
-| `page` | `number` | No | Page number |
-| `limit` | `number` | No | Results per page |
-
-```typescript
-const { users, pagination } = await client.admin.listUsers({
-  role: 'admin',
-  limit: 20,
-});
-```
-
-#### `client.admin.getUser(userId)`
-
-Get user details with stats.
-
-```typescript
-const { user, stats } = await client.admin.getUser('user-id');
-console.log(`${user.email}: ${stats.projectCount} projects, ${stats.runCount} runs`);
-```
-
-#### `client.admin.createUser(input)`
-
-Create a new user.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `email` | `string` | Yes | User email |
-| `password` | `string` | No | User password |
-| `role` | `string` | No | User role |
-| `sendWelcomeEmail` | `boolean` | No | Send welcome email |
-
-```typescript
-const { user, temporaryPassword } = await client.admin.createUser({
-  email: 'newuser@example.com',
-  role: 'developer',
-  sendWelcomeEmail: true,
-});
-```
-
-#### `client.admin.updateUser(userId, input)`
-
-Update user attributes.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `role` | `string` | No | New role |
-| `subscriptionTier` | `string` | No | New subscription tier |
-
-```typescript
-const { user } = await client.admin.updateUser('user-id', {
-  role: 'admin',
-  subscriptionTier: 'enterprise',
-});
-```
-
-#### `client.admin.deactivateUser(userId)`
-
-Deactivate a user account.
-
-```typescript
-const { user } = await client.admin.deactivateUser('user-id');
-console.log(`User deactivated: ${user.isActive === false}`);
-```
-
-#### `client.admin.reactivateUser(userId)`
-
-Reactivate a deactivated user.
-
-```typescript
-const { user } = await client.admin.reactivateUser('user-id');
-```
-
-#### `client.admin.resetUserPassword(userId)`
-
-Trigger a password reset email for a user.
-
-```typescript
-const { message } = await client.admin.resetUserPassword('user-id');
-```
-
-#### `client.admin.bulkDeactivate(userIds)`
-
-Bulk deactivate multiple users.
-
-```typescript
-const result = await client.admin.bulkDeactivate(['user-1', 'user-2', 'user-3']);
-console.log(`Deactivated: ${result.success}, Failed: ${result.failed}`);
-```
-
-#### `client.admin.listSessions(query)`
-
-List all active sessions.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `userId` | `string` | No | Filter by user |
-| `page` | `number` | No | Page number |
-| `limit` | `number` | No | Results per page |
-
-```typescript
-const { sessions, pagination } = await client.admin.listSessions({ userId: 'user-1' });
-```
-
-#### `client.admin.terminateSession(sessionId)`
-
-Terminate a specific session.
-
-```typescript
-const { message } = await client.admin.terminateSession('session-id');
-```
-
-#### `client.admin.terminateUserSessions(userId)`
-
-Terminate all sessions for a user.
-
-```typescript
-const { message } = await client.admin.terminateUserSessions('user-id');
-```
-
-#### `client.admin.listKeys(query)`
-
-List all API keys.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `userId` | `string` | No | Filter by user |
-| `search` | `string` | No | Search by name |
-| `page` | `number` | No | Page number |
-| `limit` | `number` | No | Results per page |
-
-```typescript
-const { keys, pagination } = await client.admin.listKeys({ search: 'production' });
-```
-
-#### `client.admin.revokeKey(keyId)`
-
-Revoke an API key.
-
-```typescript
-const { message } = await client.admin.revokeKey('key-id');
-```
-
----
-
 ## CLI
 
 For command-line usage, see the dedicated CLI package: [`@uluops/cli`](https://www.npmjs.com/package/@uluops/cli).
@@ -1645,7 +1477,7 @@ try {
 }
 ```
 
-Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCreateProjectInput`, `validateSaveFeaturesListInput`, `validateCreateUserIssueInput`, `validateUpdateIssueStatusInput`, `validateBulkStatusUpdateInput`, and more. See [`src/config/validators.ts`](./src/config/validators.ts) for the full list.
+Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCreateProjectInput`, `validateSaveRunInput`, `validateCreateUserIssueInput`, `validateUpdateIssueStatusInput`, `validateBulkStatusUpdateInput`, and more. See [`src/config/validators.ts`](./src/config/validators.ts) for the full list.
 
 ## Advanced Usage
 
