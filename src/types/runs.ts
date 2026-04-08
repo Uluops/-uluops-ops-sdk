@@ -52,7 +52,7 @@ export interface AgentSnapshot {
   name: string;
   score: number;
   maxScore: number;
-  status: string;
+  decision: string;
   model: string | null;
   inputTokens: number | null;
   outputTokens: number | null;
@@ -82,7 +82,7 @@ export interface AgentInput {
   name: string;
   score: number;
   maxScore?: number;
-  status: string;
+  decision: string;
   model?: string;
   tokens?: TokenUsage;
   durationMs?: number;
@@ -239,11 +239,13 @@ export interface UpdateRunInput {
   allGatesPassed?: boolean;
   averageScore?: number | null;
   rawMarkdown?: string | null;
+  archivedAt?: string | null;
+  archiveReason?: string | null;
   recommendations?: RecommendationInput[];
   agents?: Array<{
     name: string;
     score?: number;
-    status?: string;
+    decision?: string;
     model?: string;
     inputTokens?: number;
     outputTokens?: number;
