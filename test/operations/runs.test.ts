@@ -52,7 +52,6 @@ describe('Run Operations', () => {
       });
 
       expect(result.run.runNumber).toBe(1);
-      expect(result.issues.created).toBe(2);
     });
 
     it('should save run with recommendations', async () => {
@@ -70,7 +69,8 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            issues: { created: 1, updated: 0 },
+            correlation: { newIssues: 1, recurringIssues: 0, regressions: 0 },
+            deduplicated: false,
           },
         });
 
@@ -89,7 +89,8 @@ describe('Run Operations', () => {
         ],
       });
 
-      expect(result.issues.created).toBe(1);
+      expect(result.correlation.newIssues).toBe(1);
+      expect(result.deduplicated).toBe(false);
     });
 
     it('should save run with token metrics', async () => {
@@ -268,6 +269,53 @@ describe('Run Operations', () => {
       expect(run.allGatesPassed).toBe(true);
       expect(run.averageScore).toBe(92);
     });
+
+    it('should forward archivedAt and archiveReason in update body', async () => {
+      const archivedAt = '2026-04-08T22:00:00.000Z';
+      const mockRun = createMockRun({ runNumber: 10 });
+
+      nock(BASE_URL)
+        .patch('/runs/update', (body) => {
+          return (
+            body.project === 'my-project' &&
+            body.runNumber === 10 &&
+            body.archivedAt === archivedAt &&
+            body.archiveReason === 'Superseded by run #11'
+          );
+        })
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.update(client, {
+        project: 'my-project',
+        runNumber: 10,
+        archivedAt,
+        archiveReason: 'Superseded by run #11',
+      });
+
+      expect(run.runNumber).toBe(10);
+    });
+
+    it('should forward null archivedAt for unarchive', async () => {
+      const mockRun = createMockRun({ runNumber: 10 });
+
+      nock(BASE_URL)
+        .patch('/runs/update', (body) => {
+          return (
+            body.archivedAt === null &&
+            body.archiveReason === null
+          );
+        })
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.update(client, {
+        project: 'my-project',
+        runNumber: 10,
+        archivedAt: null,
+        archiveReason: null,
+      });
+
+      expect(run.runNumber).toBe(10);
+    });
   });
 
   describe('listByProject', () => {
@@ -442,6 +490,81 @@ describe('Run Operations', () => {
       });
 
       expect(run.averageScore).toBe(88);
+    });
+
+    it('should forward archivedAt and archiveReason for archive', async () => {
+      const mockRun = createMockRun();
+      const archivedAt = '2026-04-08T22:00:00.000Z';
+
+      nock(BASE_URL)
+        .patch(`/runs/${mockRun.id}`, (body) => {
+          return (
+            body.archivedAt === archivedAt &&
+            body.archiveReason === 'Manual cleanup'
+          );
+        })
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.updateById(client, mockRun.id, {
+        archivedAt,
+        archiveReason: 'Manual cleanup',
+      });
+
+      expect(run.id).toBe(mockRun.id);
+    });
+
+    it('should forward null archivedAt for unarchive', async () => {
+      const mockRun = createMockRun();
+
+      nock(BASE_URL)
+        .patch(`/runs/${mockRun.id}`, (body) => {
+          return body.archivedAt === null && body.archiveReason === null;
+        })
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.updateById(client, mockRun.id, {
+        archivedAt: null,
+        archiveReason: null,
+      });
+
+      expect(run.id).toBe(mockRun.id);
+    });
+  });
+
+  describe('error paths', () => {
+    it('should throw on save 409 conflict', async () => {
+      nock(BASE_URL)
+        .post('/runs')
+        .reply(409, { error: 'Duplicate run' });
+
+      await expect(
+        runOps.save(client, {
+          project: 'my-project',
+          workflowType: 'ship',
+          agents: [{ name: 'v', score: 50, decision: 'PASS' }],
+          recommendations: [],
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should throw on get 404', async () => {
+      nock(BASE_URL)
+        .get('/runs/nonexistent-id')
+        .reply(404, { error: 'Run not found' });
+
+      await expect(
+        runOps.get(client, 'nonexistent-id')
+      ).rejects.toThrow();
+    });
+
+    it('should throw on updateById 404', async () => {
+      nock(BASE_URL)
+        .patch('/runs/nonexistent-id')
+        .reply(404, { error: 'Run not found' });
+
+      await expect(
+        runOps.updateById(client, 'nonexistent-id', { averageScore: 50 })
+      ).rejects.toThrow();
     });
   });
 

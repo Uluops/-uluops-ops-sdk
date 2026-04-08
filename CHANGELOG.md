@@ -4,6 +4,49 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-04-08
+
+### Added
+- `archivedAt` and `archiveReason` fields on `UpdateRunInput` — enables archive/unarchive via the standard update endpoint
+- `updateById()` now forwards `archivedAt` and `archiveReason` to the API
+- `update()` (by project+number) now forwards `archivedAt` and `archiveReason` to the API
+- `orgSlug` constructor option on `OpsClient` for multi-tenancy (sets `X-Org-Slug` header)
+
+### Fixed
+- **Breaking:** `AgentInput.decision` and `AgentSnapshot.decision` now match Zod schemas — previously the TypeScript interfaces used `decision` while `AgentInputSchema` and `AgentSnapshotResponseSchema` used `status`, causing runtime validation failures for consumers following the TypeScript types
+- `SDK_VERSION` constant synced to `0.7.0`
+
+### Removed
+- Admin operations (`client.admin.*`) — removed from public SDK surface. Use the dashboard or direct API for admin tasks.
+- Dead admin test suites (16 tests referencing removed operations)
+
+### Docs
+- README: removed 165-line Admin Operations section documenting removed `client.admin.*`
+- README: Quick Start examples use `decision` (not `status`) and `inputTokens` (not `input_tokens`)
+- README: fixed stale type import (`SaveFeaturesListInput` → `SaveRunInput`)
+- README: version badge updated from 0.3.1 to 0.7.0
+- README: documented `orgSlug` constructor option
+
+## [0.6.0] - 2026-04-06
+
+### Added
+- `ULUOPS_SESSION_TOKEN` environment variable support for session-based auth
+
+## [0.4.0] - 2026-03-15
+
+### Removed
+- Admin operations removed from public SDK surface (moved to dashboard-only)
+
+### Changed
+- Bumped version to reflect breaking change
+
+## [0.2.0] - 2026-03-01
+
+### Added
+- Analysis operations: `getAnalysis()`, `getProjectAnalysis()`, `queryAnalysisRecords()`
+- `AnalysisRecord` and `AnalysisSummary` types for structured analysis data
+- `definitionType`, `definitionName`, `definitionVersion`, `definitionHash` fields on `SaveRunInput`
+
 ## [0.1.5] - 2026-02-15
 
 ### Fixed

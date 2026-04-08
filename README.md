@@ -265,6 +265,9 @@ const client = new OpsClient({
   retries: 3,                  // Retry count for transient errors (default: 3)
   debug: false,                // Enable debug logging
 
+  // Multi-tenancy
+  orgSlug: 'my-org',           // Org slug (sets X-Org-Slug header on all requests)
+
   // Callbacks
   onTokenRefresh: (token) => { /* handle token refresh */ },
 });
