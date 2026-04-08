@@ -222,7 +222,7 @@ export function createMockValidatorSnapshot(
     name: 'code-validator',
     score: 85,
     maxScore: 100,
-    status: 'PASS',
+    decision: 'PASS',
     model: 'sonnet',
     inputTokens: 1000,
     outputTokens: 500,

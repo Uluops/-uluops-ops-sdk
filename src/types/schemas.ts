@@ -124,7 +124,7 @@ export const AgentInputSchema = z.object({
   name: z.string().min(1).max(100),
   score: z.number().min(0).max(100),
   maxScore: z.number().min(0).max(100).optional(),
-  status: z.string().min(1).max(50),
+  decision: z.string().min(1).max(50),
   model: z.string().max(50).optional(),
   tokens: TokenUsageSchema.optional(),
   durationMs: z.number().int().nonnegative().optional(),

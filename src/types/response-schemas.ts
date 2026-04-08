@@ -275,7 +275,7 @@ export const AgentSnapshotResponseSchema = z.object({
   name: z.string(),
   score: z.number().min(0).max(100),
   maxScore: z.number().min(0).max(100).optional(),
-  status: z.string(),
+  decision: z.string(),
   model: z.string().nullable().optional(),
   inputTokens: z.number().int().nonnegative().nullable().optional(),
   outputTokens: z.number().int().nonnegative().nullable().optional(),

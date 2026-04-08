@@ -205,7 +205,7 @@ describe('OpsClient', () => {
         project: 'my-project',
         workflowType: 'post-implementation',
         agents: [
-          { name: 'code-validator', score: 85, status: 'PASS' },
+          { name: 'code-validator', score: 85, decision: 'PASS' },
         ],
         recommendations: [],
       });
@@ -460,7 +460,7 @@ describe('OpsClient', () => {
           {
             name: 'code-validator',
             score: 85,
-            status: 'PASS',
+            decision: 'PASS',
             tokens: {
               inputTokens: 1000,
               outputTokens: 500,

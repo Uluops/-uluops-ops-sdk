@@ -119,6 +119,8 @@ export async function update(
     allGatesPassed: input.allGatesPassed,
     averageScore: input.averageScore,
     rawMarkdown: input.rawMarkdown,
+    archivedAt: input.archivedAt,
+    archiveReason: input.archiveReason,
     agents: input.agents,
     recommendations: input.recommendations,
   });

@@ -46,7 +46,7 @@ describe('Run Operations', () => {
         project: 'my-project',
         workflowType: 'post-implementation',
         agents: [
-          { name: 'code-validator', score: 85, status: 'PASS' },
+          { name: 'code-validator', score: 85, decision: 'PASS' },
         ],
         recommendations: [],
       });
@@ -78,7 +78,7 @@ describe('Run Operations', () => {
         project: 'my-project',
         workflowType: 'post-implementation',
         agents: [
-          { name: 'code-validator', score: 70, status: 'FAIL' },
+          { name: 'code-validator', score: 70, decision: 'FAIL' },
         ],
         recommendations: [
           {
@@ -117,7 +117,7 @@ describe('Run Operations', () => {
           {
             name: 'test-architect',
             score: 90,
-            status: 'PASS',
+            decision: 'PASS',
             tokens: {
               inputTokens: 1000,
               outputTokens: 500,
@@ -147,7 +147,7 @@ describe('Run Operations', () => {
       const result = await runOps.validate(client, {
         project: 'my-project',
         workflowType: 'post-implementation',
-        agents: [{ name: 'code-validator', score: 85, status: 'PASS' }],
+        agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
         recommendations: [
           { agent: 'code-validator', title: 'New issue', priority: 'suggested' },
         ],
