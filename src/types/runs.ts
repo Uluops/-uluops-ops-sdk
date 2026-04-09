@@ -231,7 +231,7 @@ export interface ArchiveRunsInput {
  * Archive runs result
  */
 export interface ArchiveRunsResult {
-  archivedCount: number;
+  archived: number;
 }
 
 /**

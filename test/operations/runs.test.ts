@@ -219,7 +219,7 @@ describe('Run Operations', () => {
         })
         .reply(200, {
           data: {
-            archivedCount: 9,
+            archived: 9,
           },
         });
 
@@ -228,7 +228,7 @@ describe('Run Operations', () => {
         beforeRunNumber: 10,
       });
 
-      expect(result.archivedCount).toBe(9);
+      expect(result.archived).toBe(9);
     });
 
     it('should archive runs keeping last N', async () => {
@@ -238,7 +238,7 @@ describe('Run Operations', () => {
           keepLast: 5,
         })
         .reply(200, {
-          data: { archivedCount: 15 },
+          data: { archived: 15 },
         });
 
       const result = await runOps.archive(client, {
@@ -246,7 +246,7 @@ describe('Run Operations', () => {
         keepLast: 5,
       });
 
-      expect(result.archivedCount).toBe(15);
+      expect(result.archived).toBe(15);
     });
   });
 

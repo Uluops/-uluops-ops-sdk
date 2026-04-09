@@ -373,7 +373,7 @@ export const ValidateRunResponseSchema = z.object({
 });
 
 export const ArchiveRunsResultResponseSchema = z.object({
-  archivedCount: z.number().int().nonnegative(),
+  archived: z.number().int().nonnegative(),
 });
 
 export const DeleteResultResponseSchema = z.object({
