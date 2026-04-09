@@ -171,10 +171,7 @@ export interface ValidateRunResponse {
   wouldUpdate: number;
   wouldRegress: number;
   validationErrors: string[];
-  preview?: {
-    run: Run;
-    agents: AgentSnapshot[];
-  };
+  preview: CorrelationResult;
 }
 
 /**

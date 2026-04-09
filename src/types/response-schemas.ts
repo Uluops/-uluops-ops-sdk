@@ -165,14 +165,30 @@ export const ProjectSummaryResponseSchema = z.object({
   stats: ProjectSummaryStatsResponseSchema,
 });
 
-export const TrendDataPointResponseSchema = z.object({
+export const DailyIssueCountsResponseSchema = z.object({
   date: z.string(),
-  openIssues: z.number().int().nonnegative(),
-  completedIssues: z.number().int().nonnegative(),
-  closedIssues: z.number().int().nonnegative().optional(), // Legacy field
-  newIssues: z.number().int().nonnegative(),
-  resolvedIssues: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+  critical: z.number().int().nonnegative(),
+  new: z.number().int().nonnegative(),
+  resolved: z.number().int().nonnegative(),
 });
+
+export const TrendsSummaryResponseSchema = z.object({
+  averageNew: z.number(),
+  averageResolved: z.number(),
+  netChange: z.number(),
+  trendDirection: z.enum(['improving', 'stable', 'worsening']),
+});
+
+export const ProjectTrendsResponseSchema = z.object({
+  project: ProjectResponseSchema,
+  days: z.number().int().positive(),
+  daily: z.array(DailyIssueCountsResponseSchema),
+  summary: TrendsSummaryResponseSchema,
+});
+
+/** @deprecated Use DailyIssueCountsResponseSchema — kept for contract-helpers compat */
+export const TrendDataPointResponseSchema = DailyIssueCountsResponseSchema;
 
 // ============================================
 // ISSUE RESPONSE SCHEMAS
@@ -372,10 +388,7 @@ export const ValidateRunResponseSchema = z.object({
   wouldUpdate: z.number().int().nonnegative(),
   wouldRegress: z.number().int().nonnegative(),
   validationErrors: z.array(z.string()),
-  preview: z.object({
-    run: RunResponseSchema,
-    agents: z.array(AgentSnapshotResponseSchema),
-  }).optional(),
+  preview: CorrelationResultResponseSchema,
 });
 
 export const ArchiveRunsResultResponseSchema = z.object({

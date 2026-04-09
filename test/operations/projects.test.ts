@@ -244,31 +244,37 @@ describe('Project Operations', () => {
 
   describe('getTrends', () => {
     it('should get project trends with default query', async () => {
-      const mockTrends = [
-        createMockTrendDataPoint({ date: '2024-01-01', openIssues: 10, completedIssues: 5 }),
-        createMockTrendDataPoint({ date: '2024-01-02', openIssues: 8, completedIssues: 7 }),
-      ];
+      const mockProject = createMockProject();
+      const mockTrends = {
+        project: mockProject,
+        days: 30,
+        daily: [
+          { date: '2024-01-01', total: 15, critical: 3, new: 10, resolved: 5 },
+          { date: '2024-01-02', total: 12, critical: 2, new: 4, resolved: 7 },
+        ],
+        summary: { averageNew: 7, averageResolved: 6, netChange: 1, trendDirection: 'stable' as const },
+      };
 
-      mockValidatedListEndpoint(
-        BASE_URL,
-        'get',
-        `/projects/${TEST_IDS.proj1}/trends`,
-        mockTrends,
-        TrendDataPointResponseSchema
-      );
+      nock(BASE_URL)
+        .get(`/projects/${TEST_IDS.proj1}/trends`)
+        .reply(200, { data: mockTrends });
 
       const trends = await projectOps.getTrends(client, TEST_IDS.proj1);
 
-      expect(trends).toHaveLength(2);
-      expect(trends[0].date).toBe('2024-01-01');
-      expect(trends[0].openIssues).toBe(10);
-      expect(trends[0].completedIssues).toBe(5);
-      expect(trends[1].openIssues).toBe(8);
-      expect(trends[1].completedIssues).toBe(7);
+      expect(trends.daily).toHaveLength(2);
+      expect(trends.daily[0].date).toBe('2024-01-01');
+      expect(trends.daily[0].total).toBe(15);
+      expect(trends.summary.trendDirection).toBe('stable');
     });
 
     it('should get project trends with query parameters', async () => {
-      const mockTrends = [createMockTrendDataPoint({ date: '2024-01-01', openIssues: 5 })];
+      const mockProject = createMockProject();
+      const mockTrends = {
+        project: mockProject,
+        days: 7,
+        daily: [{ date: '2024-01-01', total: 5, critical: 1, new: 3, resolved: 2 }],
+        summary: { averageNew: 3, averageResolved: 2, netChange: 1, trendDirection: 'stable' as const },
+      };
 
       nock(BASE_URL)
         .get(`/projects/${TEST_IDS.proj1}/trends`)
@@ -277,7 +283,8 @@ describe('Project Operations', () => {
 
       const trends = await projectOps.getTrends(client, TEST_IDS.proj1, { days: 7 });
 
-      expect(trends).toHaveLength(1);
+      expect(trends.daily).toHaveLength(1);
+      expect(trends.days).toBe(7);
     });
   });
 

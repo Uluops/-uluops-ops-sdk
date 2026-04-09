@@ -30,7 +30,7 @@ import type {
   RenameProjectInput,
   ProjectSummaryResponse,
   PaginatedIssues,
-  TrendDataPoint,
+  ProjectTrends,
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
   BulkIssueStatusUpdate,
@@ -291,7 +291,7 @@ export class OpsClient {
     getSummary: (idOrName: string): Promise<ProjectSummaryResponse> =>
       projectOps.getSummary(this.httpClient, idOrName),
 
-    getTrends: (idOrName: string, query?: ProjectTrendsQuery): Promise<TrendDataPoint[]> =>
+    getTrends: (idOrName: string, query?: ProjectTrendsQuery): Promise<ProjectTrends> =>
       projectOps.getTrends(this.httpClient, idOrName, query),
 
     listIssues: (idOrName: string, query?: ListProjectIssuesQuery): Promise<Issue[]> =>

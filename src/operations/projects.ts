@@ -8,7 +8,7 @@ import type {
   DeleteProjectInput,
   RenameProjectInput,
   ProjectSummaryResponse,
-  TrendDataPoint,
+  ProjectTrends,
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
   BulkIssueStatusUpdate,
@@ -22,7 +22,7 @@ import type { DeleteResult } from '../types/responses.js';
 import {
   ProjectResponseSchema,
   ProjectSummaryResponseSchema,
-  TrendDataPointResponseSchema,
+  ProjectTrendsResponseSchema,
   IssueResponseSchema,
   DeleteResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
@@ -145,11 +145,11 @@ export async function getTrends(
   client: OpsHttpClient,
   idOrName: string,
   query?: ProjectTrendsQuery
-): Promise<TrendDataPoint[]> {
+): Promise<ProjectTrends> {
   return client.get(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
     toApiQuery(query),
-    { schema: z.array(TrendDataPointResponseSchema) }
+    { schema: ProjectTrendsResponseSchema }
   );
 }
 

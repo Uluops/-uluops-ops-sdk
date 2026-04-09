@@ -158,19 +158,23 @@ describe('OpsClient', () => {
     });
 
     it('should get project trends', async () => {
+      const mockTrends = {
+        project: createMockProject(),
+        days: 30,
+        daily: [
+          { date: '2024-01-01', total: 10, critical: 2, new: 5, resolved: 3 },
+          { date: '2024-01-02', total: 8, critical: 1, new: 3, resolved: 4 },
+        ],
+        summary: { averageNew: 4, averageResolved: 3.5, netChange: 0.5, trendDirection: 'stable' as const },
+      };
       nock(BASE_URL)
         .get('/projects/proj-1/trends')
-        .reply(200, {
-          data: [
-            createMockTrendDataPoint({ date: '2024-01-01', openIssues: 10 }),
-            createMockTrendDataPoint({ date: '2024-01-02', openIssues: 8 }),
-          ],
-        });
+        .reply(200, { data: mockTrends });
 
       const trends = await client.projects.getTrends('proj-1');
 
-      expect(trends).toHaveLength(2);
-      expect(trends[0].openIssues).toBe(10);
+      expect(trends.daily).toHaveLength(2);
+      expect(trends.daily[0].total).toBe(10);
     });
   });
 
@@ -479,10 +483,16 @@ describe('OpsClient', () => {
 
     it('should transform camelCase query params to snake_case', async () => {
       // Verify query param transformation in project trends
+      const mockTrends = {
+        project: createMockProject(),
+        days: 30,
+        daily: [],
+        summary: { averageNew: 0, averageResolved: 0, netChange: 0, trendDirection: 'stable' as const },
+      };
       nock(BASE_URL)
         .get('/projects/proj-1/trends')
         .query({ days: 30 })
-        .reply(200, { data: [] });
+        .reply(200, { data: mockTrends });
 
       await client.projects.getTrends('proj-1', { days: 30 });
     });

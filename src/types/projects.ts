@@ -69,15 +69,38 @@ export interface ProjectSummaryResponse {
 export type ProjectSummary = ProjectSummaryResponse;
 
 /**
- * Single trend data point
+ * Daily issue counts for trend data
  */
-export interface TrendDataPoint {
+export interface DailyIssueCounts {
   date: string;
-  openIssues: number;
-  completedIssues: number;
-  newIssues: number;
-  resolvedIssues: number;
+  total: number;
+  critical: number;
+  new: number;
+  resolved: number;
 }
+
+/**
+ * Trend summary statistics
+ */
+export interface TrendsSummary {
+  averageNew: number;
+  averageResolved: number;
+  netChange: number;
+  trendDirection: 'improving' | 'stable' | 'worsening';
+}
+
+/**
+ * Full project trends response
+ */
+export interface ProjectTrends {
+  project: Project;
+  days: number;
+  daily: DailyIssueCounts[];
+  summary: TrendsSummary;
+}
+
+/** @deprecated Use DailyIssueCounts */
+export type TrendDataPoint = DailyIssueCounts;
 
 /**
  * Project trends query options

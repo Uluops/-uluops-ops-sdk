@@ -57,7 +57,7 @@ export const ENV_VARS = {
  * (node:module) so this module can be imported in browser environments.
  * Keep in sync with package.json "version" field.
  */
-export const SDK_VERSION = '0.9.2';
+export const SDK_VERSION = '0.9.3';
 
 /**
  * User agent string for requests
