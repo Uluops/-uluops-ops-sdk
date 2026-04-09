@@ -39,9 +39,9 @@ import type {
   MergeIssuesResult,
 } from './types/projects.js';
 
+import type { z } from 'zod';
 import type {
   Run,
-  RunSummary,
   SaveRunInput,
   SaveRunResponse,
   ValidateRunResponse,
@@ -53,12 +53,15 @@ import type {
   UpdateRunByNumberInput,
   ListRunsQuery,
   RunDetails,
-  RunAnalysis,
-  AnalysisSummary,
-  AnalysisRecord,
   ProjectAnalysisQuery,
   AnalysisRecordsQuery,
 } from './types/runs.js';
+import type {
+  RunSummaryResponseSchema,
+  RunAnalysisResponseSchema,
+  ProjectAnalysisListResponseSchema,
+  AnalysisRecordsListResponseSchema,
+} from './types/response-schemas.js';
 
 import type {
   Issue,
@@ -324,7 +327,7 @@ export class OpsClient {
     update: (input: UpdateRunByNumberInput): Promise<Run> =>
       runOps.update(this.httpClient, input),
 
-    listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
+    listByProject: (projectId: string, query?: ListRunsQuery): Promise<z.infer<typeof RunSummaryResponseSchema>[]> =>
       runOps.listByProject(this.httpClient, projectId, query),
 
     getLatest: (projectId: string, workflowType?: string): Promise<Run> =>
@@ -343,13 +346,13 @@ export class OpsClient {
       runOps.deleteRun(this.httpClient, runId),
 
     // Analysis operations (v0.3.0)
-    getAnalysis: (runId: string): Promise<RunAnalysis> =>
+    getAnalysis: (runId: string): Promise<z.infer<typeof RunAnalysisResponseSchema>> =>
       runOps.getAnalysis(this.httpClient, runId),
 
-    getProjectAnalysis: (projectId: string, query?: ProjectAnalysisQuery): Promise<{ data: AnalysisSummary[]; total: number }> =>
+    getProjectAnalysis: (projectId: string, query?: ProjectAnalysisQuery): Promise<z.infer<typeof ProjectAnalysisListResponseSchema>> =>
       runOps.getProjectAnalysis(this.httpClient, projectId, query),
 
-    queryAnalysisRecords: (query?: AnalysisRecordsQuery): Promise<{ data: AnalysisRecord[]; total: number }> =>
+    queryAnalysisRecords: (query?: AnalysisRecordsQuery): Promise<z.infer<typeof AnalysisRecordsListResponseSchema>> =>
       runOps.queryAnalysisRecords(this.httpClient, query),
   };
 

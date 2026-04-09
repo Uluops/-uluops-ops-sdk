@@ -15,7 +15,10 @@ import {
   ProjectResponseSchema,
   IssueResponseSchema,
   RunResponseSchema,
+  RunSummaryResponseSchema,
   ValidatorSnapshotResponseSchema,
+  AnalysisRecordResponseSchema,
+  AnalysisSummaryResponseSchema,
   ProjectSummaryResponseSchema,
   ProjectSummaryStatsResponseSchema,
   TrendDataPointResponseSchema,
@@ -195,6 +198,11 @@ export function createMockRun(overrides: Partial<z.infer<typeof RunResponseSchem
     archivedAt: null,
     archiveReason: null,
     idempotencyKey: null,
+    definitionType: null,
+    definitionName: null,
+    definitionVersion: null,
+    definitionHash: null,
+    registrySyncedAt: null,
     createdAt: isoDate(1),
     updatedAt: isoDate(1),
     ...overrides,
@@ -239,6 +247,98 @@ export function createMockValidatorSnapshot(
     const result = ValidatorSnapshotResponseSchema.safeParse(data);
     if (!result.success) {
       throw new Error(`Invalid mock validator snapshot data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid RunSummary response data (list endpoint shape)
+ */
+export function createMockRunSummary(overrides: Partial<z.infer<typeof RunSummaryResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    projectId: generateId(),
+    runNumber: idCounter,
+    workflowType: 'post-implementation',
+    timestamp: isoDate(1),
+    allGatesPassed: true,
+    averageScore: 85,
+    archivedAt: null,
+    archiveReason: null,
+    createdAt: isoDate(1),
+    totalRecommendations: 0,
+    criticalCount: 0,
+    suggestedCount: 0,
+    backlogCount: 0,
+    agentScores: {},
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = RunSummaryResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock run summary data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid AnalysisRecord response data
+ */
+export function createMockAnalysisRecord(overrides: Partial<z.infer<typeof AnalysisRecordResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    runId: generateId(),
+    agentName: 'nietzsche-analyst',
+    agentType: 'analyst',
+    recordType: 'convention',
+    recordId: 'C-1',
+    title: 'Test convention',
+    classification: null,
+    severity: null,
+    recordData: {},
+    createdAt: isoDate(1),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AnalysisRecordResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock analysis record data: ${result.error.message}`);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Factory for creating valid AnalysisSummary response data
+ */
+export function createMockAnalysisSummary(overrides: Partial<z.infer<typeof AnalysisSummaryResponseSchema>> = {}) {
+  const data = {
+    id: generateId(),
+    runId: generateId(),
+    agentName: 'nietzsche-analyst',
+    agentType: 'analyst',
+    decision: 'VITAL',
+    score: 85,
+    decisionVocabulary: 'VITAL/DECADENT',
+    systemMetrics: null,
+    categoryScores: null,
+    epistemicAssessment: null,
+    auditImplications: null,
+    createdAt: isoDate(1),
+    ...overrides,
+  };
+
+  if (STRICT_CONTRACTS) {
+    const result = AnalysisSummaryResponseSchema.safeParse(data);
+    if (!result.success) {
+      throw new Error(`Invalid mock analysis summary data: ${result.error.message}`);
     }
   }
 

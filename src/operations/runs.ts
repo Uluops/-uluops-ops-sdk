@@ -1,8 +1,8 @@
+import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import type {
   Run,
-  RunSummary,
   SaveRunInput,
   SaveRunResponse,
   ValidateRunResponse,
@@ -14,13 +14,23 @@ import type {
   UpdateRunByNumberInput,
   ListRunsQuery,
   RunDetails,
-  RunAnalysis,
-  AnalysisSummary,
-  AnalysisRecord,
   ProjectAnalysisQuery,
   AnalysisRecordsQuery,
 } from '../types/runs.js';
 import type { DeleteResult } from '../types/responses.js';
+import {
+  RunResponseSchema,
+  RunSummaryResponseSchema,
+  SaveRunResponseSchema,
+  ValidateRunResponseSchema,
+  RunDiffResultResponseSchema,
+  ArchiveRunsResultResponseSchema,
+  DeleteResultResponseSchema,
+  RunDetailsResponseSchema,
+  RunAnalysisResponseSchema,
+  ProjectAnalysisListResponseSchema,
+  AnalysisRecordsListResponseSchema,
+} from '../types/response-schemas.js';
 import {
   validateSaveRunInput,
   validateArchiveRunsInput,
@@ -37,7 +47,7 @@ export async function save(
   input: SaveRunInput
 ): Promise<SaveRunResponse> {
   validateSaveRunInput(input);
-  return client.post<SaveRunResponse>('/runs', {
+  return client.post('/runs', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
@@ -52,7 +62,7 @@ export async function save(
     definitionHash: input.definitionHash,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
-  }, { retryMutations: true });
+  }, { retryMutations: true, schema: SaveRunResponseSchema });
 }
 
 /**
@@ -66,12 +76,12 @@ export async function validate(
   input: SaveRunInput
 ): Promise<ValidateRunResponse> {
   validateSaveRunInput(input);
-  return client.post<ValidateRunResponse>('/runs/validate', {
+  return client.post('/runs/validate', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
     recommendations: input.recommendations,
-  });
+  }, { schema: ValidateRunResponseSchema });
 }
 
 /**
@@ -81,11 +91,11 @@ export async function diff(
   client: OpsHttpClient,
   query: RunDiffQuery
 ): Promise<RunDiffResult> {
-  return client.get<RunDiffResult>('/runs/diff', {
+  return client.get('/runs/diff', {
     project: query.project,
     baseRun: query.baseRun,
     compareRun: query.compareRun,
-  });
+  }, { schema: RunDiffResultResponseSchema });
 }
 
 /**
@@ -96,13 +106,13 @@ export async function archive(
   input: ArchiveRunsInput
 ): Promise<ArchiveRunsResult> {
   validateArchiveRunsInput(input);
-  return client.post<ArchiveRunsResult>('/runs/archive', {
+  return client.post('/runs/archive', {
     project: input.project,
     beforeRunNumber: input.beforeRunNumber,
     beforeDate: input.beforeDate,
     keepLast: input.keepLast,
     reason: input.reason,
-  });
+  }, { schema: ArchiveRunsResultResponseSchema });
 }
 
 /**
@@ -112,7 +122,7 @@ export async function update(
   client: OpsHttpClient,
   input: UpdateRunByNumberInput
 ): Promise<Run> {
-  return client.patch<Run>('/runs/update', {
+  return client.patch('/runs/update', {
     project: input.project,
     runNumber: input.runNumber,
     workflowType: input.workflowType,
@@ -123,7 +133,7 @@ export async function update(
     archiveReason: input.archiveReason,
     agents: input.agents,
     recommendations: input.recommendations,
-  });
+  }, { schema: RunResponseSchema });
 }
 
 /**
@@ -133,10 +143,11 @@ export async function listByProject(
   client: OpsHttpClient,
   projectId: string,
   query?: ListRunsQuery
-): Promise<RunSummary[]> {
-  return client.get<RunSummary[]>(
+): Promise<z.infer<typeof RunSummaryResponseSchema>[]> {
+  return client.get(
     `/runs/project/${encodeURIComponent(projectId)}`,
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(RunSummaryResponseSchema) }
   );
 }
 
@@ -148,9 +159,10 @@ export async function getLatest(
   projectId: string,
   workflowType?: string
 ): Promise<Run> {
-  return client.get<Run>(
+  return client.get(
     `/runs/project/${encodeURIComponent(projectId)}/latest`,
-    workflowType ? { workflowType } : undefined
+    workflowType ? { workflowType } : undefined,
+    { schema: RunResponseSchema }
   );
 }
 
@@ -162,9 +174,10 @@ export async function getDetails(
   projectId: string,
   runNumber?: number
 ): Promise<RunDetails> {
-  return client.get<RunDetails>(
+  return client.get(
     `/runs/project/${encodeURIComponent(projectId)}/details`,
-    runNumber !== undefined ? { runNumber } : undefined
+    runNumber !== undefined ? { runNumber } : undefined,
+    { schema: RunDetailsResponseSchema }
   );
 }
 
@@ -172,7 +185,7 @@ export async function getDetails(
  * Get a run by ID
  */
 export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
-  return client.get<Run>(`/runs/${encodeURIComponent(runId)}`);
+  return client.get(`/runs/${encodeURIComponent(runId)}`, undefined, { schema: RunResponseSchema });
 }
 
 /**
@@ -183,7 +196,7 @@ export async function updateById(
   runId: string,
   input: UpdateRunInput
 ): Promise<Run> {
-  return client.patch<Run>(`/runs/${encodeURIComponent(runId)}`, {
+  return client.patch(`/runs/${encodeURIComponent(runId)}`, {
     workflowType: input.workflowType,
     allGatesPassed: input.allGatesPassed,
     averageScore: input.averageScore,
@@ -192,7 +205,7 @@ export async function updateById(
     archiveReason: input.archiveReason,
     agents: input.agents,
     recommendations: input.recommendations,
-  });
+  }, { schema: RunResponseSchema });
 }
 
 /**
@@ -202,10 +215,10 @@ export async function deleteRun(
   client: OpsHttpClient,
   runId: string
 ): Promise<DeleteResult> {
-  await client.request('DELETE', `/runs/${encodeURIComponent(runId)}`, undefined, {
+  return client.request('DELETE', `/runs/${encodeURIComponent(runId)}`, undefined, {
     headers: { 'X-Confirm-Delete': runId },
+    schema: DeleteResultResponseSchema,
   });
-  return { deleted: true };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -218,8 +231,8 @@ export async function deleteRun(
 export async function getAnalysis(
   client: OpsHttpClient,
   runId: string
-): Promise<RunAnalysis> {
-  return client.get<RunAnalysis>(`/runs/${encodeURIComponent(runId)}/analysis`);
+): Promise<z.infer<typeof RunAnalysisResponseSchema>> {
+  return client.get(`/runs/${encodeURIComponent(runId)}/analysis`, undefined, { schema: RunAnalysisResponseSchema });
 }
 
 /**
@@ -229,10 +242,11 @@ export async function getProjectAnalysis(
   client: OpsHttpClient,
   projectId: string,
   query?: ProjectAnalysisQuery
-): Promise<{ data: AnalysisSummary[]; total: number }> {
-  return client.get<{ data: AnalysisSummary[]; total: number }>(
+): Promise<z.infer<typeof ProjectAnalysisListResponseSchema>> {
+  return client.get(
     `/projects/${encodeURIComponent(projectId)}/analysis`,
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: ProjectAnalysisListResponseSchema }
   );
 }
 
@@ -242,9 +256,10 @@ export async function getProjectAnalysis(
 export async function queryAnalysisRecords(
   client: OpsHttpClient,
   query?: AnalysisRecordsQuery
-): Promise<{ data: AnalysisRecord[]; total: number }> {
-  return client.get<{ data: AnalysisRecord[]; total: number }>(
+): Promise<z.infer<typeof AnalysisRecordsListResponseSchema>> {
+  return client.get(
     '/analysis/records',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: AnalysisRecordsListResponseSchema }
   );
 }

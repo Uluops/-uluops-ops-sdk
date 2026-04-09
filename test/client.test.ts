@@ -2,11 +2,18 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
 import { OpsClient } from '../src/client.js';
 import { BASE_URL, TEST_API_KEY } from './setup.js';
+import {
+  createMockRun,
+  createMockRunSummary,
+  createMockValidatorSnapshot,
+  resetMockIds,
+} from './contract-helpers.js';
 
 describe('OpsClient', () => {
   let client: OpsClient;
 
   beforeEach(() => {
+    resetMockIds();
     client = new OpsClient({
       baseUrl: BASE_URL,
       apiKey: TEST_API_KEY,
@@ -192,12 +199,15 @@ describe('OpsClient', () => {
 
   describe('run operations', () => {
     it('should save validation run', async () => {
+      const mockRun = createMockRun({ runNumber: 1 });
       nock(BASE_URL)
         .post('/runs')
         .reply(201, {
           data: {
-            run: { id: 'run-1', runNumber: 1 },
-            issues: { created: 3, updated: 1 },
+            run: mockRun,
+            agents: [createMockValidatorSnapshot({ runId: mockRun.id })],
+            correlation: { newIssues: 3, recurringIssues: 1, regressions: 0 },
+            deduplicated: false,
           },
         });
 
@@ -214,10 +224,11 @@ describe('OpsClient', () => {
     });
 
     it('should get latest run', async () => {
+      const mockRun = createMockRun({ runNumber: 5, workflowType: 'ship' });
       nock(BASE_URL)
         .get('/runs/project/proj-1/latest')
         .reply(200, {
-          data: { id: 'run-5', runNumber: 5, workflowType: 'ship' },
+          data: mockRun,
         });
 
       const run = await client.runs.getLatest('proj-1');
@@ -230,8 +241,8 @@ describe('OpsClient', () => {
         .get('/runs/project/proj-1')
         .reply(200, {
           data: [
-            { id: 'run-1', runNumber: 1 },
-            { id: 'run-2', runNumber: 2 },
+            createMockRunSummary({ runNumber: 1 }),
+            createMockRunSummary({ runNumber: 2 }),
           ],
         });
 
@@ -241,15 +252,17 @@ describe('OpsClient', () => {
     });
 
     it('should diff two runs', async () => {
+      const baseRun = createMockRun({ runNumber: 1, workflowType: 'ship', averageScore: 90 });
+      const compareRun = createMockRun({ runNumber: 2, workflowType: 'ship', averageScore: 95 });
       nock(BASE_URL)
         .get('/runs/diff')
         .query({ project: 'proj-1', baseRun: 1, compareRun: 2 })
         .reply(200, {
           data: {
-            baseRun: { id: 'run-1', projectId: 'proj-1', runNumber: 1, workflowType: 'ship', timestamp: '2026-01-01T00:00:00Z', allGatesPassed: true, averageScore: 90, rawMarkdown: null, archivedAt: null, archiveReason: null, idempotencyKey: null, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
-            compareRun: { id: 'run-2', projectId: 'proj-1', runNumber: 2, workflowType: 'ship', timestamp: '2026-01-02T00:00:00Z', allGatesPassed: true, averageScore: 95, rawMarkdown: null, archivedAt: null, archiveReason: null, idempotencyKey: null, createdAt: '2026-01-02T00:00:00Z', updatedAt: '2026-01-02T00:00:00Z' },
-            fixed: [{ issueId: 'issue-1', title: 'Fixed bug' }],
-            new: [{ issueId: 'issue-2', title: 'New issue' }],
+            baseRun,
+            compareRun,
+            fixed: [{ issueId: '00000000-0000-4000-a000-000000000001', title: 'Fixed bug' }],
+            new: [{ issueId: '00000000-0000-4000-a000-000000000002', title: 'New issue' }],
             unchanged: [],
             agentChanges: [],
           },
@@ -262,7 +275,7 @@ describe('OpsClient', () => {
       });
 
       expect(diff.fixed).toHaveLength(1);
-      expect(diff.fixed[0].issueId).toBe('issue-1');
+      expect(diff.fixed[0].title).toBe('Fixed bug');
       expect(diff.new).toHaveLength(1);
       expect(diff.baseRun.runNumber).toBe(1);
       expect(diff.compareRun.runNumber).toBe(2);
@@ -448,8 +461,10 @@ describe('OpsClient', () => {
         })
         .reply(201, {
           data: {
-            run: { id: 'run-1', runNumber: 1 },
-            issues: { created: 1, updated: 0 },
+            run: createMockRun({ runNumber: 1 }),
+            agents: [createMockValidatorSnapshot()],
+            correlation: { newIssues: 1, recurringIssues: 0, regressions: 0 },
+            deduplicated: false,
           },
         });
 
@@ -557,8 +572,8 @@ describe('OpsClient', () => {
         .query({ workflow_type: 'ship', limit: 5 })
         .reply(200, {
           data: [
-            { id: 'run-1', runNumber: 1, workflowType: 'ship' },
-            { id: 'run-2', runNumber: 2, workflowType: 'ship' },
+            createMockRunSummary({ runNumber: 1, workflowType: 'ship' }),
+            createMockRunSummary({ runNumber: 2, workflowType: 'ship' }),
           ],
         });
 

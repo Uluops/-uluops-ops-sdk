@@ -261,16 +261,16 @@ export const RunResponseSchema = z.object({
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
   allGatesPassed: z.boolean(),
-  averageScore: z.number().nullable().optional(),
-  rawMarkdown: z.string().nullable().optional(),
-  archivedAt: NullableDateTimeSchema.optional(),
-  archiveReason: z.string().nullable().optional(),
-  idempotencyKey: z.string().nullable().optional(),
-  definitionType: z.string().nullable().optional(),     // Nullable in DB, detail-only
-  definitionName: z.string().nullable().optional(),     // Nullable in DB, detail-only
-  definitionVersion: z.string().nullable().optional(),  // Nullable in DB, detail-only
-  definitionHash: z.string().nullable().optional(),     // Nullable in DB, detail-only
-  registrySyncedAt: NullableDateTimeSchema.optional(),  // Nullable in DB, detail-only
+  averageScore: z.number().nullable(),
+  rawMarkdown: z.string().nullable(),
+  archivedAt: NullableDateTimeSchema,
+  archiveReason: z.string().nullable(),
+  idempotencyKey: z.string().nullable(),
+  definitionType: z.string().nullable(),       // Nullable in DB
+  definitionName: z.string().nullable(),       // Nullable in DB
+  definitionVersion: z.string().nullable(),    // Nullable in DB
+  definitionHash: z.string().nullable(),       // Nullable in DB
+  registrySyncedAt: NullableDateTimeSchema,    // Nullable in DB
   createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
   updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
 });
@@ -296,21 +296,21 @@ export const RunSummaryResponseSchema = z.object({
 });
 
 export const AgentSnapshotResponseSchema = z.object({
-  id: z.string().uuid().optional(),
-  runId: z.string().uuid().optional(),
+  id: z.string().uuid(),
+  runId: z.string().uuid(),
   name: z.string(),
   score: z.number().min(0).max(100),
-  maxScore: z.number().min(0).max(100).optional(),
+  maxScore: z.number().min(0).max(100),
   decision: z.string(),
-  model: z.string().nullable().optional(),
-  inputTokens: z.number().int().nonnegative().nullable().optional(),
-  outputTokens: z.number().int().nonnegative().nullable().optional(),
-  cacheCreationTokens: z.number().int().nonnegative().nullable().optional(),
-  cacheReadTokens: z.number().int().nonnegative().nullable().optional(),
-  totalEffectiveTokens: z.number().int().nonnegative().nullable().optional(),
-  durationMs: z.number().int().nonnegative().nullable().optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  updatedAt: DateTimeStringSchema.optional(),
+  model: z.string().nullable(),
+  inputTokens: z.number().int().nonnegative().nullable(),
+  outputTokens: z.number().int().nonnegative().nullable(),
+  cacheCreationTokens: z.number().int().nonnegative().nullable(),
+  cacheReadTokens: z.number().int().nonnegative().nullable(),
+  totalEffectiveTokens: z.number().int().nonnegative().nullable(),
+  durationMs: z.number().int().nonnegative().nullable(),
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
 });
 
 export const CorrelationResultResponseSchema = z.object({
@@ -324,6 +324,8 @@ export const SaveRunResponseSchema = z.object({
   agents: z.array(AgentSnapshotResponseSchema),
   correlation: CorrelationResultResponseSchema,
   deduplicated: z.boolean(),
+  analysisRecords: z.lazy(() => z.array(AnalysisRecordResponseSchema)).optional(),
+  analysisSummary: z.lazy(() => AnalysisSummaryResponseSchema).optional(),
 });
 
 export const DiffIssueRefResponseSchema = z.object({
@@ -377,41 +379,61 @@ export const ArchiveRunsResultResponseSchema = z.object({
 });
 
 export const DeleteResultResponseSchema = z.object({
-  deleted: z.boolean(),
+  deleted: z.literal(true),
 });
 
 /** Analysis record returned by getAnalysis / queryAnalysisRecords */
 export const AnalysisRecordResponseSchema = z.object({
-  id: z.string().uuid().optional(),
-  runId: z.string().uuid().optional(),
+  id: z.string().uuid(),
+  runId: z.string().uuid(),
+  agentName: z.string(),
+  agentType: z.string(),
   recordType: z.string(),
   recordId: z.string(),
   title: z.string(),
-  classification: z.string().nullable().optional(),
-  severity: SeverityResponseSchema.nullable().optional(),
-  data: z.record(z.string(), z.unknown()),
-  createdAt: DateTimeStringSchema.optional(),
+  classification: z.string().nullable(),
+  severity: z.string().nullable(),
+  recordData: z.record(z.string(), z.unknown()),
+  createdAt: DateTimeStringSchema,
 });
 
 /** Analysis summary returned by getProjectAnalysis */
 export const AnalysisSummaryResponseSchema = z.object({
+  id: z.string().uuid(),
+  runId: z.string().uuid(),
+  agentName: z.string(),
+  agentType: z.string(),
   decision: z.string(),
   score: z.number().min(0).max(100),
-  decisionVocabulary: z.string().nullable().optional(),
-  systemMetrics: z.record(z.string(), z.unknown()).nullable().optional(),
+  decisionVocabulary: z.string().nullable(),
+  systemMetrics: z.record(z.string(), z.unknown()).nullable(),
   categoryScores: z.array(z.object({
     name: z.string(),
     weight: z.number(),
     score: z.number(),
-  })).nullable().optional(),
-  epistemicAssessment: z.record(z.string(), z.unknown()).nullable().optional(),
-  auditImplications: z.array(z.string()).nullable().optional(),
+  })).nullable(),
+  epistemicAssessment: z.record(z.string(), z.unknown()).nullable(),
+  auditImplications: z.array(z.string()).nullable(),
+  createdAt: DateTimeStringSchema,
 });
 
 /** Full analysis response for a single run */
 export const RunAnalysisResponseSchema = z.object({
   records: z.array(AnalysisRecordResponseSchema),
   summaries: z.array(AnalysisSummaryResponseSchema),
+  total: z.number().int().nonnegative(),
+});
+
+/** Paginated analysis summaries response (getProjectAnalysis) */
+export const ProjectAnalysisListResponseSchema = z.object({
+  data: z.array(AnalysisSummaryResponseSchema),
+  total: z.number().int().nonnegative(),
+});
+
+/** Paginated analysis records response (queryAnalysisRecords) */
+export const AnalysisRecordsListResponseSchema = z.object({
+  data: z.array(AnalysisRecordResponseSchema),
+  total: z.number().int().nonnegative(),
 });
 
 // ============================================

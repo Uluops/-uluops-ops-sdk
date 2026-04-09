@@ -6,8 +6,10 @@ import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import {
   TEST_IDS,
   createMockRun,
+  createMockRunSummary,
   createMockValidatorSnapshot,
-  createMockIssue,
+  createMockAnalysisRecord,
+  createMockAnalysisSummary,
   resetMockIds,
 } from '../contract-helpers.js';
 
@@ -38,7 +40,9 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            issues: { created: 2, updated: 0, unchanged: 1 },
+            agents: [createMockValidatorSnapshot({ runId: mockRun.id })],
+            correlation: { newIssues: 2, recurringIssues: 0, regressions: 0 },
+            deduplicated: false,
           },
         });
 
@@ -69,6 +73,7 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
+            agents: [createMockValidatorSnapshot({ runId: mockRun.id })],
             correlation: { newIssues: 1, recurringIssues: 0, regressions: 0 },
             deduplicated: false,
           },
@@ -107,7 +112,9 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            issues: { created: 0, updated: 0 },
+            agents: [createMockValidatorSnapshot({ runId: mockRun.id, name: 'test-architect' })],
+            correlation: { newIssues: 0, recurringIssues: 0, regressions: 0 },
+            deduplicated: false,
           },
         });
 
@@ -135,15 +142,13 @@ describe('Run Operations', () => {
 
   describe('validate', () => {
     it('should validate run without saving', async () => {
-      const mockIssue = createMockIssue({ title: 'New issue', priority: 'suggested' });
-
       nock(BASE_URL)
         .post('/runs/validate')
         .reply(200, {
           data: {
-            wouldCreate: [mockIssue],
-            wouldUpdate: [],
-            wouldRegress: [],
+            wouldCreate: 1,
+            wouldUpdate: 0,
+            wouldRegress: 0,
             validationErrors: [],
           },
         });
@@ -157,7 +162,7 @@ describe('Run Operations', () => {
         ],
       });
 
-      expect(result.wouldCreate).toHaveLength(1);
+      expect(result.wouldCreate).toBe(1);
       expect(result.validationErrors).toHaveLength(0);
     });
   });
@@ -215,7 +220,6 @@ describe('Run Operations', () => {
         .reply(200, {
           data: {
             archivedCount: 9,
-            archivedRunNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9],
           },
         });
 
@@ -225,7 +229,6 @@ describe('Run Operations', () => {
       });
 
       expect(result.archivedCount).toBe(9);
-      expect(result.archivedRunNumbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     });
 
     it('should archive runs keeping last N', async () => {
@@ -323,8 +326,8 @@ describe('Run Operations', () => {
 
   describe('listByProject', () => {
     it('should list runs for a project', async () => {
-      const run1 = createMockRun({ runNumber: 1 });
-      const run2 = createMockRun({ runNumber: 2 });
+      const run1 = createMockRunSummary({ runNumber: 1 });
+      const run2 = createMockRunSummary({ runNumber: 2 });
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}`)
@@ -340,7 +343,7 @@ describe('Run Operations', () => {
     });
 
     it('should list runs with query params', async () => {
-      const run = createMockRun({ runNumber: 11 });
+      const run = createMockRunSummary({ runNumber: 11 });
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}`)
@@ -358,14 +361,14 @@ describe('Run Operations', () => {
     });
 
     it('should preserve RunSummary enrichment fields', async () => {
-      const run = {
-        ...createMockRun({ runNumber: 1 }),
+      const run = createMockRunSummary({
+        runNumber: 1,
         totalRecommendations: 5,
         criticalCount: 2,
         suggestedCount: 3,
         backlogCount: 0,
-        validatorScores: { 'code-validator': 85, 'test-architect': 90 },
-      };
+        agentScores: { 'code-validator': 85, 'test-architect': 90 },
+      });
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}`)
@@ -378,7 +381,7 @@ describe('Run Operations', () => {
       expect(runs).toHaveLength(1);
       expect(runs[0].totalRecommendations).toBe(5);
       expect(runs[0].criticalCount).toBe(2);
-      expect(runs[0].validatorScores).toEqual({ 'code-validator': 85, 'test-architect': 90 });
+      expect(runs[0].agentScores).toEqual({ 'code-validator': 85, 'test-architect': 90 });
     });
   });
 
@@ -416,17 +419,25 @@ describe('Run Operations', () => {
   describe('getDetails', () => {
     it('should get run details with recommendations', async () => {
       const mockRun = createMockRun({ runNumber: 10 });
-      const mockIssue = createMockIssue({ title: 'Fix this' });
+      const mockAgent = createMockValidatorSnapshot({ runId: mockRun.id });
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}/details`)
         .reply(200, {
           data: {
             run: mockRun,
+            agents: [mockAgent],
             recommendations: [
-              { ...mockIssue, correlation: 'new' },
+              {
+                id: TEST_IDS.issue1,
+                title: 'Fix this',
+                priority: 'suggested',
+                severity: null,
+                agent: 'code-validator',
+                status: 'open',
+                correlation: 'new',
+              },
             ],
-            summary: { newIssues: 1, fixedIssues: 2 },
           },
         });
 
@@ -434,8 +445,7 @@ describe('Run Operations', () => {
 
       expect(details.recommendations).toHaveLength(1);
       expect(details.recommendations[0].correlation).toBe('new');
-      expect(details.summary.newIssues).toBe(1);
-      expect(details.summary.fixedIssues).toBe(2);
+      expect(details.agents).toHaveLength(1);
       expect(details.run.runNumber).toBe(10);
     });
 
@@ -448,8 +458,8 @@ describe('Run Operations', () => {
         .reply(200, {
           data: {
             run: mockRun,
+            agents: [],
             recommendations: [],
-            summary: {},
           },
         });
 
@@ -534,6 +544,38 @@ describe('Run Operations', () => {
     });
   });
 
+  describe('response validation', () => {
+    it('should throw ResponseValidationError on malformed response', async () => {
+      const runId = TEST_IDS.run1;
+      // Return a response missing required fields (no projectId, no runNumber, etc.)
+      nock(BASE_URL)
+        .get(`/runs/${runId}`)
+        .reply(200, {
+          data: { id: runId, workflowType: 'ship' },
+        });
+
+      await expect(
+        runOps.get(client, runId)
+      ).rejects.toThrow(/API response validation failed/);
+    });
+
+    it('should throw ResponseValidationError on wrong field type', async () => {
+      const runId = TEST_IDS.run1;
+      nock(BASE_URL)
+        .get(`/runs/${runId}`)
+        .reply(200, {
+          data: {
+            ...createMockRun({ id: runId }),
+            runNumber: 'not-a-number', // Should be number
+          },
+        });
+
+      await expect(
+        runOps.get(client, runId)
+      ).rejects.toThrow(/API response validation failed/);
+    });
+  });
+
   describe('error paths', () => {
     it('should throw on save 409 conflict', async () => {
       nock(BASE_URL)
@@ -577,7 +619,7 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .delete(`/runs/${runId}`)
         .matchHeader('X-Confirm-Delete', runId)
-        .reply(200, { data: {} });
+        .reply(200, { data: { deleted: true } });
 
       const result = await runOps.deleteRun(client, runId);
       expect(result).toEqual({ deleted: true });
@@ -587,12 +629,16 @@ describe('Run Operations', () => {
   describe('analysis operations', () => {
     it('getAnalysis should fetch analysis for a run', async () => {
       const runId = TEST_IDS.run1;
+      const mockRecord = createMockAnalysisRecord({ runId, recordType: 'convention', recordId: 'C-1', title: 'Test convention' });
+      const mockSummary = createMockAnalysisSummary({ runId, decision: 'VITAL', score: 85 });
+
       nock(BASE_URL)
         .get(`/runs/${runId}/analysis`)
         .reply(200, {
           data: {
-            records: [{ recordType: 'convention', recordId: 'C-1', title: 'Test convention', data: {} }],
-            summaries: [{ decision: 'VITAL', score: 85 }],
+            records: [mockRecord],
+            summaries: [mockSummary],
+            total: 1,
           },
         });
 
@@ -620,11 +666,13 @@ describe('Run Operations', () => {
     });
 
     it('queryAnalysisRecords should forward filters', async () => {
+      const mockRecord = createMockAnalysisRecord({ recordType: 'tension', recordId: 'T-1', title: 'Test tension' });
+
       nock(BASE_URL)
         .get('/analysis/records')
         .query({ record_type: 'tension', limit: 5 })
         .reply(200, {
-          data: { data: [{ recordType: 'tension', recordId: 'T-1', title: 'Test tension', data: {} }], total: 1 },
+          data: { data: [mockRecord], total: 1 },
         });
 
       const result = await runOps.queryAnalysisRecords(client, {

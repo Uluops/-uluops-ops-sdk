@@ -167,11 +167,14 @@ export interface SaveRunResponse {
  * Validate run response (preview without saving)
  */
 export interface ValidateRunResponse {
-  wouldCreate: boolean;
-  wouldUpdate: boolean;
-  wouldRegress: boolean;
+  wouldCreate: number;
+  wouldUpdate: number;
+  wouldRegress: number;
   validationErrors: string[];
-  preview: CorrelationResult;
+  preview?: {
+    run: Run;
+    agents: AgentSnapshot[];
+  };
 }
 
 /**
