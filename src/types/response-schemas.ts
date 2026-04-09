@@ -135,10 +135,11 @@ export const PaginationResponseSchema = z.object({
 export const ProjectResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  ownerId: z.string().uuid().optional(), // Not always returned in list views
-  createdAt: DateTimeStringSchema,
-  updatedAt: DateTimeStringSchema.optional(),
-  deletedAt: NullableDateTimeSchema.optional(),
+  domain: z.string().optional(),               // Present in API, default 'software'
+  ownerId: z.string().uuid(),                  // Always present (NOT NULL in DB)
+  orgId: z.string().uuid().nullable().optional(),
+  createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+  updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
 });
 
 export const ProjectSummaryStatsResponseSchema = z.object({
@@ -172,10 +173,10 @@ export const TrendDataPointResponseSchema = z.object({
 
 export const IssueResponseSchema = z.object({
   id: z.string().uuid(),
-  projectId: z.string().uuid().optional(),
-  fingerprint: z.string().optional(),
+  projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
+  fingerprint: z.string(),                     // Always present (NOT NULL in DB)
   title: z.string(),
-  status: StatusResponseSchema.optional(),
+  status: StatusResponseSchema,                // Always present (NOT NULL in DB)
   priority: PriorityResponseSchema,
   severity: SeverityResponseSchema.nullable().optional(),
   failureCode: FailureCodeResponseSchema.optional(),
@@ -187,14 +188,14 @@ export const IssueResponseSchema = z.object({
   type: IssueTypeResponseSchema.nullable().optional(),
   filePath: z.string().nullable().optional(),
   lineNumber: z.number().int().nonnegative().nullable().optional(),
-  timesSeen: z.number().int().positive().optional(),
-  firstSeenRunId: z.string().uuid().optional(),
-  lastSeenRunId: z.string().uuid().optional(),
+  timesSeen: z.number().int().positive(),      // Always present (NOT NULL, min: 1)
+  firstSeenRunId: z.string().uuid(),           // Always present (NOT NULL in DB)
+  lastSeenRunId: z.string().uuid(),            // Always present (NOT NULL in DB)
   resolvedAt: NullableDateTimeSchema.optional(),
   resolutionRunId: z.string().uuid().nullable().optional(),
   deletedAt: NullableDateTimeSchema.optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  updatedAt: DateTimeStringSchema.optional(),
+  createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+  updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
 });
 
 export const OccurrenceResponseSchema = z.object({
@@ -255,7 +256,7 @@ export const StatusUpdateResultResponseSchema = z.object({
 
 export const RunResponseSchema = z.object({
   id: z.string().uuid(),
-  projectId: z.string().uuid().optional(),
+  projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -265,8 +266,33 @@ export const RunResponseSchema = z.object({
   archivedAt: NullableDateTimeSchema.optional(),
   archiveReason: z.string().nullable().optional(),
   idempotencyKey: z.string().nullable().optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  updatedAt: DateTimeStringSchema.optional(),
+  definitionType: z.string().nullable().optional(),     // Nullable in DB, detail-only
+  definitionName: z.string().nullable().optional(),     // Nullable in DB, detail-only
+  definitionVersion: z.string().nullable().optional(),  // Nullable in DB, detail-only
+  definitionHash: z.string().nullable().optional(),     // Nullable in DB, detail-only
+  registrySyncedAt: NullableDateTimeSchema.optional(),  // Nullable in DB, detail-only
+  createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+  updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+});
+
+/** Run summary schema for list endpoints — enriched with aggregate fields, omits detail-only fields */
+export const RunSummaryResponseSchema = z.object({
+  id: z.string().uuid(),
+  projectId: z.string().uuid(),
+  runNumber: z.number().int().positive(),
+  workflowType: z.string(),
+  timestamp: DateTimeStringSchema,
+  allGatesPassed: z.boolean(),
+  averageScore: z.number().nullable().optional(),
+  archivedAt: NullableDateTimeSchema.optional(),
+  archiveReason: z.string().nullable().optional(),
+  createdAt: DateTimeStringSchema,
+  // Aggregate fields computed by getRunsSummary query
+  totalRecommendations: z.number().int().nonnegative(),
+  criticalCount: z.number().int().nonnegative(),
+  suggestedCount: z.number().int().nonnegative(),
+  backlogCount: z.number().int().nonnegative(),
+  agentScores: z.record(z.string(), z.number()),
 });
 
 export const AgentSnapshotResponseSchema = z.object({
@@ -333,6 +359,59 @@ export const RunDetailsResponseSchema = z.object({
     status: z.string(),
     correlation: z.enum(['new', 'recurring', 'regression']),
   })),
+});
+
+export const ValidateRunResponseSchema = z.object({
+  wouldCreate: z.number().int().nonnegative(),
+  wouldUpdate: z.number().int().nonnegative(),
+  wouldRegress: z.number().int().nonnegative(),
+  validationErrors: z.array(z.string()),
+  preview: z.object({
+    run: RunResponseSchema,
+    agents: z.array(AgentSnapshotResponseSchema),
+  }).optional(),
+});
+
+export const ArchiveRunsResultResponseSchema = z.object({
+  archivedCount: z.number().int().nonnegative(),
+});
+
+export const DeleteResultResponseSchema = z.object({
+  deleted: z.boolean(),
+});
+
+/** Analysis record returned by getAnalysis / queryAnalysisRecords */
+export const AnalysisRecordResponseSchema = z.object({
+  id: z.string().uuid().optional(),
+  runId: z.string().uuid().optional(),
+  recordType: z.string(),
+  recordId: z.string(),
+  title: z.string(),
+  classification: z.string().nullable().optional(),
+  severity: SeverityResponseSchema.nullable().optional(),
+  data: z.record(z.string(), z.unknown()),
+  createdAt: DateTimeStringSchema.optional(),
+});
+
+/** Analysis summary returned by getProjectAnalysis */
+export const AnalysisSummaryResponseSchema = z.object({
+  decision: z.string(),
+  score: z.number().min(0).max(100),
+  decisionVocabulary: z.string().nullable().optional(),
+  systemMetrics: z.record(z.string(), z.unknown()).nullable().optional(),
+  categoryScores: z.array(z.object({
+    name: z.string(),
+    weight: z.number(),
+    score: z.number(),
+  })).nullable().optional(),
+  epistemicAssessment: z.record(z.string(), z.unknown()).nullable().optional(),
+  auditImplications: z.array(z.string()).nullable().optional(),
+});
+
+/** Full analysis response for a single run */
+export const RunAnalysisResponseSchema = z.object({
+  records: z.array(AnalysisRecordResponseSchema),
+  summaries: z.array(AnalysisSummaryResponseSchema),
 });
 
 // ============================================
