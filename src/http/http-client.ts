@@ -26,7 +26,14 @@ export function toApiQuery(query: object | undefined): _QP | undefined {
     if (value === 'all') continue; // 'all' means no filter — omit the param
     if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       params[toSnakeCase(key)] = value;
+    } else if (Array.isArray(value)) {
+      // Serialize arrays as comma-separated values (common API convention)
+      const primitives = value.filter(v => typeof v === 'string' || typeof v === 'number');
+      if (primitives.length > 0) {
+        params[toSnakeCase(key)] = primitives.join(',');
+      }
     }
+    // Objects and other non-primitive values are intentionally skipped
   }
   return Object.keys(params).length > 0 ? params : undefined;
 }

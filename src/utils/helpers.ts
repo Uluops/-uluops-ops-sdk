@@ -121,7 +121,10 @@ export function formatDate(date: string | Date): string {
  * @returns snake_case formatted string
  */
 export function toSnakeCase(str: string): string {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+  return str
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
 }
 
 /**
@@ -149,11 +152,15 @@ export function getFlexibleProperty<T>(
   defaultValue: T
 ): T {
   const record = obj as Record<string, unknown>;
-  // Try camelCase first
+  // SAFETY: The `as T` casts below are justified because callers provide a
+  // defaultValue of type T, establishing the expected type for the property.
+  // The API response shapes are validated upstream by Zod response schemas
+  // before reaching this helper — this is a convenience accessor, not a
+  // validation boundary. If the runtime type doesn't match T, the default
+  // value (which IS type-safe) would have been returned if the key was missing.
   if (camelCaseKey in record && record[camelCaseKey] !== undefined) {
     return record[camelCaseKey] as T;
   }
-  // Try snake_case
   const snakeKey = toSnakeCase(camelCaseKey);
   if (snakeKey in record && record[snakeKey] !== undefined) {
     return record[snakeKey] as T;

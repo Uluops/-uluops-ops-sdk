@@ -680,8 +680,13 @@ Save a new validation run.
 | `recommendations` | `Recommendation[]` | No | Array of issues/recommendations |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
-| `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.3.0) |
-| `analysisSummary` | `AnalysisSummaryInput` | No | System metrics + epistemic assessment (v0.3.0) |
+| `idempotencyKey` | `string` | No | Key for duplicate prevention |
+| `definitionType` | `string` | No | Definition type (`'agent'`, `'command'`, `'workflow'`, `'pipeline'`) |
+| `definitionName` | `string` | No | Definition name (e.g., `'code-validator'`) |
+| `definitionVersion` | `string` | No | Definition version (e.g., `'1.2.0'`) |
+| `definitionHash` | `string` | No | SHA-256 content hash of the definition |
+| `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.2.0) |
+| `analysisSummary` | `AnalysisSummaryInput` | No | System metrics + epistemic assessment (v0.2.0) |
 
 ```typescript
 const result = await client.runs.save({

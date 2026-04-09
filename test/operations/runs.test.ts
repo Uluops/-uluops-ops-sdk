@@ -111,7 +111,7 @@ describe('Run Operations', () => {
           },
         });
 
-      await runOps.save(client, {
+      const result = await runOps.save(client, {
         project: 'my-project',
         workflowType: 'ship',
         agents: [
@@ -127,6 +127,9 @@ describe('Run Operations', () => {
         ],
         recommendations: [],
       });
+
+      expect(result.run).toBeDefined();
+      expect(result.run.runNumber).toBe(3);
     });
   });
 
@@ -578,6 +581,58 @@ describe('Run Operations', () => {
 
       const result = await runOps.deleteRun(client, runId);
       expect(result).toEqual({ deleted: true });
+    });
+  });
+
+  describe('analysis operations', () => {
+    it('getAnalysis should fetch analysis for a run', async () => {
+      const runId = TEST_IDS.run1;
+      nock(BASE_URL)
+        .get(`/runs/${runId}/analysis`)
+        .reply(200, {
+          data: {
+            records: [{ recordType: 'convention', recordId: 'C-1', title: 'Test convention', data: {} }],
+            summaries: [{ decision: 'VITAL', score: 85 }],
+          },
+        });
+
+      const result = await runOps.getAnalysis(client, runId);
+      expect(result.records).toHaveLength(1);
+      expect(result.records[0].recordType).toBe('convention');
+      expect(result.summaries).toHaveLength(1);
+    });
+
+    it('getProjectAnalysis should forward query params', async () => {
+      const projectId = TEST_IDS.proj1;
+      nock(BASE_URL)
+        .get(`/projects/${projectId}/analysis`)
+        .query({ limit: 10, definition_name: 'nietzsche-analyst' })
+        .reply(200, {
+          data: { data: [], total: 0 },
+        });
+
+      const result = await runOps.getProjectAnalysis(client, projectId, {
+        limit: 10,
+        definitionName: 'nietzsche-analyst',
+      });
+      expect(result.data).toHaveLength(0);
+      expect(result.total).toBe(0);
+    });
+
+    it('queryAnalysisRecords should forward filters', async () => {
+      nock(BASE_URL)
+        .get('/analysis/records')
+        .query({ record_type: 'tension', limit: 5 })
+        .reply(200, {
+          data: { data: [{ recordType: 'tension', recordId: 'T-1', title: 'Test tension', data: {} }], total: 1 },
+        });
+
+      const result = await runOps.queryAnalysisRecords(client, {
+        recordType: 'tension',
+        limit: 5,
+      });
+      expect(result.data).toHaveLength(1);
+      expect(result.total).toBe(1);
     });
   });
 });

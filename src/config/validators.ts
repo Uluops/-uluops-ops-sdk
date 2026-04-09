@@ -36,8 +36,8 @@ export class InputValidationError extends Error {
  */
 function formatZodIssue(e: z.ZodError['issues'][number]): string {
   const field = e.path.join('.') || '(root)';
-  if (e.code === 'invalid_value' && 'values' in e) {
-    const opts = (e.values as string[]).join(', ');
+  if (e.code === 'invalid_value' && 'values' in e && Array.isArray(e.values)) {
+    const opts = e.values.map(String).join(', ');
     return `${field} must be one of: ${opts}`;
   }
   return `${field}: ${e.message}`;

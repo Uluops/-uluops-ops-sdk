@@ -251,7 +251,9 @@ describe('Helper Utilities', () => {
     });
 
     it('should handle consecutive uppercase letters', () => {
-      expect(toSnakeCase('XMLParser')).toBe('_x_m_l_parser');
+      expect(toSnakeCase('XMLParser')).toBe('xml_parser');
+      expect(toSnakeCase('getHTTPSUrl')).toBe('get_https_url');
+      expect(toSnakeCase('parseJSON')).toBe('parse_json');
     });
   });
 
