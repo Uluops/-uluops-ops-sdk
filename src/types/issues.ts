@@ -36,7 +36,7 @@ export interface Issue {
   lastSeenRunId: string;
   resolvedAt: string | null;
   resolutionRunId: string | null;
-  deletedAt: string | null;
+  deletedAt?: string | null;  // Stripped by API's issueToPublic
   createdAt: string;
   updatedAt: string;
 }

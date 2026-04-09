@@ -200,7 +200,7 @@ export const IssueResponseSchema = z.object({
   lastSeenRunId: z.string().uuid(),
   resolvedAt: NullableDateTimeSchema,
   resolutionRunId: z.string().uuid().nullable(),
-  deletedAt: NullableDateTimeSchema,
+  deletedAt: NullableDateTimeSchema.optional(),  // Stripped by issueToPublic
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
 });
