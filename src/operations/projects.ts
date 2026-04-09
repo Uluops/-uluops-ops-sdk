@@ -24,7 +24,6 @@ import {
   ProjectSummaryResponseSchema,
   ProjectTrendsResponseSchema,
   IssueResponseSchema,
-  DeleteResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
   MergeIssuesResultResponseSchema,
 } from '../types/response-schemas.js';
@@ -83,10 +82,11 @@ export async function deleteProject(
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  return client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
+  await client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
-  }, { schema: DeleteResultResponseSchema });
+  });
+  return { deleted: true };
 }
 
 /**
@@ -98,10 +98,11 @@ export async function softDelete(
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  return client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
+  await client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
-  }, { schema: DeleteResultResponseSchema });
+  });
+  return { deleted: true };
 }
 
 /**
