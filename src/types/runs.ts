@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type {
   Priority,
   Severity,
@@ -6,63 +7,76 @@ import type {
   ClassificationConfidence,
   ClassifiedBy,
 } from './enums.js';
+import {
+  RunResponseSchema,
+  AgentSnapshotResponseSchema,
+  CorrelationResultResponseSchema,
+  SaveRunResponseSchema,
+  ValidateRunResponseSchema,
+  ValidateRunPreviewSchema,
+  DiffIssueRefResponseSchema,
+  AgentChangeResponseSchema,
+  RunDiffResultResponseSchema,
+  ArchiveRunsResultResponseSchema,
+  RunDetailsResponseSchema,
+  RunSummaryResponseSchema,
+  AnalysisRecordResponseSchema,
+  AnalysisSummaryResponseSchema,
+  RunAnalysisResponseSchema,
+} from './response-schemas.js';
 
-/**
- * Validation run entity
- */
-export interface Run {
-  id: string;
-  projectId: string;
-  runNumber: number;
-  workflowType: string;
-  timestamp: string;
-  allGatesPassed: boolean;
-  averageScore: number | null;
-  rawMarkdown: string | null;
-  archivedAt: string | null;
-  archiveReason: string | null;
-  idempotencyKey: string | null;
-  definitionType: string | null;
-  definitionName: string | null;
-  definitionVersion: string | null;
-  definitionHash: string | null;
-  registrySyncedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+// ─────────────────────────────────────────────────────────────────
+// Response types (derived from Zod schemas — single source of truth)
+// ─────────────────────────────────────────────────────────────────
 
-/**
- * Enriched run returned by the runs list endpoint.
- * Includes optional aggregated counts from recommendations.
- */
-export interface RunSummary extends Run {
-  totalRecommendations?: number;
-  criticalCount?: number;
-  suggestedCount?: number;
-  backlogCount?: number;
-  agentScores?: Record<string, number>;
-}
+/** Validation run entity */
+export type Run = z.infer<typeof RunResponseSchema>;
 
-/**
- * Agent snapshot (results from a single agent in a run)
- */
-export interface AgentSnapshot {
-  id: string;
-  runId: string;
-  name: string;
-  score: number;
-  maxScore: number;
-  decision: string;
-  model: string | null;
-  inputTokens: number | null;
-  outputTokens: number | null;
-  cacheCreationTokens: number | null;
-  cacheReadTokens: number | null;
-  totalEffectiveTokens: number | null;
-  durationMs: number | null;
-  createdAt: string;
-  updatedAt: string;
-}
+/** Enriched run for list endpoints (aggregate fields, no detail-only fields) */
+export type RunSummary = z.infer<typeof RunSummaryResponseSchema>;
+
+/** Agent snapshot (results from a single agent in a run) */
+export type AgentSnapshot = z.infer<typeof AgentSnapshotResponseSchema>;
+
+/** Correlation result (new/recurring/regression detection) */
+export type CorrelationResult = z.infer<typeof CorrelationResultResponseSchema>;
+
+/** Save run response */
+export type SaveRunResponse = z.infer<typeof SaveRunResponseSchema>;
+
+/** Validate run response (preview without saving) */
+export type ValidateRunResponse = z.infer<typeof ValidateRunResponseSchema>;
+
+/** Validate run preview detail */
+export type ValidateRunPreview = z.infer<typeof ValidateRunPreviewSchema>;
+
+/** Issue reference in a run diff */
+export type DiffIssueRef = z.infer<typeof DiffIssueRefResponseSchema>;
+
+/** Agent score change between two runs */
+export type AgentChange = z.infer<typeof AgentChangeResponseSchema>;
+
+/** Run diff result */
+export type RunDiffResult = z.infer<typeof RunDiffResultResponseSchema>;
+
+/** Archive runs result */
+export type ArchiveRunsResult = z.infer<typeof ArchiveRunsResultResponseSchema>;
+
+/** Run details (with recommendations and agent snapshots) */
+export type RunDetails = z.infer<typeof RunDetailsResponseSchema>;
+
+/** Analysis record returned from API */
+export type AnalysisRecord = z.infer<typeof AnalysisRecordResponseSchema>;
+
+/** Analysis summary returned from API */
+export type AnalysisSummary = z.infer<typeof AnalysisSummaryResponseSchema>;
+
+/** Analysis data for a run */
+export type RunAnalysis = z.infer<typeof RunAnalysisResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────
+// Input types (hand-written — not API responses)
+// ─────────────────────────────────────────────────────────────────
 
 /**
  * Token usage metrics
@@ -141,74 +155,6 @@ export interface SaveRunInput {
 }
 
 /**
- * Correlation result (new/recurring/regression detection)
- */
-export interface CorrelationResult {
-  newIssues: number;
-  recurringIssues: number;
-  regressions: number;
-}
-
-/**
- * Save run response
- */
-export interface SaveRunResponse {
-  run: Run;
-  agents: AgentSnapshot[];
-  correlation: CorrelationResult;
-  deduplicated: boolean;
-  /** Analysis records persisted (v1.4.0 — present when analysis data was provided) */
-  analysisRecords?: AnalysisRecord[];
-  /** Analysis summary persisted (v1.4.0 — present when analysis data was provided) */
-  analysisSummary?: AnalysisSummary;
-}
-
-/**
- * Validate run response (preview without saving)
- */
-export interface ValidateRunResponse {
-  wouldCreate: number;
-  wouldUpdate: number;
-  wouldRegress: number;
-  validationErrors: string[];
-  preview: {
-    newIssues: Array<{ title: string; agent: string }>;
-    recurringIssues: Array<{ id: string; title: string; timesSeen: number }>;
-    regressions: Array<{ id: string; title: string; lastStatus: string }>;
-  };
-}
-
-/**
- * Issue reference in a run diff (API returns issueId + title only)
- */
-export interface DiffIssueRef {
-  issueId: string;
-  title: string;
-}
-
-/**
- * Agent score change between two runs
- */
-export interface AgentChange {
-  name: string;
-  baseScore: number;
-  compareScore: number;
-  change: number;
-}
-
-/**
- * Run diff result
- */
-export interface RunDiffResult {
-  baseRun: Run;
-  compareRun: Run;
-  fixed: DiffIssueRef[];
-  new: DiffIssueRef[];
-  unchanged: DiffIssueRef[];
-  agentChanges: AgentChange[];
-}
-
-/**
  * Run diff query
  */
 export interface RunDiffQuery {
@@ -226,13 +172,6 @@ export interface ArchiveRunsInput {
   beforeDate?: string;
   keepLast?: number;
   reason?: string;
-}
-
-/**
- * Archive runs result
- */
-export interface ArchiveRunsResult {
-  archived: number;
 }
 
 /**
@@ -276,23 +215,8 @@ export interface ListRunsQuery {
   limit?: number; // 1-100
 }
 
-/**
- * Run details (with recommendations and agent snapshots)
- */
-export interface RunDetails {
-  run: Run;
-  agents: AgentSnapshot[];
-  recommendations: Array<{
-    issueId: string;
-    title: string;
-    priority: Priority;
-    agent: string;
-    status: string;
-  }>;
-}
-
 // ─────────────────────────────────────────────────────────────────
-// Analysis Types (v1.4.0)
+// Analysis Input Types (v1.4.0)
 // ─────────────────────────────────────────────────────────────────
 
 /**
@@ -327,50 +251,6 @@ export interface AnalysisSummaryInput {
   categoryScores?: CategoryScore[] | null;
   epistemicAssessment?: Record<string, unknown> | null;
   auditImplications?: string[] | null;
-}
-
-/**
- * Analysis record returned from API
- */
-export interface AnalysisRecord {
-  id: string;
-  runId: string;
-  agentName: string;
-  agentType: string;
-  recordType: string;
-  recordId: string;
-  title: string;
-  classification: string | null;
-  severity: string | null;
-  recordData: Record<string, unknown>;
-  createdAt: string;
-}
-
-/**
- * Analysis summary returned from API
- */
-export interface AnalysisSummary {
-  id: string;
-  runId: string;
-  agentName: string;
-  agentType: string;
-  decision: string;
-  score: number;
-  decisionVocabulary: string | null;
-  systemMetrics: Record<string, unknown> | null;
-  categoryScores: CategoryScore[] | null;
-  epistemicAssessment: Record<string, unknown> | null;
-  auditImplications: string[] | null;
-  createdAt: string;
-}
-
-/**
- * Analysis data for a run
- */
-export interface RunAnalysis {
-  records: AnalysisRecord[];
-  summaries: AnalysisSummary[];
-  total: number;
 }
 
 /**

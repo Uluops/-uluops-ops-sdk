@@ -1,19 +1,57 @@
+import { z } from 'zod';
 import type { Priority, Status, StatusFilter, Severity, FailureDomain } from './enums.js';
+import {
+  ProjectResponseSchema,
+  ProjectSummaryResponseSchema,
+  ProjectSummaryStatsResponseSchema,
+  ProjectTrendsResponseSchema,
+  DailyIssueCountsResponseSchema,
+  TrendsSummaryResponseSchema,
+  MergeIssuesResultResponseSchema,
+  BulkStatusUpdateResultResponseSchema,
+} from './response-schemas.js';
 import type { Issue } from './issues.js';
 
-/**
- * Project entity
- */
-export interface Project {
-  id: string;
-  name: string;
-  ownerId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// ─────────────────────────────────────────────────────────────────
+// Response types (derived from Zod schemas — single source of truth)
+// ─────────────────────────────────────────────────────────────────
+
+/** Project entity */
+export type Project = z.infer<typeof ProjectResponseSchema>;
 
 /** @deprecated Project no longer includes deletedAt — use Project directly */
 export type PublicProject = Project;
+
+/** Project summary statistics */
+export type ProjectSummaryStats = z.infer<typeof ProjectSummaryStatsResponseSchema>;
+
+/** Full project summary response (nested structure matching API) */
+export type ProjectSummaryResponse = z.infer<typeof ProjectSummaryResponseSchema>;
+
+/** @deprecated Use ProjectSummaryResponse */
+export type ProjectSummary = ProjectSummaryResponse;
+
+/** Daily issue counts for trend data */
+export type DailyIssueCounts = z.infer<typeof DailyIssueCountsResponseSchema>;
+
+/** Trend summary statistics */
+export type TrendsSummary = z.infer<typeof TrendsSummaryResponseSchema>;
+
+/** Full project trends response */
+export type ProjectTrends = z.infer<typeof ProjectTrendsResponseSchema>;
+
+/** @deprecated Use DailyIssueCounts */
+export type TrendDataPoint = DailyIssueCounts;
+
+/** Merge issues result */
+export type MergeIssuesResult = z.infer<typeof MergeIssuesResultResponseSchema>;
+
+/** Bulk issue status update result */
+export type BulkIssueStatusResult = z.infer<typeof BulkStatusUpdateResultResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────
+// Input types (hand-written — not API responses)
+// ──────────────────────────────────────────────────��──────────────
 
 /**
  * Create project input
@@ -44,63 +82,6 @@ export interface RenameProjectInput {
   oldName: string;
   newName: string;
 }
-
-/**
- * Project summary statistics returned by the API
- */
-export interface ProjectSummaryStats {
-  totalRuns: number;
-  totalIssues: number;
-  openIssues: number;
-  criticalIssues: number;
-  latestRunNumber: number | null;
-  latestRunDate: string | null;
-}
-
-/**
- * Full project summary response (nested structure matching API)
- */
-export interface ProjectSummaryResponse {
-  project: PublicProject;
-  stats: ProjectSummaryStats;
-}
-
-/** @deprecated Use ProjectSummaryResponse */
-export type ProjectSummary = ProjectSummaryResponse;
-
-/**
- * Daily issue counts for trend data
- */
-export interface DailyIssueCounts {
-  date: string;
-  total: number;
-  critical: number;
-  new: number;
-  resolved: number;
-}
-
-/**
- * Trend summary statistics
- */
-export interface TrendsSummary {
-  averageNew: number;
-  averageResolved: number;
-  netChange: number;
-  trendDirection: 'improving' | 'stable' | 'worsening';
-}
-
-/**
- * Full project trends response
- */
-export interface ProjectTrends {
-  project: Project;
-  days: number;
-  daily: DailyIssueCounts[];
-  summary: TrendsSummary;
-}
-
-/** @deprecated Use DailyIssueCounts */
-export type TrendDataPoint = DailyIssueCounts;
 
 /**
  * Project trends query options
@@ -145,30 +126,10 @@ export interface BulkIssueStatusUpdate {
 }
 
 /**
- * Bulk issue status update result
- */
-export interface BulkIssueStatusResult {
-  issueId: string;
-  success: boolean;
-  error?: string;
-  previousStatus?: Status;
-  newStatus?: Status;
-}
-
-/**
  * Merge issues input
  */
 export interface MergeIssuesInput {
   targetIssueId: string;
   sourceIssueIds: string[];
   strategy?: 'keep_target' | 'keep_highest_priority';
-}
-
-/**
- * Merge issues result
- */
-export interface MergeIssuesResult {
-  targetIssueId: string;
-  mergedCount: number;
-  migratedOccurrences: number;
 }

@@ -1,50 +1,50 @@
+import { z } from 'zod';
 import type {
   Priority,
   Status,
   StatusFilter,
   Severity,
   FailureDomain,
-  FailureSeverityCode,
   IssueType,
   NoteType,
-  ClassificationConfidence,
-  ClassifiedBy,
 } from './enums.js';
+import {
+  IssueResponseSchema,
+  IssueDetailsResponseSchema,
+  IssueNoteResponseSchema,
+  StatusHistoryResponseSchema,
+  OccurrenceResponseSchema,
+  StatusUpdateResultResponseSchema,
+} from './response-schemas.js';
 
-/**
- * Issue entity
- */
-export interface Issue {
-  id: string;
-  projectId: string;
-  fingerprint: string;
-  title: string;
-  status: Status;
-  priority: Priority;
-  severity: Severity | null;
-  failureCode: string | null;
-  failureDomain: FailureDomain | null;
-  failureMode: string | null;
-  failureSeverityCode: FailureSeverityCode | null;
-  category: string | null;
-  agent: string | null;
-  type: IssueType | null;
-  filePath: string | null;
-  lineNumber: number | null;
-  timesSeen: number;
-  firstSeenRunId: string;
-  lastSeenRunId: string;
-  resolvedAt: string | null;
-  resolutionRunId: string | null;
-  deletedAt?: string | null;  // Stripped by API's issueToPublic
-  createdAt: string;
-  updatedAt: string;
-}
+// ───────────────────────────────────────────────��─────────────────
+// Response types (derived from Zod schemas — single source of truth)
+// ─────────────────────────────────────────────────────────────────
 
-/**
- * Public issue (without deletedAt)
- */
-export type PublicIssue = Omit<Issue, 'deletedAt'>;
+/** Issue entity */
+export type Issue = z.infer<typeof IssueResponseSchema>;
+
+/** Issue occurrence */
+export type Occurrence = z.infer<typeof OccurrenceResponseSchema>;
+
+/** Issue note */
+export type IssueNote = z.infer<typeof IssueNoteResponseSchema>;
+
+/** Status history entry */
+export type StatusHistory = z.infer<typeof StatusHistoryResponseSchema>;
+
+/** Full issue details (with related data) */
+export type IssueDetails = z.infer<typeof IssueDetailsResponseSchema>;
+
+/** Status update result */
+export type StatusUpdateResult = z.infer<typeof StatusUpdateResultResponseSchema>;
+
+/** Public issue (without deletedAt) */
+export type PublicIssue = Issue;
+
+// ─────────────────────────────────────────────────────────────────
+// Input types (hand-written — not API responses)
+// ─────────────────────────────────────────────────────────────────
 
 /**
  * Create user-submitted issue input
@@ -95,62 +95,12 @@ export interface UpdateIssueStatusInput {
 }
 
 /**
- * Issue occurrence
- */
-export interface Occurrence {
-  id: string;
-  issueId: string;
-  runId: string;
-  agentName: string;
-  description: string | null;
-  filePath: string | null;
-  lineNumber: number | null;
-  classificationConfidence: ClassificationConfidence | null;
-  classifiedBy: ClassifiedBy | null;
-  createdAt: string;
-}
-
-/**
- * Issue note
- */
-export interface IssueNote {
-  id: string;
-  issueId: string;
-  content: string;
-  noteType: NoteType;
-  createdBy: string | null;
-  createdAt: string;
-}
-
-/**
  * Create issue note input
  */
 export interface CreateIssueNoteInput {
   content: string;
   noteType?: NoteType;
   createdBy?: string;
-}
-
-/**
- * Status history entry
- */
-export interface StatusHistory {
-  id: string;
-  issueId: string;
-  oldStatus: Status | null;
-  newStatus: Status;
-  reason: string | null;
-  changedAt: string;
-}
-
-/**
- * Full issue details (with related data)
- */
-export interface IssueDetails {
-  issue: Issue;
-  occurrences: Occurrence[];
-  notes: IssueNote[];
-  history: StatusHistory[];
 }
 
 /**
@@ -192,15 +142,4 @@ export interface BulkStatusUpdateItem {
   id?: string;
   status: Status;
   reason?: string;
-}
-
-/**
- * Status update result
- */
-export interface StatusUpdateResult {
-  id: string;
-  fingerprint: string;
-  previousStatus: Status;
-  newStatus: Status;
-  updatedAt: string;
 }

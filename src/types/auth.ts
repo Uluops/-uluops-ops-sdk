@@ -1,4 +1,43 @@
+import { z } from 'zod';
 import type { UserRole, SubscriptionTier, AvatarMimeType } from './enums.js';
+import {
+  AuthUserResponseSchema,
+  PublicUserResponseSchema,
+  LoginResponseSchema,
+  RegisterResponseSchema,
+  PublicApiKeyResponseSchema,
+  ApiKeyCreatedResponseSchema,
+  PublicSessionResponseSchema,
+} from './response-schemas.js';
+
+// ─────────────────────────────────────────────────────────────────
+// Response types (derived from Zod schemas — single source of truth)
+// ─────────────────────────────────────────────────────────────────
+
+/** Authenticated user from auth middleware */
+export type AuthUser = z.infer<typeof AuthUserResponseSchema>;
+
+/** Public user representation (client-safe) */
+export type PublicUser = z.infer<typeof PublicUserResponseSchema>;
+
+/** Login response */
+export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+
+/** Register response */
+export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
+
+/** Public API key (metadata only, no hash) */
+export type PublicApiKey = z.infer<typeof PublicApiKeyResponseSchema>;
+
+/** API key creation response (includes plaintext key) */
+export type ApiKeyCreatedResponse = z.infer<typeof ApiKeyCreatedResponseSchema>;
+
+/** Public session (no token hash) */
+export type PublicSession = z.infer<typeof PublicSessionResponseSchema>;
+
+// ─────────────────────────────────────────────────────────────────
+// Input types (hand-written — not API responses)
+// ─────────────────────────────────────────────────────────────────
 
 /**
  * Full user entity
@@ -21,45 +60,6 @@ export interface User {
 }
 
 /**
- * Authenticated user from auth middleware
- */
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: UserRole;
-  subscriptionTier: SubscriptionTier;
-  username?: string | null;
-  name?: string | null;
-  bio?: string | null;
-  timezone?: string | null;
-  websiteUrl?: string | null;
-  avatarUrl?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * Public user representation (client-safe)
- */
-export interface PublicUser {
-  id: string;
-  email: string;
-  role: UserRole;
-  subscriptionTier: SubscriptionTier;
-  username: string | null;
-  name: string | null;
-  bio: string | null;
-  timezone: string | null;
-  websiteUrl: string | null;
-  avatarMimeType: AvatarMimeType | null;
-  isActive: boolean;
-  hasAvatar: boolean;
-  avatarUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
  * User registration input
  */
 export interface RegisterInput {
@@ -73,28 +73,6 @@ export interface RegisterInput {
 export interface LoginInput {
   email: string;
   password: string;
-}
-
-/**
- * Login response
- */
-export interface LoginResponse {
-  user: AuthUser;
-  sessionToken: string;
-  expiresAt: string;
-}
-
-/**
- * Register response
- */
-export interface RegisterResponse {
-  id: string;
-  email: string;
-  isActive: boolean;
-  role: UserRole;
-  subscriptionTier: SubscriptionTier;
-  createdAt: string;
-  updatedAt: string;
 }
 
 /**
@@ -134,7 +112,15 @@ export interface ResetPasswordInput {
 }
 
 /**
- * API key entity
+ * API key creation input
+ */
+export interface CreateApiKeyInput {
+  name?: string;
+  expiresAt?: string;
+}
+
+/**
+ * API key entity (internal, with hash)
  */
 export interface ApiKey {
   id: string;
@@ -147,34 +133,7 @@ export interface ApiKey {
 }
 
 /**
- * Public API key (metadata only, no hash)
- */
-export interface PublicApiKey {
-  id: string;
-  name: string | null;
-  lastUsedAt: string | null;
-  expiresAt: string | null;
-  createdAt: string;
-}
-
-/**
- * API key creation input
- */
-export interface CreateApiKeyInput {
-  name?: string;
-  expiresAt?: string;
-}
-
-/**
- * API key creation response (includes plaintext key)
- */
-export interface ApiKeyCreatedResponse {
-  key: string; // The plaintext key - only shown once
-  apiKey: PublicApiKey;
-}
-
-/**
- * Session entity
+ * Session entity (internal, with token hash)
  */
 export interface Session {
   id: string;
@@ -186,16 +145,3 @@ export interface Session {
   userAgent: string | null;
   ipAddress: string | null;
 }
-
-/**
- * Public session (no token hash)
- */
-export interface PublicSession {
-  id: string;
-  expiresAt: string;
-  createdAt: string;
-  lastActiveAt: string;
-  userAgent: string | null;
-  ipAddress: string | null;
-}
-
