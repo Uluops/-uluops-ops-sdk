@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 1.0.1** | [Changelog](./CHANGELOG.md)
+**Current version: 1.1.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -109,7 +109,7 @@ The SDK covers **83 API methods** across 7 operation domains with full TypeScrip
 
 ## Features
 
-- **Full API Coverage**: Access all 83 methods across auth, projects, runs, issues, analytics, taxonomy, and admin domains
+- **Full API Coverage**: Access all 83 methods across auth, projects, runs, issues, analytics, and taxonomy domains
 - **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429)
@@ -205,7 +205,7 @@ import type {
   Project,
   Issue,
   Run,
-  ValidatorPerformance,
+  AgentPerformance,
   Priority,
   Status,
   Severity,
@@ -260,7 +260,7 @@ const client = new OpsClient({
   password: 'password',        // Password for login
 
   // Connection settings
-  baseUrl: 'http://localhost:3100/api/v1',  // API base URL
+  baseUrl: 'https://api.uluops.ai/api/v1/ops',  // API base URL (localhost:3100 when NODE_ENV=development)
   timeout: 30000,              // Request timeout in ms (default: 30000)
   retries: 3,                  // Retry count for transient errors (default: 3)
   debug: false,                // Enable debug logging
@@ -1337,14 +1337,14 @@ const taxonomy = await client.taxonomy.get();
 
 console.log('Domains:', taxonomy.domains);
 // [
-//   { code: 'STR', name: 'Structural', modes: ['OMI', 'RED', 'MIS'] },
-//   { code: 'SEM', name: 'Semantic', modes: ['VAL', 'TYP', 'LOG'] },
-//   { code: 'PRA', name: 'Pragmatic', modes: ['PER', 'SEC', 'MAI'] },
-//   { code: 'EPI', name: 'Epistemic', modes: ['DOC', 'NAM', 'CLR'] },
+//   { code: 'STR', name: 'Structural', description: '...', modes: [{ code: 'OMI', name: 'Omission', description: '...' }, ...] },
+//   { code: 'SEM', name: 'Semantic', description: '...', modes: [...] },
+//   { code: 'PRA', name: 'Pragmatic', description: '...', modes: [...] },
+//   { code: 'EPI', name: 'Epistemic', description: '...', modes: [...] },
 // ]
 
 console.log('Severities:', taxonomy.severities);
-// ['critical', 'high', 'medium', 'low', 'info']
+// [{ code: 'C', name: 'critical', weight: 10 }, { code: 'H', name: 'high', weight: 5 }, ...]
 
 console.log('Priorities:', taxonomy.priorities);
 // ['critical', 'suggested', 'backlog']
@@ -1380,7 +1380,8 @@ For command-line usage, see the dedicated CLI package: [`@uluops/cli`](https://w
 | `ULUOPS_API_KEY` | API key for authentication | - |
 | `ULUOPS_EMAIL` | Email for session auth | - |
 | `ULUOPS_PASSWORD` | Password for session auth | - |
-| `ULUOPS_BASE_URL` | API base URL | `http://localhost:3100/api/v1` |
+| `ULUOPS_SESSION_TOKEN` | Session token for auth | - |
+| `ULUOPS_BASE_URL` | API base URL | `https://api.uluops.ai/api/v1/ops` (localhost:3100 when `NODE_ENV=development`) |
 | `ULUOPS_DEBUG` | Enable debug logging | `false` |
 
 Create a `.env` file in your project:
@@ -1392,7 +1393,7 @@ ULUOPS_BASE_URL=https://api.uluops.com/api/v1
 
 Or configure globally in `~/.uluops/.env`.
 
-> **Note:** The SDK defaults to `http://localhost:3100/api/v1` for local development. For production use, always set `ULUOPS_BASE_URL` or pass `baseUrl` to the constructor.
+> **Note:** The SDK defaults to `https://api.uluops.ai/api/v1/ops` in production. Set `NODE_ENV=development` to default to `http://localhost:3100/api/v1`, or pass `baseUrl` explicitly.
 
 ## Error Handling
 
@@ -1441,9 +1442,12 @@ try {
 | `NotFoundError` | 404 | Resource not found |
 | `ConflictError` | 409 | Resource conflict |
 | `RateLimitError` | 429 | Rate limit exceeded |
+| `PayloadTooLargeError` | 413 | Request body too large |
+| `UnprocessableError` | 422 | Semantically invalid request |
 | `ServiceUnavailableError` | 503 | Server unavailable |
 | `NetworkError` | - | Connection error |
 | `TimeoutError` | - | Request timeout |
+| `InputValidationError` | - | Client-side Zod validation failure (import from `/config`) |
 
 ### Automatic Retries
 
