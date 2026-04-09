@@ -392,10 +392,6 @@ describe('Project Operations', () => {
       const projectId = TEST_IDS.proj3;
       const issueId1 = TEST_IDS.issue1;
       const issueId2 = TEST_IDS.issue2;
-      const mockResults = [
-        createMockBulkStatusUpdateResult({ issueId: issueId1, success: true }),
-        createMockBulkStatusUpdateResult({ issueId: issueId2, success: true }),
-      ];
 
       nock(BASE_URL)
         .patch(`/projects/${projectId}/issues/status`, {
@@ -404,19 +400,15 @@ describe('Project Operations', () => {
             { issueId: issueId2, status: 'wontfix', reason: 'By design' },
           ],
         })
-        .reply(200, { data: mockResults });
+        .reply(200, { data: { updated: 2, failed: [] } });
 
-      const results = await projectOps.bulkUpdateIssueStatus(client, projectId, [
+      const result = await projectOps.bulkUpdateIssueStatus(client, projectId, [
         { issueId: issueId1, status: 'completed', reason: 'Fixed' },
         { issueId: issueId2, status: 'wontfix', reason: 'By design' },
       ]);
 
-      expect(results).toHaveLength(2);
-      expect(results[0].success).toBe(true);
-      expect(results[0].issueId).toBe(issueId1);
-      expect(results[1].issueId).toBe(issueId2);
-      expect(results[0].previousStatus).toBe('open');
-      expect(results[0].newStatus).toBe('completed');
+      expect(result.updated).toBe(2);
+      expect(result.failed).toHaveLength(0);
     });
   });
 

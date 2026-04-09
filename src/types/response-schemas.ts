@@ -476,11 +476,8 @@ export const MergeIssuesResultResponseSchema = z.object({
 // ============================================
 
 export const BulkStatusUpdateResultResponseSchema = z.object({
-  issueId: z.string().uuid(),
-  success: z.boolean(),
-  error: z.string().optional(),
-  previousStatus: StatusResponseSchema.optional(),
-  newStatus: StatusResponseSchema.optional(),
+  updated: z.number().int().nonnegative(),
+  failed: z.array(z.string()),
 });
 
 // ============================================

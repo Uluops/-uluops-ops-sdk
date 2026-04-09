@@ -196,11 +196,11 @@ export async function bulkUpdateIssueStatus(
   client: OpsHttpClient,
   idOrName: string,
   updates: BulkIssueStatusUpdate[]
-): Promise<BulkIssueStatusResult[]> {
+): Promise<BulkIssueStatusResult> {
   return client.patch(
     `/projects/${encodeURIComponent(idOrName)}/issues/status`,
     { updates },
-    { schema: z.array(BulkStatusUpdateResultResponseSchema) }
+    { schema: BulkStatusUpdateResultResponseSchema }
   );
 }
 

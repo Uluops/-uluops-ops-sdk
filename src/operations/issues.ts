@@ -209,7 +209,7 @@ export async function undoLastChange(
 export async function bulkUpdateStatus(
   client: OpsHttpClient,
   updates: BulkStatusUpdateItem[]
-): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>[]> {
+): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>> {
   validateBulkStatusUpdateInput({ updates });
   return client.post('/issues/bulk-status', {
     updates: updates.map((u) => ({
@@ -218,7 +218,7 @@ export async function bulkUpdateStatus(
       status: u.status,
       reason: u.reason,
     })),
-  }, { schema: z.array(BulkStatusUpdateResultResponseSchema) });
+  }, { schema: BulkStatusUpdateResultResponseSchema });
 }
 
 /**

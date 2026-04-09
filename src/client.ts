@@ -34,7 +34,6 @@ import type {
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
   BulkIssueStatusUpdate,
-  BulkIssueStatusResult,
   MergeIssuesInput,
   MergeIssuesResult,
 } from './types/projects.js';
@@ -77,7 +76,6 @@ import type {
   BulkStatusUpdateItem,
   StatusUpdateResult,
 } from './types/issues.js';
-import type { BulkStatusUpdateResultResponseSchema } from './types/response-schemas.js';
 
 import type {
   AnalyticsQuery,
@@ -289,7 +287,7 @@ export class OpsClient {
     listIssuesWithCount: (idOrName: string, query?: ListProjectIssuesQuery): Promise<PaginatedIssues> =>
       projectOps.listIssuesWithCount(this.httpClient, idOrName, query),
 
-    bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[]): Promise<BulkIssueStatusResult[]> =>
+    bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[]) =>
       projectOps.bulkUpdateIssueStatus(this.httpClient, idOrName, updates),
 
     mergeIssues: (idOrName: string, input: MergeIssuesInput): Promise<MergeIssuesResult> =>
@@ -388,7 +386,7 @@ export class OpsClient {
     undoLastChange: (issueId: string): Promise<Issue> =>
       issueOps.undoLastChange(this.httpClient, issueId),
 
-    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>[]> =>
+    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]) =>
       issueOps.bulkUpdateStatus(this.httpClient, updates),
 
     listByProject: (projectId: string, query?: ListIssuesQuery): Promise<Issue[]> =>

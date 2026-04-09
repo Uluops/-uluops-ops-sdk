@@ -426,10 +426,6 @@ describe('Issue Operations', () => {
     it('should bulk update issue statuses', async () => {
       const issueId1 = TEST_IDS.issue1;
       const issueId2 = TEST_IDS.issue2;
-      const mockResults = [
-        createMockBulkStatusUpdateResult({ issueId: issueId1, success: true }),
-        createMockBulkStatusUpdateResult({ issueId: issueId2, success: true }),
-      ];
 
       nock(BASE_URL)
         .post('/issues/bulk-status', {
@@ -438,17 +434,15 @@ describe('Issue Operations', () => {
             { issueId: issueId2, status: 'wontfix', reason: 'By design' },
           ],
         })
-        .reply(200, { data: mockResults });
+        .reply(200, { data: { updated: 2, failed: [] } });
 
-      const results = await issueOps.bulkUpdateStatus(client, [
+      const result = await issueOps.bulkUpdateStatus(client, [
         { issueId: issueId1, status: 'completed', reason: 'Fixed' },
         { issueId: issueId2, status: 'wontfix', reason: 'By design' },
       ]);
 
-      expect(results).toHaveLength(2);
-      expect(results.every((r) => r.success)).toBe(true);
-      expect(results[0].issueId).toBe(issueId1);
-      expect(results[1].issueId).toBe(issueId2);
+      expect(result.updated).toBe(2);
+      expect(result.failed).toHaveLength(0);
     });
   });
 
