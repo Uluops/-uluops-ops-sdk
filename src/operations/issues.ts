@@ -28,6 +28,7 @@ import {
   validateCreateIssueNoteInput,
   validateBulkStatusUpdateInput,
 } from '../config/validators.js';
+import { toApiQuery } from '../http/http-client.js';
 import { buildIssueListParams } from './query-utils.js';
 
 /**
@@ -62,16 +63,7 @@ export async function search(
   client: OpsHttpClient,
   query: IssueSearchQuery
 ): Promise<Issue[]> {
-  return client.get('/issues/search', {
-    query: query.query,
-    projects: query.projects?.join(','),
-    agents: query.agents?.join(','),
-    status: query.status,
-    priority: query.priority,
-    severities: query.severities?.join(','),
-    failureDomains: query.failureDomains?.join(','),
-    limit: query.limit,
-  }, { schema: z.array(IssueResponseSchema) });
+  return client.get('/issues/search', toApiQuery(query), { schema: z.array(IssueResponseSchema) });
 }
 
 /**
