@@ -355,26 +355,25 @@ describe('OpsClient', () => {
         .get('/analytics/agents/performance')
         .reply(200, {
           data: [
-            { name: 'code-validator', avgScore: 85, totalRuns: 100 },
-            { name: 'test-architect', avgScore: 78, totalRuns: 80 },
+            { name: 'code-validator', totalRuns: 100, averageScore: 85, passRate: 92, totalIssuesFound: 250 },
+            { name: 'test-architect', totalRuns: 80, averageScore: 78, passRate: 85, totalIssuesFound: 180 },
           ],
         });
 
       const perf = await client.analytics.getAgentPerformance();
 
       expect(perf).toHaveLength(2);
-      expect(perf[0].avgScore).toBe(85);
+      expect(perf[0].averageScore).toBe(85);
     });
 
     it('should get burndown data', async () => {
+      const emptyTrend = { netChange: 0, trend: 'stable', avgDailyChange: 0, confidence: 'low' as const, sampleSize: 1, rSquared: 0, standardError: 0, confidenceInterval: [0, 0] as [number, number], outliers: [], diagnostics: null, ciReliable: false, warnings: [], weeklyPatternDetected: false };
       nock(BASE_URL)
         .get('/analytics/taxonomy/burndown')
         .reply(200, {
           data: {
-            timeSeries: [
-              { date: '2024-01-01', STR: 5, SEM: 10, PRA: 3, EPI: 2 },
-            ],
-            trends: { STR: 'declining', SEM: 'stable' },
+            timeSeries: [{ date: '2024-01-01', STR: 5, SEM: 10, PRA: 3, EPI: 2, total: 20 }],
+            trends: { STR: emptyTrend, SEM: emptyTrend, PRA: emptyTrend, EPI: emptyTrend },
           },
         });
 
@@ -388,15 +387,14 @@ describe('OpsClient', () => {
         .get('/analytics/taxonomy/velocity')
         .reply(200, {
           data: {
-            modes: [
-              { mode: 'STR-OMI', velocity: -5, trend: 'improving' },
-            ],
+            items: [{ domain: 'STR', mode: 'OMI', failureCode: 'STR-OMI', currentCount: 5, previousCount: 10, velocityPercent: -50, alert: false, sparkline: [10, 8, 6, 5], trendReliability: 'high' }],
+            summary: { improving: ['STR-OMI'], stable: [], degrading: [], mostImproved: 'STR-OMI', mostConcerning: null },
           },
         });
 
       const velocity = await client.analytics.getVelocity();
 
-      expect(velocity.modes[0].mode).toBe('STR-OMI');
+      expect(velocity.items[0].failureCode).toBe('STR-OMI');
     });
   });
 

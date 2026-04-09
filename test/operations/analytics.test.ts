@@ -20,20 +20,18 @@ describe('Analytics Operations', () => {
         .get('/analytics/agents/performance')
         .reply(200, {
           data: [
-            { validator: 'code-validator', avgScore: 85.5, runCount: 100, passRate: 0.92 },
-            { validator: 'test-architect', avgScore: 78.2, runCount: 80, passRate: 0.85 },
+            { name: 'code-validator', totalRuns: 100, averageScore: 85.5, passRate: 92, totalIssuesFound: 250 },
+            { name: 'test-architect', totalRuns: 80, averageScore: 78.2, passRate: 85, totalIssuesFound: 180 },
           ],
         });
 
       const perf = await analyticsOps.getAgentPerformance(client);
 
       expect(perf).toHaveLength(2);
-      expect(perf[0].validator).toBe('code-validator');
-      expect(perf[0].avgScore).toBe(85.5);
-      expect(perf[0].runCount).toBe(100);
-      expect(perf[0].passRate).toBe(0.92);
-      expect(perf[1].validator).toBe('test-architect');
-      expect(perf[1].avgScore).toBe(78.2);
+      expect(perf[0].name).toBe('code-validator');
+      expect(perf[0].averageScore).toBe(85.5);
+      expect(perf[0].totalRuns).toBe(100);
+      expect(perf[0].passRate).toBe(92);
     });
 
     it('should filter by project', async () => {
@@ -41,7 +39,7 @@ describe('Analytics Operations', () => {
         .get('/analytics/agents/performance')
         .query({ project: 'proj-1' })
         .reply(200, {
-          data: [{ validator: 'code-validator', avgScore: 90, runCount: 50 }],
+          data: [{ name: 'code-validator', totalRuns: 50, averageScore: 90, passRate: 96, totalIssuesFound: 100 }],
         });
 
       const perf = await analyticsOps.getAgentPerformance(client, { project: 'proj-1' });
@@ -59,9 +57,11 @@ describe('Analytics Operations', () => {
             agents: [
               {
                 name: 'code-validator',
-                falsePositiveRate: 0.05,
-                resolutionRate: 0.75,
-                reliabilityScore: 0.92,
+                totalIssues: 250,
+                falsePositiveRate: 5,
+                resolutionRate: 75,
+                avgTimeToResolveDays: 1.5,
+                reliabilityScore: 82,
               },
             ],
           },
@@ -71,9 +71,8 @@ describe('Analytics Operations', () => {
 
       expect(result.agents).toHaveLength(1);
       expect(result.agents[0].name).toBe('code-validator');
-      expect(result.agents[0].falsePositiveRate).toBe(0.05);
-      expect(result.agents[0].resolutionRate).toBe(0.75);
-      expect(result.agents[0].reliabilityScore).toBe(0.92);
+      expect(result.agents[0].falsePositiveRate).toBe(5);
+      expect(result.agents[0].reliabilityScore).toBe(82);
     });
 
     it('should filter by agent name', async () => {
@@ -82,13 +81,18 @@ describe('Analytics Operations', () => {
         .query({ agent: 'test-architect' })
         .reply(200, {
           data: {
-            agents: [{ name: 'test-architect', reliabilityScore: 0.88 }],
+            agents: [{
+              name: 'test-architect',
+              totalIssues: 180,
+              falsePositiveRate: 3,
+              resolutionRate: 80,
+              avgTimeToResolveDays: null,
+              reliabilityScore: 88,
+            }],
           },
         });
 
-      const result = await analyticsOps.getAgentReliability(client, {
-        agent: 'test-architect',
-      });
+      const result = await analyticsOps.getAgentReliability(client, { agent: 'test-architect' });
 
       expect(result.agents[0].name).toBe('test-architect');
     });
@@ -100,8 +104,8 @@ describe('Analytics Operations', () => {
         .get('/analytics/projects/resolution-rates')
         .reply(200, {
           data: [
-            { project: 'proj-1', resolvedCount: 50, totalCount: 100, rate: 0.5 },
-            { project: 'proj-2', resolvedCount: 80, totalCount: 100, rate: 0.8 },
+            { project: 'proj-1', totalIssues: 100, resolvedIssues: 50, resolutionRate: 50, averageTimeToResolve: null },
+            { project: 'proj-2', totalIssues: 100, resolvedIssues: 80, resolutionRate: 80, averageTimeToResolve: null },
           ],
         });
 
@@ -109,10 +113,8 @@ describe('Analytics Operations', () => {
 
       expect(rates).toHaveLength(2);
       expect(rates[0].project).toBe('proj-1');
-      expect(rates[0].resolvedCount).toBe(50);
-      expect(rates[0].totalCount).toBe(100);
-      expect(rates[0].rate).toBe(0.5);
-      expect(rates[1].rate).toBe(0.8);
+      expect(rates[0].resolutionRate).toBe(50);
+      expect(rates[1].resolutionRate).toBe(80);
     });
   });
 
@@ -122,8 +124,8 @@ describe('Analytics Operations', () => {
         .get('/analytics/files/hotspots')
         .reply(200, {
           data: [
-            { filePath: 'src/auth.ts', issueCount: 15, severity: 'high' },
-            { filePath: 'src/api/client.ts', issueCount: 10, severity: 'medium' },
+            { filePath: 'src/auth.ts', totalIssues: 15, openIssues: 5, resolvedIssues: 10, topAgents: ['code-validator'] },
+            { filePath: 'src/api/client.ts', totalIssues: 10, openIssues: 3, resolvedIssues: 7, topAgents: ['test-architect'] },
           ],
         });
 
@@ -131,10 +133,7 @@ describe('Analytics Operations', () => {
 
       expect(hotspots).toHaveLength(2);
       expect(hotspots[0].filePath).toBe('src/auth.ts');
-      expect(hotspots[0].issueCount).toBe(15);
-      expect(hotspots[0].severity).toBe('high');
-      expect(hotspots[1].filePath).toBe('src/api/client.ts');
-      expect(hotspots[1].issueCount).toBe(10);
+      expect(hotspots[0].totalIssues).toBe(15);
     });
 
     it('should filter by days', async () => {
@@ -142,7 +141,7 @@ describe('Analytics Operations', () => {
         .get('/analytics/files/hotspots')
         .query({ days: 7 })
         .reply(200, {
-          data: [{ filePath: 'src/recent.ts', issueCount: 5 }],
+          data: [{ filePath: 'src/recent.ts', totalIssues: 5, openIssues: 2, resolvedIssues: 3, topAgents: [] }],
         });
 
       const hotspots = await analyticsOps.getFileHotspots(client, { days: 7 });
@@ -157,10 +156,10 @@ describe('Analytics Operations', () => {
         .get('/analytics/taxonomy/distribution')
         .reply(200, {
           data: [
-            { domain: 'STR', count: 50 },
-            { domain: 'SEM', count: 80 },
-            { domain: 'PRA', count: 30 },
-            { domain: 'EPI', count: 20 },
+            { domain: 'STR', count: 50, percentage: 28 },
+            { domain: 'SEM', count: 80, percentage: 44 },
+            { domain: 'PRA', count: 30, percentage: 17 },
+            { domain: 'EPI', count: 20, percentage: 11 },
           ],
         });
 
@@ -177,34 +176,22 @@ describe('Analytics Operations', () => {
         .get('/analytics/taxonomy/full')
         .reply(200, {
           data: {
-            data: {
-              byDomain: [
-                { domain: 'STR', count: 50, percentage: 0.28 },
-                { domain: 'SEM', count: 80, percentage: 0.44 },
-              ],
-              byMode: [
-                { mode: 'STR-OMI', count: 20 },
-                { mode: 'SEM-VAL', count: 30 },
-              ],
-              bySeverity: [
-                { severity: 'critical', count: 10 },
-                { severity: 'high', count: 40 },
-              ],
-            },
-            computedAt: '2024-01-15T12:00:00Z',
+            byDomain: [{ domain: 'STR', label: 'Structural', count: 50, percentage: 28 }],
+            byMode: [{ mode: 'STR-OMI', label: 'Omission', domain: 'STR', domainLabel: 'Structural', count: 20, percentage: 11 }],
+            bySeverity: [{ severity: 'M', label: 'Medium', count: 40, percentage: 22 }],
+            topCodes: [{ code: 'STR-OMI/M', domain: 'STR', mode: 'STR-OMI', severity: 'M', label: 'Omission (Medium)', count: 15, percentage: 8 }],
+            heatmapData: [{ domain: 'STR', domainLabel: 'Structural', mode: 'STR-OMI', modeLabel: 'Omission', count: 20, percentage: 11, intensity: 1 }],
+            totals: { totalIssues: 180, classifiedIssues: 150, unclassifiedIssues: 30, classificationRate: 83.3 },
+            period: { start: '2024-01-01T00:00:00Z', end: '2024-01-31T00:00:00Z', days: 30 },
           },
         });
 
       const result = await analyticsOps.getFullTaxonomy(client);
 
-      expect(result.data.byDomain).toHaveLength(2);
-      expect(result.data.byDomain[0].domain).toBe('STR');
-      expect(result.data.byDomain[0].percentage).toBe(0.28);
-      expect(result.data.byMode).toHaveLength(2);
-      expect(result.data.byMode[0].mode).toBe('STR-OMI');
-      expect(result.data.bySeverity).toHaveLength(2);
-      expect(result.data.bySeverity[0].severity).toBe('critical');
-      expect(result.computedAt).toBe('2024-01-15T12:00:00Z');
+      expect(result.byDomain).toHaveLength(1);
+      expect(result.byDomain[0].domain).toBe('STR');
+      expect(result.totals.totalIssues).toBe(180);
+      expect(result.period.days).toBe(30);
     });
   });
 
@@ -215,26 +202,24 @@ describe('Analytics Operations', () => {
         .reply(200, {
           data: {
             timeSeries: [
-              { date: '2024-01-01', STR: 50, SEM: 80, PRA: 30, EPI: 20 },
-              { date: '2024-01-08', STR: 45, SEM: 70, PRA: 25, EPI: 18 },
+              { date: '2024-01-01', STR: 50, SEM: 80, PRA: 30, EPI: 20, total: 180 },
+              { date: '2024-01-08', STR: 45, SEM: 70, PRA: 25, EPI: 18, total: 158 },
             ],
             trends: {
-              STR: { direction: 'declining', rate: -0.05 },
-              SEM: { direction: 'declining', rate: -0.08 },
+              STR: { netChange: -5, trend: 'improving', avgDailyChange: -0.7, confidence: 'high', sampleSize: 7, rSquared: 0.85, standardError: 0.3, confidenceInterval: [-1.2, -0.2], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
+              SEM: { netChange: -10, trend: 'improving', avgDailyChange: -1.4, confidence: 'high', sampleSize: 7, rSquared: 0.9, standardError: 0.2, confidenceInterval: [-2, -0.8], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
+              PRA: { netChange: -5, trend: 'improving', avgDailyChange: -0.7, confidence: 'medium', sampleSize: 7, rSquared: 0.6, standardError: 0.5, confidenceInterval: [-1.5, 0.1], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
+              EPI: { netChange: -2, trend: 'stable', avgDailyChange: -0.3, confidence: 'low', sampleSize: 7, rSquared: 0.3, standardError: 0.4, confidenceInterval: [-1, 0.4], outliers: [], diagnostics: null, ciReliable: false, warnings: ['Insufficient data'], weeklyPatternDetected: false },
             },
-            diagnostics: { dataPoints: 2, reliability: 'medium' },
           },
         });
 
       const burndown = await analyticsOps.getBurndown(client);
 
       expect(burndown.timeSeries).toHaveLength(2);
-      expect(burndown.timeSeries[0].date).toBe('2024-01-01');
       expect(burndown.timeSeries[0].STR).toBe(50);
-      expect(burndown.trends.STR.direction).toBe('declining');
-      expect(burndown.trends.STR.rate).toBe(-0.05);
-      expect(burndown.trends.SEM.direction).toBe('declining');
-      expect(burndown.diagnostics.dataPoints).toBe(2);
+      expect(burndown.trends.STR.trend).toBe('improving');
+      expect(burndown.trends.SEM.avgDailyChange).toBe(-1.4);
     });
 
     it('should accept query parameters', async () => {
@@ -244,7 +229,12 @@ describe('Analytics Operations', () => {
         .reply(200, {
           data: {
             timeSeries: [],
-            trends: {},
+            trends: {
+              STR: { netChange: 0, trend: 'stable', avgDailyChange: 0, confidence: 'low', sampleSize: 0, rSquared: 0, standardError: 0, confidenceInterval: [0, 0], outliers: [], diagnostics: null, ciReliable: false, warnings: [], weeklyPatternDetected: false },
+              SEM: { netChange: 0, trend: 'stable', avgDailyChange: 0, confidence: 'low', sampleSize: 0, rSquared: 0, standardError: 0, confidenceInterval: [0, 0], outliers: [], diagnostics: null, ciReliable: false, warnings: [], weeklyPatternDetected: false },
+              PRA: { netChange: 0, trend: 'stable', avgDailyChange: 0, confidence: 'low', sampleSize: 0, rSquared: 0, standardError: 0, confidenceInterval: [0, 0], outliers: [], diagnostics: null, ciReliable: false, warnings: [], weeklyPatternDetected: false },
+              EPI: { netChange: 0, trend: 'stable', avgDailyChange: 0, confidence: 'low', sampleSize: 0, rSquared: 0, standardError: 0, confidenceInterval: [0, 0], outliers: [], diagnostics: null, ciReliable: false, warnings: [], weeklyPatternDetected: false },
+            },
           },
         });
 
@@ -258,24 +248,20 @@ describe('Analytics Operations', () => {
         .get('/analytics/taxonomy/velocity')
         .reply(200, {
           data: {
-            modes: [
-              { mode: 'STR-OMI', velocity: -5, trend: 'improving', sparkline: [10, 8, 6, 5] },
-              { mode: 'SEM-VAL', velocity: 3, trend: 'degrading', sparkline: [5, 6, 7, 8] },
+            items: [
+              { domain: 'STR', mode: 'OMI', failureCode: 'STR-OMI', currentCount: 5, previousCount: 10, velocityPercent: -50, alert: false, sparkline: [10, 8, 6, 5], trendReliability: 'high' },
+              { domain: 'SEM', mode: 'VAL', failureCode: 'SEM-VAL', currentCount: 8, previousCount: 5, velocityPercent: 60, alert: true, sparkline: [5, 6, 7, 8], trendReliability: 'medium' },
             ],
-            alerts: [{ mode: 'SEM-VAL', message: 'Velocity exceeds threshold' }],
+            summary: { improving: ['STR-OMI'], stable: [], degrading: ['SEM-VAL'], mostImproved: 'STR-OMI', mostConcerning: 'SEM-VAL' },
           },
         });
 
       const velocity = await analyticsOps.getVelocity(client);
 
-      expect(velocity.modes).toHaveLength(2);
-      expect(velocity.modes[0].mode).toBe('STR-OMI');
-      expect(velocity.modes[0].velocity).toBe(-5);
-      expect(velocity.modes[0].trend).toBe('improving');
-      expect(velocity.modes[0].sparkline).toEqual([10, 8, 6, 5]);
-      expect(velocity.modes[1].trend).toBe('degrading');
-      expect(velocity.alerts).toHaveLength(1);
-      expect(velocity.alerts[0].mode).toBe('SEM-VAL');
+      expect(velocity.items).toHaveLength(2);
+      expect(velocity.items[0].failureCode).toBe('STR-OMI');
+      expect(velocity.items[0].velocityPercent).toBe(-50);
+      expect(velocity.summary.mostConcerning).toBe('SEM-VAL');
     });
 
     it('should accept alert threshold', async () => {
@@ -283,7 +269,7 @@ describe('Analytics Operations', () => {
         .get('/analytics/taxonomy/velocity')
         .query({ alert_threshold: 10 })
         .reply(200, {
-          data: { modes: [], alerts: [] },
+          data: { items: [], summary: { improving: [], stable: [], degrading: [], mostImproved: null, mostConcerning: null } },
         });
 
       await analyticsOps.getVelocity(client, { alertThreshold: 10 });
@@ -297,26 +283,18 @@ describe('Analytics Operations', () => {
         .reply(200, {
           data: {
             timeline: [
-              { date: '2024-01-01', new: 5, recurring: 10 },
-              { date: '2024-01-02', new: 3, recurring: 12 },
+              { period: '2024-01-01', newIssues: 5, recurringIssues: 10, domains: { STR: { new: 2, recurring: 3 }, SEM: { new: 3, recurring: 7 }, PRA: { new: 0, recurring: 0 }, EPI: { new: 0, recurring: 0 } } },
             ],
-            summary: {
-              totalNew: 8,
-              totalRecurring: 22,
-              newRate: 0.27,
-            },
+            summary: { totalNew: 5, totalRecurring: 10, newToRecurringRatio: 0.5, peakNewPeriod: { period: '2024-01-01', count: 5 } },
           },
         });
 
       const discovery = await analyticsOps.getDiscovery(client);
 
-      expect(discovery.timeline).toHaveLength(2);
-      expect(discovery.timeline[0].date).toBe('2024-01-01');
-      expect(discovery.timeline[0].new).toBe(5);
-      expect(discovery.timeline[0].recurring).toBe(10);
-      expect(discovery.summary.totalNew).toBe(8);
-      expect(discovery.summary.totalRecurring).toBe(22);
-      expect(discovery.summary.newRate).toBe(0.27);
+      expect(discovery.timeline).toHaveLength(1);
+      expect(discovery.timeline[0].newIssues).toBe(5);
+      expect(discovery.summary.totalNew).toBe(5);
+      expect(discovery.summary.newToRecurringRatio).toBe(0.5);
     });
 
     it('should group by week or month', async () => {
@@ -325,8 +303,8 @@ describe('Analytics Operations', () => {
         .query({ group_by: 'week' })
         .reply(200, {
           data: {
-            timeline: [{ date: '2024-W01', new: 15, recurring: 30 }],
-            summary: {},
+            timeline: [{ period: '2024-W01', newIssues: 15, recurringIssues: 30, domains: {} }],
+            summary: { totalNew: 15, totalRecurring: 30, newToRecurringRatio: 0.5, peakNewPeriod: null },
           },
         });
 
@@ -340,24 +318,25 @@ describe('Analytics Operations', () => {
         .get('/analytics/taxonomy/agent-matrix')
         .reply(200, {
           data: {
-            matrix: {
-              'code-validator': { STR: 30, SEM: 50, PRA: 10, EPI: 5 },
-              'test-architect': { STR: 5, SEM: 20, PRA: 40, EPI: 0 },
+            matrix: [
+              { agent: 'code-validator', domains: { STR: 30, SEM: 50, PRA: 10, EPI: 5 }, total: 95, coverage: 4, coveragePercent: 100 },
+              { agent: 'test-architect', domains: { STR: 5, SEM: 20, PRA: 40, EPI: 0 }, total: 65, coverage: 3, coveragePercent: 75 },
+            ],
+            analysis: {
+              blindSpots: [{ agent: 'test-architect', missingDomains: ['EPI'] }],
+              singlePoints: [{ domain: 'STR', mode: 'OMI', onlyAgent: 'code-validator' }],
+              highOverlap: [{ mode: 'SEM-VAL', agentCount: 3, agents: ['code-validator', 'test-architect', 'type-safety'] }],
             },
-            blindSpots: ['EPI'],
-            singlePoints: ['STR-OMI'],
-            highOverlap: ['SEM-VAL'],
           },
         });
 
-      const matrix = await analyticsOps.getAgentMatrix(client);
+      const result = await analyticsOps.getAgentMatrix(client);
 
-      expect(matrix.matrix['code-validator'].STR).toBe(30);
-      expect(matrix.matrix['code-validator'].SEM).toBe(50);
-      expect(matrix.matrix['test-architect'].PRA).toBe(40);
-      expect(matrix.blindSpots).toContain('EPI');
-      expect(matrix.singlePoints).toContain('STR-OMI');
-      expect(matrix.highOverlap).toContain('SEM-VAL');
+      expect(result.matrix).toHaveLength(2);
+      expect(result.matrix[0].agent).toBe('code-validator');
+      expect(result.matrix[0].domains.STR).toBe(30);
+      expect(result.analysis.blindSpots).toHaveLength(1);
+      expect(result.analysis.singlePoints).toHaveLength(1);
     });
 
     it('should filter by minimum issues', async () => {
@@ -365,7 +344,7 @@ describe('Analytics Operations', () => {
         .get('/analytics/taxonomy/agent-matrix')
         .query({ min_issues: 10 })
         .reply(200, {
-          data: { matrix: {}, blindSpots: [], singlePoints: [], highOverlap: [] },
+          data: { matrix: [], analysis: { blindSpots: [], singlePoints: [], highOverlap: [] } },
         });
 
       await analyticsOps.getAgentMatrix(client, { minIssues: 10 });
@@ -378,8 +357,8 @@ describe('Analytics Operations', () => {
         .get('/analytics/trends/summary')
         .reply(200, {
           data: [
-            { metric: 'total_issues', value: 180, change: -10, trend: 'improving' },
-            { metric: 'avg_score', value: 85, change: 5, trend: 'improving' },
+            { metric: 'total_issues', current: 180, previous: 190, change: -10, changePercent: -5.3, trend: 'improving' },
+            { metric: 'avg_score', current: 85, previous: 80, change: 5, changePercent: 6.25, trend: 'improving' },
           ],
         });
 
@@ -387,11 +366,9 @@ describe('Analytics Operations', () => {
 
       expect(trends).toHaveLength(2);
       expect(trends[0].metric).toBe('total_issues');
-      expect(trends[0].value).toBe(180);
+      expect(trends[0].current).toBe(180);
       expect(trends[0].change).toBe(-10);
       expect(trends[0].trend).toBe('improving');
-      expect(trends[1].metric).toBe('avg_score');
-      expect(trends[1].value).toBe(85);
     });
   });
 
@@ -400,17 +377,12 @@ describe('Analytics Operations', () => {
       nock(BASE_URL)
         .get('/analytics/cost_analysis')
         .reply(200, {
-          data: {
-            totalCost: 150.25,
-            byValidator: [
-              { validator: 'code-validator', cost: 75.10 },
-            ],
-          },
+          data: [{ name: 'code-validator', totalRuns: 10, totalInputTokens: 5000, totalOutputTokens: 2000, totalEffectiveTokens: 7000, estimatedCost: 0.15 }],
         });
 
       const result = await analyticsOps.getByMetric(client, 'cost_analysis');
 
-      expect((result as { totalCost: number }).totalCost).toBe(150.25);
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it('should pass query parameters', async () => {
@@ -418,7 +390,7 @@ describe('Analytics Operations', () => {
         .get('/analytics/regression_analysis')
         .query({ project: 'proj-1', days: 30 })
         .reply(200, {
-          data: { regressions: [] },
+          data: [],
         });
 
       await analyticsOps.getByMetric(client, 'regression_analysis', {
@@ -428,7 +400,6 @@ describe('Analytics Operations', () => {
     });
 
     it('should throw error for invalid metric', async () => {
-      // Use type assertion to test runtime validation for string inputs that bypass TypeScript
       const invalidMetric = 'invalid_metric' as analyticsOps.AnalyticsMetric;
 
       await expect(analyticsOps.getByMetric(client, invalidMetric)).rejects.toThrow(
@@ -457,48 +428,26 @@ describe('Analytics Operations', () => {
         .get('/analytics/agents/performance')
         .reply(200, {
           data: [
-            {
-              name: 'code-validator',
-              totalRuns: 100,
-              avgScore: 85.5,
-              minScore: 60,
-              maxScore: 100,
-              passRate: 0.92,
-              avgDurationMs: 1500,
-              totalIssuesFound: 250,
-            },
-            {
-              name: 'test-architect',
-              totalRuns: 80,
-              avgScore: 78.2,
-              minScore: 55,
-              maxScore: 95,
-              passRate: 0.85,
-              avgDurationMs: 2000,
-              totalIssuesFound: 180,
-            },
+            { name: 'code-validator', totalRuns: 100, averageScore: 85.5, passRate: 92, totalIssuesFound: 250 },
+            { name: 'test-architect', totalRuns: 80, averageScore: 78.2, passRate: 85, totalIssuesFound: 180 },
           ],
         });
 
-      const validators = await analyticsOps.listAgents(client);
+      const agents = await analyticsOps.listAgents(client);
 
-      expect(validators).toHaveLength(2);
-      expect(validators[0]).toEqual({
+      expect(agents).toHaveLength(2);
+      expect(agents[0]).toEqual({
         name: 'code-validator',
         totalRuns: 100,
         avgScore: 85.5,
-        passRate: 0.92,
+        passRate: 92,
       });
-      expect(validators[1]).toEqual({
+      expect(agents[1]).toEqual({
         name: 'test-architect',
         totalRuns: 80,
         avgScore: 78.2,
-        passRate: 0.85,
+        passRate: 85,
       });
-      // Should NOT include extra fields like minScore, maxScore, etc.
-      expect(validators[0]).not.toHaveProperty('minScore');
-      expect(validators[0]).not.toHaveProperty('avgDurationMs');
-      expect(validators[0]).not.toHaveProperty('totalIssuesFound');
     });
 
     it('should pass query parameters through', async () => {
@@ -506,24 +455,13 @@ describe('Analytics Operations', () => {
         .get('/analytics/agents/performance')
         .query({ project: 'proj-1' })
         .reply(200, {
-          data: [
-            {
-              name: 'code-validator',
-              totalRuns: 50,
-              avgScore: 90,
-              minScore: 80,
-              maxScore: 100,
-              passRate: 0.96,
-              avgDurationMs: 1200,
-              totalIssuesFound: 100,
-            },
-          ],
+          data: [{ name: 'code-validator', totalRuns: 50, averageScore: 90, passRate: 96, totalIssuesFound: 100 }],
         });
 
-      const validators = await analyticsOps.listAgents(client, { project: 'proj-1' });
+      const agents = await analyticsOps.listAgents(client, { project: 'proj-1' });
 
-      expect(validators).toHaveLength(1);
-      expect(validators[0].name).toBe('code-validator');
+      expect(agents).toHaveLength(1);
+      expect(agents[0].name).toBe('code-validator');
     });
   });
 

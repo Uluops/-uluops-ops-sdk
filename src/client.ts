@@ -82,22 +82,11 @@ import type { BulkStatusUpdateResultResponseSchema } from './types/response-sche
 import type {
   AnalyticsQuery,
   AgentInfo,
-  AgentPerformance,
-  AgentReliability,
   AgentReliabilityQuery,
-  ResolutionRate,
-  FileHotspot,
-  TaxonomyDistribution,
-  FullTaxonomyAnalytics,
-  BurndownResult,
   BurndownQuery,
-  VelocityResult,
   VelocityQuery,
-  DiscoveryResult,
   DiscoveryQuery,
-  AgentMatrixResult,
   AgentMatrixQuery,
-  TrendSummary,
   TaxonomySchema,
 } from './types/analytics.js';
 
@@ -412,40 +401,40 @@ export class OpsClient {
 
   /** Agent performance, taxonomy analytics, burndown, velocity, and discovery */
   readonly analytics = {
-    getAgentPerformance: (query?: AnalyticsQuery): Promise<AgentPerformance[]> =>
+    getAgentPerformance: (query?: AnalyticsQuery) =>
       analyticsOps.getAgentPerformance(this.httpClient, query),
 
-    getAgentReliability: (query?: AgentReliabilityQuery): Promise<{ agents: AgentReliability[] }> =>
+    getAgentReliability: (query?: AgentReliabilityQuery) =>
       analyticsOps.getAgentReliability(this.httpClient, query),
 
-    getResolutionRates: (query?: AnalyticsQuery): Promise<ResolutionRate[]> =>
+    getResolutionRates: (query?: AnalyticsQuery) =>
       analyticsOps.getResolutionRates(this.httpClient, query),
 
-    getFileHotspots: (query?: AnalyticsQuery): Promise<FileHotspot[]> =>
+    getFileHotspots: (query?: AnalyticsQuery) =>
       analyticsOps.getFileHotspots(this.httpClient, query),
 
-    getTaxonomyDistribution: (query?: AnalyticsQuery): Promise<TaxonomyDistribution[]> =>
+    getTaxonomyDistribution: (query?: AnalyticsQuery) =>
       analyticsOps.getTaxonomyDistribution(this.httpClient, query),
 
-    getFullTaxonomy: (query?: AnalyticsQuery): Promise<FullTaxonomyAnalytics> =>
+    getFullTaxonomy: (query?: AnalyticsQuery) =>
       analyticsOps.getFullTaxonomy(this.httpClient, query),
 
-    getBurndown: (query?: BurndownQuery): Promise<BurndownResult> =>
+    getBurndown: (query?: BurndownQuery) =>
       analyticsOps.getBurndown(this.httpClient, query),
 
-    getVelocity: (query?: VelocityQuery): Promise<VelocityResult> =>
+    getVelocity: (query?: VelocityQuery) =>
       analyticsOps.getVelocity(this.httpClient, query),
 
-    getDiscovery: (query?: DiscoveryQuery): Promise<DiscoveryResult> =>
+    getDiscovery: (query?: DiscoveryQuery) =>
       analyticsOps.getDiscovery(this.httpClient, query),
 
-    getAgentMatrix: (query?: AgentMatrixQuery): Promise<AgentMatrixResult> =>
+    getAgentMatrix: (query?: AgentMatrixQuery) =>
       analyticsOps.getAgentMatrix(this.httpClient, query),
 
-    getTrendSummary: (query?: AnalyticsQuery): Promise<TrendSummary[]> =>
+    getTrendSummary: (query?: AnalyticsQuery) =>
       analyticsOps.getTrendSummary(this.httpClient, query),
 
-    getByMetric: <M extends analyticsOps.AnalyticsMetric>(metric: M, query?: AnalyticsQuery): Promise<analyticsOps.AnalyticsMetricResultMap[M]> =>
+    getByMetric: (metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery) =>
       analyticsOps.getByMetric(this.httpClient, metric, query),
 
     listAgents: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>
@@ -453,13 +442,13 @@ export class OpsClient {
 
     // Backwards-compatible aliases
     /** @deprecated Use getAgentPerformance instead */
-    getValidatorPerformance: (query?: AnalyticsQuery): Promise<AgentPerformance[]> =>
+    getValidatorPerformance: (query?: AnalyticsQuery) =>
       analyticsOps.getAgentPerformance(this.httpClient, query),
     /** @deprecated Use getAgentReliability instead */
-    getValidatorReliability: (query?: AgentReliabilityQuery): Promise<{ agents: AgentReliability[] }> =>
+    getValidatorReliability: (query?: AgentReliabilityQuery) =>
       analyticsOps.getAgentReliability(this.httpClient, query),
     /** @deprecated Use getAgentMatrix instead */
-    getValidatorMatrix: (query?: AgentMatrixQuery): Promise<AgentMatrixResult> =>
+    getValidatorMatrix: (query?: AgentMatrixQuery) =>
       analyticsOps.getAgentMatrix(this.httpClient, query),
     /** @deprecated Use listAgents instead */
     listValidators: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>

@@ -484,6 +484,268 @@ export const BulkStatusUpdateResultResponseSchema = z.object({
 });
 
 // ============================================
+// ANALYTICS RESPONSE SCHEMAS
+// ============================================
+
+export const AgentPerformanceResponseSchema = z.object({
+  name: z.string(),
+  totalRuns: z.number().int().nonnegative(),
+  averageScore: z.number(),
+  passRate: z.number(),
+  totalIssuesFound: z.number().int().nonnegative(),
+});
+
+export const AgentReliabilityResponseSchema = z.object({
+  name: z.string(),
+  totalIssues: z.number().int().nonnegative(),
+  falsePositiveRate: z.number(),
+  resolutionRate: z.number(),
+  avgTimeToResolveDays: z.number().nullable(),
+  reliabilityScore: z.number(),
+});
+
+export const AgentReliabilityResultResponseSchema = z.object({
+  agents: z.array(AgentReliabilityResponseSchema),
+});
+
+export const ResolutionRateResponseSchema = z.object({
+  project: z.string(),
+  totalIssues: z.number().int().nonnegative(),
+  resolvedIssues: z.number().int().nonnegative(),
+  resolutionRate: z.number(),
+  averageTimeToResolve: z.number().nullable(),
+});
+
+export const FileHotspotResponseSchema = z.object({
+  filePath: z.string(),
+  totalIssues: z.number().int().nonnegative(),
+  openIssues: z.number().int().nonnegative(),
+  resolvedIssues: z.number().int().nonnegative(),
+  topAgents: z.array(z.string()),
+});
+
+export const TaxonomyDistributionResponseSchema = z.object({
+  domain: z.string(),
+  count: z.number().int().nonnegative(),
+  percentage: z.number(),
+});
+
+export const OutlierPointResponseSchema = z.object({
+  date: z.string(),
+  value: z.number(),
+  direction: z.enum(['high', 'low']),
+});
+
+export const ResidualDiagnosticsResponseSchema = z.object({
+  durbinWatson: z.number(),
+  autocorrelation: z.enum(['none', 'positive', 'negative', 'inconclusive']),
+  varianceRatio: z.number().nullable(),
+  heteroscedasticity: z.enum(['constant', 'increasing', 'decreasing', 'inconclusive']),
+  skewness: z.number(),
+  runsTestZ: z.number(),
+  assumptionScore: z.number(),
+  warnings: z.array(z.string()),
+});
+
+export const DomainTrendResponseSchema = z.object({
+  netChange: z.number(),
+  trend: z.string(),
+  avgDailyChange: z.number(),
+  confidence: z.enum(['high', 'medium', 'low']),
+  sampleSize: z.number().int(),
+  rSquared: z.number(),
+  standardError: z.number(),
+  confidenceInterval: z.tuple([z.number(), z.number()]),
+  outliers: z.array(OutlierPointResponseSchema),
+  diagnostics: ResidualDiagnosticsResponseSchema.nullable(),
+  ciReliable: z.boolean(),
+  warnings: z.array(z.string()),
+  weeklyPatternDetected: z.boolean(),
+});
+
+export const BurndownDataPointResponseSchema = z.object({
+  date: z.string(),
+  STR: z.number().int().nonnegative(),
+  SEM: z.number().int().nonnegative(),
+  PRA: z.number().int().nonnegative(),
+  EPI: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+
+export const BurndownResultResponseSchema = z.object({
+  timeSeries: z.array(BurndownDataPointResponseSchema),
+  trends: z.object({
+    STR: DomainTrendResponseSchema,
+    SEM: DomainTrendResponseSchema,
+    PRA: DomainTrendResponseSchema,
+    EPI: DomainTrendResponseSchema,
+  }),
+});
+
+export const VelocityItemResponseSchema = z.object({
+  domain: z.string(),
+  mode: z.string(),
+  failureCode: z.string(),
+  currentCount: z.number().int().nonnegative(),
+  previousCount: z.number().int().nonnegative(),
+  velocityPercent: z.number(),
+  alert: z.boolean(),
+  sparkline: z.array(z.number()),
+  trendReliability: z.enum(['high', 'medium', 'low']),
+});
+
+export const VelocitySummaryResponseSchema = z.object({
+  improving: z.array(z.string()),
+  stable: z.array(z.string()),
+  degrading: z.array(z.string()),
+  mostImproved: z.string().nullable(),
+  mostConcerning: z.string().nullable(),
+});
+
+export const VelocityResultResponseSchema = z.object({
+  items: z.array(VelocityItemResponseSchema),
+  summary: VelocitySummaryResponseSchema,
+});
+
+export const DiscoveryDomainBreakdownSchema = z.object({
+  new: z.number().int().nonnegative(),
+  recurring: z.number().int().nonnegative(),
+});
+
+export const DiscoveryTimelinePointResponseSchema = z.object({
+  period: z.string(),
+  newIssues: z.number().int().nonnegative(),
+  recurringIssues: z.number().int().nonnegative(),
+  domains: z.record(z.string(), DiscoveryDomainBreakdownSchema),
+});
+
+export const DiscoverySummaryResponseSchema = z.object({
+  totalNew: z.number().int().nonnegative(),
+  totalRecurring: z.number().int().nonnegative(),
+  newToRecurringRatio: z.number().nullable(),
+  peakNewPeriod: z.object({ period: z.string(), count: z.number() }).nullable(),
+});
+
+export const DiscoveryResultResponseSchema = z.object({
+  timeline: z.array(DiscoveryTimelinePointResponseSchema),
+  summary: DiscoverySummaryResponseSchema,
+});
+
+export const AgentMatrixRowResponseSchema = z.object({
+  agent: z.string(),
+  domains: z.record(z.string(), z.number()),
+  total: z.number().int().nonnegative(),
+  coverage: z.number().int().nonnegative(),
+  coveragePercent: z.number(),
+});
+
+export const AgentMatrixResultResponseSchema = z.object({
+  matrix: z.array(AgentMatrixRowResponseSchema),
+  analysis: z.object({
+    blindSpots: z.array(z.object({ agent: z.string(), missingDomains: z.array(z.string()) })),
+    singlePoints: z.array(z.object({ domain: z.string(), mode: z.string(), onlyAgent: z.string() })),
+    highOverlap: z.array(z.object({ mode: z.string(), agentCount: z.number(), agents: z.array(z.string()) })),
+  }),
+});
+
+export const TrendSummaryResponseSchema = z.object({
+  metric: z.string(),
+  current: z.number(),
+  previous: z.number(),
+  change: z.number(),
+  changePercent: z.number(),
+  trend: z.string(),
+});
+
+export const CrossProjectPatternResponseSchema = z.object({
+  pattern: z.string(),
+  projects: z.array(z.string()),
+  projectCount: z.number().int().nonnegative(),
+  totalOccurrences: z.number().int().nonnegative(),
+  severity: z.string(),
+});
+
+export const RegressionEntryResponseSchema = z.object({
+  issueId: z.string(),
+  title: z.string(),
+  project: z.string(),
+  timesRegressed: z.number().int().nonnegative(),
+  lastRegression: z.string(),
+  agent: z.string(),
+});
+
+export const CostEntryResponseSchema = z.object({
+  name: z.string(),
+  totalRuns: z.number().int().nonnegative(),
+  totalInputTokens: z.number().int().nonnegative(),
+  totalOutputTokens: z.number().int().nonnegative(),
+  totalEffectiveTokens: z.number().int().nonnegative(),
+  estimatedCost: z.number(),
+});
+
+export const CategoryPerformanceResponseSchema = z.object({
+  category: z.string(),
+  totalIssues: z.number().int().nonnegative(),
+  resolvedIssues: z.number().int().nonnegative(),
+  resolutionRate: z.number(),
+  avgTimeToResolveDays: z.number().nullable(),
+});
+
+export const PeriodResponseSchema = z.object({
+  start: z.string(),
+  end: z.string(),
+  days: z.number().int().positive(),
+});
+
+export const FullTaxonomyAnalyticsResponseSchema = z.object({
+  byDomain: z.array(z.object({
+    domain: z.string(),
+    label: z.string(),
+    count: z.number().int().nonnegative(),
+    percentage: z.number(),
+  })),
+  bySeverity: z.array(z.object({
+    severity: z.string(),
+    label: z.string(),
+    count: z.number().int().nonnegative(),
+    percentage: z.number(),
+  })),
+  byMode: z.array(z.object({
+    mode: z.string(),
+    label: z.string(),
+    domain: z.string(),
+    domainLabel: z.string(),
+    count: z.number().int().nonnegative(),
+    percentage: z.number(),
+  })),
+  topCodes: z.array(z.object({
+    code: z.string(),
+    domain: z.string(),
+    mode: z.string(),
+    severity: z.string(),
+    label: z.string(),
+    count: z.number().int().nonnegative(),
+    percentage: z.number(),
+  })),
+  heatmapData: z.array(z.object({
+    domain: z.string(),
+    domainLabel: z.string(),
+    mode: z.string(),
+    modeLabel: z.string(),
+    count: z.number().int().nonnegative(),
+    percentage: z.number(),
+    intensity: z.number(),
+  })),
+  totals: z.object({
+    totalIssues: z.number().int().nonnegative(),
+    classifiedIssues: z.number().int().nonnegative(),
+    unclassifiedIssues: z.number().int().nonnegative(),
+    classificationRate: z.number(),
+  }),
+  period: PeriodResponseSchema,
+});
+
+// ============================================
 // ERROR RESPONSE SCHEMAS
 // ============================================
 

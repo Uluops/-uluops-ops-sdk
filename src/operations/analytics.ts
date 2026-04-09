@@ -1,29 +1,28 @@
+import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import type {
   AnalyticsQuery,
   AgentInfo,
-  AgentPerformance,
-  AgentReliability,
   AgentReliabilityQuery,
-  ResolutionRate,
-  FileHotspot,
-  TaxonomyDistribution,
-  FullTaxonomyAnalytics,
-  BurndownResult,
   BurndownQuery,
-  VelocityResult,
   VelocityQuery,
-  DiscoveryResult,
   DiscoveryQuery,
-  AgentMatrixResult,
   AgentMatrixQuery,
-  TrendSummary,
-  CrossProjectPattern,
-  RegressionEntry,
-  CostEntry,
-  CategoryPerformanceEntry,
 } from '../types/analytics.js';
+import {
+  AgentPerformanceResponseSchema,
+  AgentReliabilityResultResponseSchema,
+  ResolutionRateResponseSchema,
+  FileHotspotResponseSchema,
+  TaxonomyDistributionResponseSchema,
+  FullTaxonomyAnalyticsResponseSchema,
+  BurndownResultResponseSchema,
+  VelocityResultResponseSchema,
+  DiscoveryResultResponseSchema,
+  AgentMatrixResultResponseSchema,
+  TrendSummaryResponseSchema,
+} from '../types/response-schemas.js';
 
 /**
  * Get agent performance metrics
@@ -31,10 +30,11 @@ import type {
 export async function getAgentPerformance(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<AgentPerformance[]> {
-  return client.get<AgentPerformance[]>(
+): Promise<z.infer<typeof AgentPerformanceResponseSchema>[]> {
+  return client.get(
     '/analytics/agents/performance',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(AgentPerformanceResponseSchema) }
   );
 }
 
@@ -44,10 +44,11 @@ export async function getAgentPerformance(
 export async function getAgentReliability(
   client: OpsHttpClient,
   query?: AgentReliabilityQuery
-): Promise<{ agents: AgentReliability[] }> {
-  return client.get<{ agents: AgentReliability[] }>(
+): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> {
+  return client.get(
     '/analytics/agents/reliability',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: AgentReliabilityResultResponseSchema }
   );
 }
 
@@ -57,10 +58,11 @@ export async function getAgentReliability(
 export async function getResolutionRates(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<ResolutionRate[]> {
-  return client.get<ResolutionRate[]>(
+): Promise<z.infer<typeof ResolutionRateResponseSchema>[]> {
+  return client.get(
     '/analytics/projects/resolution-rates',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(ResolutionRateResponseSchema) }
   );
 }
 
@@ -70,10 +72,11 @@ export async function getResolutionRates(
 export async function getFileHotspots(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<FileHotspot[]> {
-  return client.get<FileHotspot[]>(
+): Promise<z.infer<typeof FileHotspotResponseSchema>[]> {
+  return client.get(
     '/analytics/files/hotspots',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(FileHotspotResponseSchema) }
   );
 }
 
@@ -83,10 +86,11 @@ export async function getFileHotspots(
 export async function getTaxonomyDistribution(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<TaxonomyDistribution[]> {
-  return client.get<TaxonomyDistribution[]>(
+): Promise<z.infer<typeof TaxonomyDistributionResponseSchema>[]> {
+  return client.get(
     '/analytics/taxonomy/distribution',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(TaxonomyDistributionResponseSchema) }
   );
 }
 
@@ -100,10 +104,11 @@ export async function getTaxonomyDistribution(
 export async function getFullTaxonomy(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<FullTaxonomyAnalytics> {
-  return client.get<FullTaxonomyAnalytics>(
+): Promise<z.infer<typeof FullTaxonomyAnalyticsResponseSchema>> {
+  return client.get(
     '/analytics/taxonomy/full',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: FullTaxonomyAnalyticsResponseSchema }
   );
 }
 
@@ -113,10 +118,11 @@ export async function getFullTaxonomy(
 export async function getBurndown(
   client: OpsHttpClient,
   query?: BurndownQuery
-): Promise<BurndownResult> {
-  return client.get<BurndownResult>(
+): Promise<z.infer<typeof BurndownResultResponseSchema>> {
+  return client.get(
     '/analytics/taxonomy/burndown',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: BurndownResultResponseSchema }
   );
 }
 
@@ -126,10 +132,11 @@ export async function getBurndown(
 export async function getVelocity(
   client: OpsHttpClient,
   query?: VelocityQuery
-): Promise<VelocityResult> {
-  return client.get<VelocityResult>(
+): Promise<z.infer<typeof VelocityResultResponseSchema>> {
+  return client.get(
     '/analytics/taxonomy/velocity',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: VelocityResultResponseSchema }
   );
 }
 
@@ -139,10 +146,11 @@ export async function getVelocity(
 export async function getDiscovery(
   client: OpsHttpClient,
   query?: DiscoveryQuery
-): Promise<DiscoveryResult> {
-  return client.get<DiscoveryResult>(
+): Promise<z.infer<typeof DiscoveryResultResponseSchema>> {
+  return client.get(
     '/analytics/taxonomy/discovery',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: DiscoveryResultResponseSchema }
   );
 }
 
@@ -152,10 +160,11 @@ export async function getDiscovery(
 export async function getAgentMatrix(
   client: OpsHttpClient,
   query?: AgentMatrixQuery
-): Promise<AgentMatrixResult> {
-  return client.get<AgentMatrixResult>(
+): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> {
+  return client.get(
     '/analytics/taxonomy/agent-matrix',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: AgentMatrixResultResponseSchema }
   );
 }
 
@@ -165,18 +174,16 @@ export async function getAgentMatrix(
 export async function getTrendSummary(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<TrendSummary[]> {
-  return client.get<TrendSummary[]>(
+): Promise<z.infer<typeof TrendSummaryResponseSchema>[]> {
+  return client.get(
     '/analytics/trends/summary',
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(TrendSummaryResponseSchema) }
   );
 }
 
 /**
  * List agents with summary info (derived from performance data).
- *
- * Fetches full performance data then maps to a summary. O(n) where n is
- * the number of agents — negligible for typical usage (<100 agents).
  */
 export async function listAgents(
   client: OpsHttpClient,
@@ -186,7 +193,7 @@ export async function listAgents(
   return perf.map(v => ({
     name: v.name,
     totalRuns: v.totalRuns,
-    avgScore: v.avgScore,
+    avgScore: v.averageScore,
     passRate: v.passRate,
   }));
 }
@@ -216,37 +223,21 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
 }
 
 /**
- * Known result types for analytics metrics.
- * Use with getByMetric for type-safe access to specific metrics.
+ * Get analytics by metric name (generic endpoint).
+ * Note: Response validation is not applied to this generic endpoint.
+ * Use the typed methods (getAgentPerformance, getBurndown, etc.) for validated responses.
  */
-export interface AnalyticsMetricResultMap {
-  agent_performance: AgentPerformance[];
-  resolution_rates: ResolutionRate[];
-  file_hotspots: FileHotspot[];
-  trend_summary: TrendSummary[];
-  taxonomy_distribution: TaxonomyDistribution[];
-  cross_project_patterns: CrossProjectPattern[];
-  regression_analysis: RegressionEntry[];
-  cost_analysis: CostEntry[];
-  category_performance: CategoryPerformanceEntry[];
-}
-
-/**
- * Get analytics by metric name (generic endpoint)
- * @throws Error if metric is not a valid analytics metric
- */
-export async function getByMetric<M extends AnalyticsMetric>(
+export async function getByMetric(
   client: OpsHttpClient,
-  metric: M,
+  metric: AnalyticsMetric,
   query?: AnalyticsQuery
-): Promise<AnalyticsMetricResultMap[M]> {
-  // Runtime validation for string inputs that bypass type checking
+): Promise<unknown> {
   if (!isValidMetric(metric)) {
     throw new Error(
       `Invalid analytics metric: "${metric}". Valid metrics: ${ANALYTICS_METRICS.join(', ')}`
     );
   }
-  return client.get<AnalyticsMetricResultMap[M]>(
+  return client.get(
     `/analytics/${metric}`,
     toApiQuery(query)
   );
