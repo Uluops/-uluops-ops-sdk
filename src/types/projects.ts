@@ -10,13 +10,10 @@ export interface Project {
   ownerId: string;
   createdAt: string;
   updatedAt: string;
-  deletedAt: string | null;
 }
 
-/**
- * Public project (without deletedAt)
- */
-export type PublicProject = Omit<Project, 'deletedAt'>;
+/** @deprecated Project no longer includes deletedAt — use Project directly */
+export type PublicProject = Project;
 
 /**
  * Create project input
@@ -52,14 +49,12 @@ export interface RenameProjectInput {
  * Project summary statistics returned by the API
  */
 export interface ProjectSummaryStats {
+  totalRuns: number;
   totalIssues: number;
   openIssues: number;
-  completedIssues: number;
-  deferredIssues: number;
-  wontfixIssues: number;
-  totalRuns: number;
-  lastRunAt: string | null;
-  averageScore: number | null;
+  criticalIssues: number;
+  latestRunNumber: number | null;
+  latestRunDate: string | null;
 }
 
 /**

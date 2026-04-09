@@ -147,21 +147,17 @@ export const ProjectResponseSchema = z.object({
   name: z.string(),
   domain: z.string().optional(),
   ownerId: z.string().uuid(),
-  orgId: z.string().uuid().nullable().optional(),
-  deletedAt: NullableDateTimeSchema,
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
 });
 
 export const ProjectSummaryStatsResponseSchema = z.object({
+  totalRuns: z.number().int().nonnegative(),
   totalIssues: z.number().int().nonnegative(),
   openIssues: z.number().int().nonnegative(),
-  completedIssues: z.number().int().nonnegative(),
-  deferredIssues: z.number().int().nonnegative(),
-  wontfixIssues: z.number().int().nonnegative(),
-  totalRuns: z.number().int().nonnegative(),
-  lastRunAt: NullableDateTimeSchema,
-  averageScore: z.number().nullable(),
+  criticalIssues: z.number().int().nonnegative(),
+  latestRunNumber: z.number().int().positive().nullable(),
+  latestRunDate: NullableDateTimeSchema,
 });
 
 export const ProjectSummaryResponseSchema = z.object({

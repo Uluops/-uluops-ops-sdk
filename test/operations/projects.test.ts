@@ -181,7 +181,7 @@ describe('Project Operations', () => {
 
   describe('restore', () => {
     it('should restore soft-deleted project', async () => {
-      const mockProject = createMockProject({ name: 'Restored Project', deletedAt: null });
+      const mockProject = createMockProject({ name: 'Restored Project' });
 
       mockValidatedEndpoint(
         BASE_URL,
@@ -193,7 +193,7 @@ describe('Project Operations', () => {
 
       const project = await projectOps.restore(client, TEST_IDS.proj1);
 
-      expect(project.deletedAt).toBeNull();
+      expect(project.name).toBe('Restored Project');
     });
   });
 
@@ -238,8 +238,7 @@ describe('Project Operations', () => {
       expect(summary.stats.totalRuns).toBe(50);
       expect(summary.stats.openIssues).toBe(25);
       expect(summary.stats.totalIssues).toBe(100);
-      expect(summary.stats.completedIssues).toBe(50);
-      expect(summary.stats.averageScore).toBe(85);
+      expect(summary.stats.criticalIssues).toBe(5);
     });
   });
 

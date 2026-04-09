@@ -355,26 +355,22 @@ export function createMockProjectSummary(
     // Flat overrides for convenience (mapped into stats)
     totalIssues?: number;
     openIssues?: number;
-    completedIssues?: number;
-    deferredIssues?: number;
-    wontfixIssues?: number;
+    criticalIssues?: number;
     totalRuns?: number;
-    lastRunAt?: string | null;
-    averageScore?: number | null;
+    latestRunNumber?: number | null;
+    latestRunDate?: string | null;
   }> = {}
 ) {
   const { project, stats, ...flatOverrides } = overrides;
   const data = {
     project: project ?? createMockProject(),
     stats: {
+      totalRuns: 50,
       totalIssues: 100,
       openIssues: 25,
-      completedIssues: 50,
-      deferredIssues: 15,
-      wontfixIssues: 10,
-      totalRuns: 50,
-      lastRunAt: isoDate(1),
-      averageScore: 85,
+      criticalIssues: 5,
+      latestRunNumber: 50,
+      latestRunDate: isoDate(1),
       ...flatOverrides,
       ...stats,
     },
