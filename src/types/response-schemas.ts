@@ -383,12 +383,18 @@ export const RunDetailsResponseSchema = z.object({
   })),
 });
 
+export const ValidateRunPreviewSchema = z.object({
+  newIssues: z.array(z.object({ title: z.string(), agent: z.string() })),
+  recurringIssues: z.array(z.object({ id: z.string(), title: z.string(), timesSeen: z.number() })),
+  regressions: z.array(z.object({ id: z.string(), title: z.string(), lastStatus: z.string() })),
+});
+
 export const ValidateRunResponseSchema = z.object({
   wouldCreate: z.number().int().nonnegative(),
   wouldUpdate: z.number().int().nonnegative(),
   wouldRegress: z.number().int().nonnegative(),
   validationErrors: z.array(z.string()),
-  preview: CorrelationResultResponseSchema,
+  preview: ValidateRunPreviewSchema,
 });
 
 export const ArchiveRunsResultResponseSchema = z.object({

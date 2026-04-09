@@ -171,7 +171,11 @@ export interface ValidateRunResponse {
   wouldUpdate: number;
   wouldRegress: number;
   validationErrors: string[];
-  preview: CorrelationResult;
+  preview: {
+    newIssues: Array<{ title: string; agent: string }>;
+    recurringIssues: Array<{ id: string; title: string; timesSeen: number }>;
+    regressions: Array<{ id: string; title: string; lastStatus: string }>;
+  };
 }
 
 /**

@@ -150,7 +150,7 @@ describe('Run Operations', () => {
             wouldUpdate: 0,
             wouldRegress: 0,
             validationErrors: [],
-            preview: { newIssues: 1, recurringIssues: 0, regressions: 0 },
+            preview: { newIssues: [{ title: 'New issue', agent: 'code-validator' }], recurringIssues: [], regressions: [] },
           },
         });
 
