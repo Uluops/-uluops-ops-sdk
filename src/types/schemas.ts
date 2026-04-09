@@ -306,18 +306,10 @@ export const AgentMatrixQuerySchema = AnalyticsQuerySchema.extend({
 });
 
 
-// ============================================
-// TYPE EXPORTS (inferred from schemas)
-// ============================================
-
-export type RegisterInputSchema = z.infer<typeof RegisterInputSchema>;
-export type LoginInputSchema = z.infer<typeof LoginInputSchema>;
-export type UpdateProfileInputSchema = z.infer<typeof UpdateProfileInputSchema>;
-export type CreateApiKeyInputSchema = z.infer<typeof CreateApiKeyInputSchema>;
-export type CreateProjectInputSchema = z.infer<typeof CreateProjectInputSchema>;
-export type SaveRunInputSchema = z.infer<typeof SaveRunInputSchema>;
-export type CreateUserIssueInputSchema = z.infer<typeof CreateUserIssueInputSchema>;
-export type UpdateIssueStatusInputSchema = z.infer<typeof UpdateIssueStatusInputSchema>;
+// NOTE: Inferred input types are exported from their respective domain files
+// (e.g., RegisterInput from auth.ts, SaveRunInput from runs.ts).
+// Do NOT re-export types here with the same name as the schema consts —
+// it creates consumer confusion between value and type imports.
 
 /** @deprecated Use AgentInputSchema instead */
 export const ValidatorInputSchema = AgentInputSchema;

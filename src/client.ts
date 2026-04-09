@@ -432,7 +432,11 @@ export class OpsClient {
     getTrendSummary: (query?: AnalyticsQuery) =>
       analyticsOps.getTrendSummary(this.httpClient, query),
 
-    getByMetric: (metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery) =>
+    /**
+     * Get analytics by metric name (generic endpoint).
+     * Returns unvalidated data — use typed methods (getAgentPerformance, etc.) for validated responses.
+     */
+    getByMetric: (metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery): Promise<unknown> =>
       analyticsOps.getByMetric(this.httpClient, metric, query),
 
     listAgents: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>

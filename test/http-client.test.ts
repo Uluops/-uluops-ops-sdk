@@ -662,7 +662,7 @@ describe('OpsHttpClient', () => {
         isAuthenticated: () => true,
         getType: () => 'session' as const,
       };
-      (sessionClient as any).authStrategy = mockStrategy;
+      sessionClient.setAuthStrategy(mockStrategy);
 
       // All 3 concurrent requests get 401 on first attempt
       nock(BASE_URL).get('/race1').reply(401, { error: { message: 'Token expired' } });

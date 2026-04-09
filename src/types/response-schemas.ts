@@ -793,7 +793,37 @@ export const ProjectSummaryApiResponseSchema = createApiResponseSchema(ProjectSu
 export const MergeIssuesApiResponseSchema = createApiResponseSchema(MergeIssuesResultResponseSchema);
 export const StatusUpdateApiResponseSchema = createApiResponseSchema(StatusUpdateResultResponseSchema);
 
+// ============================================
+// TAXONOMY RESPONSE SCHEMA
+// ============================================
+
+const TaxonomyModeSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  description: z.string(),
+});
+
+const TaxonomyDomainSchema = z.object({
+  code: FailureDomainResponseSchema,
+  name: z.string(),
+  description: z.string(),
+  modes: z.array(TaxonomyModeSchema),
+});
+
+const TaxonomySeveritySchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  weight: z.number(),
+});
+
+export const TaxonomyResponseSchema = z.object({
+  domains: z.array(TaxonomyDomainSchema),
+  severities: z.array(TaxonomySeveritySchema),
+  priorities: z.array(z.string()),
+});
+
 // Type exports
+export type TaxonomyResponse = z.infer<typeof TaxonomyResponseSchema>;
 export type ProjectResponse = z.infer<typeof ProjectResponseSchema>;
 export type IssueResponse = z.infer<typeof IssueResponseSchema>;
 export type RunResponse = z.infer<typeof RunResponseSchema>;

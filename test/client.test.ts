@@ -405,17 +405,18 @@ describe('OpsClient', () => {
         .reply(200, {
           data: {
             domains: [
-              { code: 'STR', name: 'Structural', modes: ['OMI', 'RED', 'MIS'] },
-              { code: 'SEM', name: 'Semantic', modes: ['VAL', 'TYP', 'LOG'] },
+              { code: 'STR', name: 'Structural', description: 'Structural issues', modes: [{ code: 'OMI', name: 'Omission', description: 'Missing elements' }] },
+              { code: 'SEM', name: 'Semantic', description: 'Semantic issues', modes: [{ code: 'VAL', name: 'Validation', description: 'Validation issues' }] },
             ],
-            severities: ['critical', 'high', 'medium', 'low', 'info'],
+            severities: [{ code: 'C', name: 'critical', weight: 10 }, { code: 'H', name: 'high', weight: 5 }],
+            priorities: ['critical', 'suggested', 'backlog'],
           },
         });
 
       const taxonomy = await client.taxonomy.get();
 
       expect(taxonomy.domains).toHaveLength(2);
-      expect(taxonomy.severities).toContain('critical');
+      expect(taxonomy.severities[0].name).toBe('critical');
     });
   });
 
