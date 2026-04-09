@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import type {
   Issue,
@@ -6,13 +7,20 @@ import type {
   UpdateIssueStatusInput,
   CreateIssueNoteInput,
   IssueNote,
-  StatusHistory,
   IssueDetails,
   IssueSearchQuery,
   ListIssuesQuery,
   BulkStatusUpdateItem,
   StatusUpdateResult,
 } from '../types/issues.js';
+import {
+  IssueResponseSchema,
+  IssueDetailsResponseSchema,
+  IssueNoteResponseSchema,
+  StatusHistoryResponseSchema,
+  StatusUpdateResultResponseSchema,
+  BulkStatusUpdateResultResponseSchema,
+} from '../types/response-schemas.js';
 import {
   validateCreateUserIssueInput,
   validateUpdateIssueInput,
@@ -30,7 +38,7 @@ export async function create(
   input: CreateUserIssueInput
 ): Promise<Issue> {
   validateCreateUserIssueInput(input);
-  return client.post<Issue>('/issues', {
+  return client.post('/issues', {
     project: input.project,
     title: input.title,
     priority: input.priority,
@@ -44,7 +52,7 @@ export async function create(
     failureMode: input.failureMode,
     agent: input.agent,
     type: input.type,
-  });
+  }, { schema: IssueResponseSchema });
 }
 
 /**
@@ -54,7 +62,7 @@ export async function search(
   client: OpsHttpClient,
   query: IssueSearchQuery
 ): Promise<Issue[]> {
-  return client.get<Issue[]>('/issues/search', {
+  return client.get('/issues/search', {
     query: query.query,
     projects: query.projects?.join(','),
     agents: query.agents?.join(','),
@@ -63,7 +71,7 @@ export async function search(
     severities: query.severities?.join(','),
     failureDomains: query.failureDomains?.join(','),
     limit: query.limit,
-  });
+  }, { schema: z.array(IssueResponseSchema) });
 }
 
 /**
@@ -74,7 +82,7 @@ export async function getByFingerprint(
   fingerprint: string,
   project: string
 ): Promise<Issue> {
-  return client.get<Issue>(`/issues/by-fingerprint/${encodeURIComponent(fingerprint)}`, { project });
+  return client.get(`/issues/by-fingerprint/${encodeURIComponent(fingerprint)}`, { project }, { schema: IssueResponseSchema });
 }
 
 /**
@@ -86,10 +94,10 @@ export async function updateStatusByFingerprint(
   project: string,
   input: UpdateIssueStatusInput
 ): Promise<StatusUpdateResult> {
-  return client.patch<StatusUpdateResult>(
+  return client.patch(
     `/issues/by-fingerprint/${encodeURIComponent(fingerprint)}/status`,
     { status: input.status, reason: input.reason },
-    { params: { project } }
+    { params: { project }, schema: StatusUpdateResultResponseSchema }
   );
 }
 
@@ -97,7 +105,7 @@ export async function updateStatusByFingerprint(
  * Get an issue by ID
  */
 export async function get(client: OpsHttpClient, issueId: string): Promise<Issue> {
-  return client.get<Issue>(`/issues/${encodeURIComponent(issueId)}`);
+  return client.get(`/issues/${encodeURIComponent(issueId)}`, undefined, { schema: IssueResponseSchema });
 }
 
 /**
@@ -107,7 +115,7 @@ export async function getDetails(
   client: OpsHttpClient,
   issueId: string
 ): Promise<IssueDetails> {
-  return client.get<IssueDetails>(`/issues/${encodeURIComponent(issueId)}/details`);
+  return client.get(`/issues/${encodeURIComponent(issueId)}/details`, undefined, { schema: IssueDetailsResponseSchema });
 }
 
 /**
@@ -116,8 +124,8 @@ export async function getDetails(
 export async function getHistory(
   client: OpsHttpClient,
   issueId: string
-): Promise<StatusHistory[]> {
-  return client.get<StatusHistory[]>(`/issues/${encodeURIComponent(issueId)}/history`);
+): Promise<z.infer<typeof StatusHistoryResponseSchema>[]> {
+  return client.get(`/issues/${encodeURIComponent(issueId)}/history`, undefined, { schema: z.array(StatusHistoryResponseSchema) });
 }
 
 /**
@@ -129,10 +137,10 @@ export async function updateStatus(
   input: UpdateIssueStatusInput
 ): Promise<Issue> {
   validateUpdateIssueStatusInput(input);
-  return client.patch<Issue>(`/issues/${encodeURIComponent(issueId)}/status`, {
+  return client.patch(`/issues/${encodeURIComponent(issueId)}/status`, {
     status: input.status,
     reason: input.reason,
-  });
+  }, { schema: IssueResponseSchema });
 }
 
 /**
@@ -144,7 +152,7 @@ export async function edit(
   input: UpdateIssueInput
 ): Promise<Issue> {
   validateUpdateIssueInput(input);
-  return client.patch<Issue>(`/issues/${encodeURIComponent(issueId)}`, {
+  return client.patch(`/issues/${encodeURIComponent(issueId)}`, {
     title: input.title,
     status: input.status,
     priority: input.priority,
@@ -156,7 +164,7 @@ export async function edit(
     type: input.type,
     filePath: input.filePath,
     lineNumber: input.lineNumber,
-  });
+  }, { schema: IssueResponseSchema });
 }
 
 /**
@@ -168,11 +176,11 @@ export async function addNote(
   input: CreateIssueNoteInput
 ): Promise<IssueNote> {
   validateCreateIssueNoteInput(input);
-  return client.post<IssueNote>(`/issues/${encodeURIComponent(issueId)}/notes`, {
+  return client.post(`/issues/${encodeURIComponent(issueId)}/notes`, {
     content: input.content,
     noteType: input.noteType,
     createdBy: input.createdBy,
-  });
+  }, { schema: IssueNoteResponseSchema });
 }
 
 /**
@@ -182,7 +190,7 @@ export async function restore(
   client: OpsHttpClient,
   issueId: string
 ): Promise<Issue> {
-  return client.post<Issue>(`/issues/${encodeURIComponent(issueId)}/restore`);
+  return client.post(`/issues/${encodeURIComponent(issueId)}/restore`, undefined, { schema: IssueResponseSchema });
 }
 
 /**
@@ -192,7 +200,7 @@ export async function undoLastChange(
   client: OpsHttpClient,
   issueId: string
 ): Promise<Issue> {
-  return client.post<Issue>(`/issues/${encodeURIComponent(issueId)}/undo`);
+  return client.post(`/issues/${encodeURIComponent(issueId)}/undo`, undefined, { schema: IssueResponseSchema });
 }
 
 /**
@@ -201,16 +209,16 @@ export async function undoLastChange(
 export async function bulkUpdateStatus(
   client: OpsHttpClient,
   updates: BulkStatusUpdateItem[]
-): Promise<StatusUpdateResult[]> {
+): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>[]> {
   validateBulkStatusUpdateInput({ updates });
-  return client.post<StatusUpdateResult[]>('/issues/bulk-status', {
+  return client.post('/issues/bulk-status', {
     updates: updates.map((u) => ({
       issueId: u.issueId,
       id: u.id,
       status: u.status,
       reason: u.reason,
     })),
-  });
+  }, { schema: z.array(BulkStatusUpdateResultResponseSchema) });
 }
 
 /**
@@ -221,8 +229,9 @@ export async function listByProject(
   projectId: string,
   query?: ListIssuesQuery
 ): Promise<Issue[]> {
-  return client.get<Issue[]>(
+  return client.get(
     `/projects/${encodeURIComponent(projectId)}/issues`,
-    buildIssueListParams(query)
+    buildIssueListParams(query),
+    { schema: z.array(IssueResponseSchema) }
   );
 }

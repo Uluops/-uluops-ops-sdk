@@ -124,9 +124,9 @@ export function createMockProject(overrides: Partial<z.infer<typeof ProjectRespo
     id: generateId(),
     name: `Project ${idCounter}`,
     ownerId: generateId(),
+    deletedAt: null,
     createdAt: isoDate(30),
     updatedAt: isoDate(1),
-    deletedAt: null,
     ...overrides,
   };
 
@@ -157,7 +157,7 @@ export function createMockIssue(overrides: Partial<z.infer<typeof IssueResponseS
     failureMode: null,
     failureSeverityCode: null,
     category: null,
-    validator: 'test-validator',
+    agent: 'test-validator',
     type: null,
     filePath: null,
     lineNumber: null,
@@ -425,7 +425,7 @@ export function createMockOccurrence(
     id: generateId(),
     issueId: generateId(),
     runId: generateId(),
-    validator: 'code-validator',
+    agentName: 'code-validator',
     description: 'Found an issue',
     filePath: 'src/example.ts',
     lineNumber: 42,
@@ -662,6 +662,7 @@ export function createMockPublicUser(overrides: Partial<z.infer<typeof PublicUse
 export function createMockLoginResponse(overrides: Partial<z.infer<typeof LoginResponseSchema>> = {}) {
   const data = {
     user: createMockAuthUser(),
+    sessionToken: `session-token-${idCounter}`,
     token: `jwt-token-${idCounter}`,
     expiresAt: isoDate(-1), // 1 day in future
     ...overrides,
@@ -688,6 +689,7 @@ export function createMockRegisterResponse(overrides: Partial<z.infer<typeof Reg
     email: `user${idCounter}@example.com`,
     isActive: true,
     role: 'developer' as const,
+    subscriptionTier: 'free' as const,
     createdAt: isoDate(),
     updatedAt: isoDate(),
     ...overrides,

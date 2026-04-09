@@ -130,10 +130,11 @@ export interface BulkIssueStatusUpdate {
  * Bulk issue status update result
  */
 export interface BulkIssueStatusResult {
-  id: string;
-  previousStatus: Status;
-  newStatus: Status;
-  updatedAt: string;
+  issueId: string;
+  success: boolean;
+  error?: string;
+  previousStatus?: Status;
+  newStatus?: Status;
 }
 
 /**

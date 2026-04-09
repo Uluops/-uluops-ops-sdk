@@ -45,21 +45,33 @@ export const AuthUserResponseSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   role: UserRoleResponseSchema,
-  subscriptionTier: SubscriptionTierResponseSchema.optional(),
+  subscriptionTier: SubscriptionTierResponseSchema,
   username: z.string().nullable().optional(),
   name: z.string().nullable().optional(),
   bio: z.string().nullable().optional(),
   timezone: z.string().nullable().optional(),
   websiteUrl: z.string().nullable().optional(),
   avatarUrl: z.string().nullable().optional(),
-  createdAt: DateTimeStringSchema.optional(),
-  updatedAt: DateTimeStringSchema.optional(),
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
 });
 
-export const PublicUserResponseSchema = AuthUserResponseSchema.extend({
-  avatarMimeType: z.string().nullable().optional(),
-  isActive: z.boolean().optional(),
-  hasAvatar: z.boolean().optional(),
+export const PublicUserResponseSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  role: UserRoleResponseSchema,
+  subscriptionTier: SubscriptionTierResponseSchema,
+  username: z.string().nullable(),
+  name: z.string().nullable(),
+  bio: z.string().nullable(),
+  timezone: z.string().nullable(),
+  websiteUrl: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  avatarMimeType: z.enum(['image/png', 'image/jpeg', 'image/gif', 'image/webp']).nullable(),
+  isActive: z.boolean(),
+  hasAvatar: z.boolean(),
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
 });
 
 /**
@@ -69,9 +81,9 @@ export const PublicUserResponseSchema = AuthUserResponseSchema.extend({
  */
 export const LoginResponseSchema = z.object({
   user: AuthUserResponseSchema,
-  sessionToken: z.string().optional(),
-  token: z.string().optional(),
-  expiresAt: DateTimeStringSchema.optional(),
+  sessionToken: z.string(),
+  token: z.string().optional(),              // Legacy field
+  expiresAt: DateTimeStringSchema,
 });
 
 /**
@@ -84,7 +96,7 @@ export const RegisterResponseSchema = z.object({
   email: z.string().email(),
   isActive: z.boolean(),
   role: UserRoleResponseSchema,
-  subscriptionTier: SubscriptionTierResponseSchema.optional(),
+  subscriptionTier: SubscriptionTierResponseSchema,
   user: AuthUserResponseSchema.optional(),
   token: z.string().optional(),
   createdAt: DateTimeStringSchema,
@@ -95,26 +107,24 @@ export const PublicApiKeyResponseSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
   prefix: z.string().optional(),
-  lastUsedAt: NullableDateTimeSchema.optional(),
-  expiresAt: NullableDateTimeSchema.optional(),
+  lastUsedAt: NullableDateTimeSchema,
+  expiresAt: NullableDateTimeSchema,
   createdAt: DateTimeStringSchema,
 });
 
 export const ApiKeyCreatedResponseSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().nullable().optional(),
   key: z.string(),
-  apiKey: PublicApiKeyResponseSchema.optional(),
+  apiKey: PublicApiKeyResponseSchema,
 });
 
 export const PublicSessionResponseSchema = z.object({
   id: z.string(),
-  expiresAt: DateTimeStringSchema.optional(),
+  expiresAt: DateTimeStringSchema,
   createdAt: DateTimeStringSchema,
-  lastActiveAt: DateTimeStringSchema.optional(),
-  lastUsed: DateTimeStringSchema.optional(),
+  lastActiveAt: DateTimeStringSchema,
+  lastUsed: DateTimeStringSchema.optional(),  // Alternative field name
   userAgent: z.string().nullable(),
-  ipAddress: z.string().nullable().optional(),
+  ipAddress: z.string().nullable(),
 });
 
 export const MessageResponseSchema = z.object({
@@ -135,22 +145,23 @@ export const PaginationResponseSchema = z.object({
 export const ProjectResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  domain: z.string().optional(),               // Present in API, default 'software'
-  ownerId: z.string().uuid(),                  // Always present (NOT NULL in DB)
+  domain: z.string().optional(),
+  ownerId: z.string().uuid(),
   orgId: z.string().uuid().nullable().optional(),
-  createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
-  updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+  deletedAt: NullableDateTimeSchema,
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
 });
 
 export const ProjectSummaryStatsResponseSchema = z.object({
   totalIssues: z.number().int().nonnegative(),
   openIssues: z.number().int().nonnegative(),
-  completedIssues: z.number().int().nonnegative().optional(),
-  deferredIssues: z.number().int().nonnegative().optional(),
-  wontfixIssues: z.number().int().nonnegative().optional(),
+  completedIssues: z.number().int().nonnegative(),
+  deferredIssues: z.number().int().nonnegative(),
+  wontfixIssues: z.number().int().nonnegative(),
   totalRuns: z.number().int().nonnegative(),
   lastRunAt: NullableDateTimeSchema,
-  averageScore: z.number().nullable().optional(),
+  averageScore: z.number().nullable(),
 });
 
 export const ProjectSummaryResponseSchema = z.object({
@@ -161,10 +172,10 @@ export const ProjectSummaryResponseSchema = z.object({
 export const TrendDataPointResponseSchema = z.object({
   date: z.string(),
   openIssues: z.number().int().nonnegative(),
-  completedIssues: z.number().int().nonnegative().optional(),
+  completedIssues: z.number().int().nonnegative(),
   closedIssues: z.number().int().nonnegative().optional(), // Legacy field
-  newIssues: z.number().int().nonnegative().optional(),
-  resolvedIssues: z.number().int().nonnegative().optional(),
+  newIssues: z.number().int().nonnegative(),
+  resolvedIssues: z.number().int().nonnegative(),
 });
 
 // ============================================
@@ -173,80 +184,79 @@ export const TrendDataPointResponseSchema = z.object({
 
 export const IssueResponseSchema = z.object({
   id: z.string().uuid(),
-  projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
-  fingerprint: z.string(),                     // Always present (NOT NULL in DB)
+  projectId: z.string().uuid(),
+  fingerprint: z.string(),
   title: z.string(),
-  status: StatusResponseSchema,                // Always present (NOT NULL in DB)
+  status: StatusResponseSchema,
   priority: PriorityResponseSchema,
-  severity: SeverityResponseSchema.nullable().optional(),
-  failureCode: FailureCodeResponseSchema.optional(),
-  failureDomain: FailureDomainResponseSchema.nullable().optional(),
-  failureMode: z.string().nullable().optional(),
-  failureSeverityCode: FailureSeverityCodeResponseSchema.optional(),
-  category: z.string().nullable().optional(),
-  agent: z.string().nullable().optional(),
-  type: IssueTypeResponseSchema.nullable().optional(),
-  filePath: z.string().nullable().optional(),
-  lineNumber: z.number().int().nonnegative().nullable().optional(),
-  timesSeen: z.number().int().positive(),      // Always present (NOT NULL, min: 1)
-  firstSeenRunId: z.string().uuid(),           // Always present (NOT NULL in DB)
-  lastSeenRunId: z.string().uuid(),            // Always present (NOT NULL in DB)
-  resolvedAt: NullableDateTimeSchema.optional(),
-  resolutionRunId: z.string().uuid().nullable().optional(),
-  deletedAt: NullableDateTimeSchema.optional(),
-  createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
-  updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+  severity: SeverityResponseSchema.nullable(),
+  failureCode: FailureCodeResponseSchema,
+  failureDomain: FailureDomainResponseSchema.nullable(),
+  failureMode: z.string().nullable(),
+  failureSeverityCode: FailureSeverityCodeResponseSchema,
+  category: z.string().nullable(),
+  agent: z.string().nullable(),
+  type: IssueTypeResponseSchema.nullable(),
+  filePath: z.string().nullable(),
+  lineNumber: z.number().int().nonnegative().nullable(),
+  timesSeen: z.number().int().positive(),
+  firstSeenRunId: z.string().uuid(),
+  lastSeenRunId: z.string().uuid(),
+  resolvedAt: NullableDateTimeSchema,
+  resolutionRunId: z.string().uuid().nullable(),
+  deletedAt: NullableDateTimeSchema,
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
 });
 
 export const OccurrenceResponseSchema = z.object({
-  id: z.string().uuid().optional(),
-  issueId: z.string().uuid().optional(),
+  id: z.string().uuid(),
+  issueId: z.string().uuid(),
   runId: z.string().uuid(),
-  agentName: z.string().optional(),
-  description: z.string().nullable().optional(),
-  filePath: z.string().nullable().optional(),
-  lineNumber: z.number().int().nonnegative().nullable().optional(),
-  classificationConfidence: z.enum(['high', 'medium', 'low']).nullable().optional(),
-  classifiedBy: z.enum(['validator', 'classifier', 'human']).nullable().optional(),
-  timestamp: DateTimeStringSchema.optional(),
-  createdAt: DateTimeStringSchema.optional(),
+  agentName: z.string(),
+  description: z.string().nullable(),
+  filePath: z.string().nullable(),
+  lineNumber: z.number().int().nonnegative().nullable(),
+  classificationConfidence: z.enum(['high', 'medium', 'low']).nullable(),
+  classifiedBy: z.enum(['validator', 'classifier', 'human']).nullable(),
+  createdAt: DateTimeStringSchema,
 });
 
 export const IssueNoteResponseSchema = z.object({
   id: z.string().uuid(),
-  issueId: z.string().uuid().optional(),
+  issueId: z.string().uuid(),
   content: z.string(),
   noteType: NoteTypeResponseSchema,
-  createdBy: z.string().nullable().optional(),
+  createdBy: z.string().nullable(),
   createdAt: DateTimeStringSchema,
 });
 
 export const StatusHistoryResponseSchema = z.object({
-  id: z.string().uuid().optional(),
-  issueId: z.string().uuid().optional(),
-  oldStatus: StatusResponseSchema.nullable().optional(),
+  id: z.string().uuid(),
+  issueId: z.string().uuid(),
+  oldStatus: StatusResponseSchema.nullable(),
   from: StatusResponseSchema.nullable().optional(), // Alternative field name
-  newStatus: StatusResponseSchema.optional(),
-  to: StatusResponseSchema.optional(), // Alternative field name
-  reason: z.string().nullable().optional(),
-  changedAt: DateTimeStringSchema.optional(),
-  timestamp: DateTimeStringSchema.optional(), // Alternative field name
+  newStatus: StatusResponseSchema,
+  to: StatusResponseSchema.optional(),              // Alternative field name
+  reason: z.string().nullable(),
+  changedAt: DateTimeStringSchema,
+  timestamp: DateTimeStringSchema.optional(),       // Alternative field name
 });
 
 export const IssueDetailsResponseSchema = z.object({
   issue: IssueResponseSchema,
   occurrences: z.array(OccurrenceResponseSchema),
   notes: z.array(IssueNoteResponseSchema),
-  history: z.array(StatusHistoryResponseSchema).optional(),
+  history: z.array(StatusHistoryResponseSchema),
 });
 
 export const StatusUpdateResultResponseSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().uuid(),
   issueId: z.string().uuid().optional(),
-  fingerprint: z.string().optional(),
+  fingerprint: z.string(),
   previousStatus: StatusResponseSchema,
   newStatus: StatusResponseSchema,
-  updatedAt: DateTimeStringSchema.optional(),
+  updatedAt: DateTimeStringSchema,
   success: z.boolean().optional(),
 });
 
@@ -440,9 +450,9 @@ export const AnalysisRecordsListResponseSchema = z.object({
 
 export const MergeIssuesResultResponseSchema = z.object({
   targetIssue: IssueResponseSchema.optional(),
-  targetIssueId: z.string().uuid().optional(),
+  targetIssueId: z.string().uuid(),
   mergedCount: z.number().int().nonnegative(),
-  migratedOccurrences: z.number().int().nonnegative().optional(),
+  migratedOccurrences: z.number().int().nonnegative(),
   sourceIssues: z.array(z.string().uuid()).optional(),
 });
 

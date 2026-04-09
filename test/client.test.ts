@@ -6,6 +6,15 @@ import {
   createMockRun,
   createMockRunSummary,
   createMockValidatorSnapshot,
+  createMockProject,
+  createMockProjectSummary,
+  createMockTrendDataPoint,
+  createMockIssue,
+  createMockAuthUser,
+  createMockLoginResponse,
+  createMockRegisterResponse,
+  createMockPublicApiKey,
+  createMockApiKeyCreated,
   resetMockIds,
 } from './contract-helpers.js';
 
@@ -35,67 +44,49 @@ describe('OpsClient', () => {
 
   describe('auth operations', () => {
     it('should register a new user', async () => {
+      const mockRegister = createMockRegisterResponse({ email: 'test@example.com' });
       nock(BASE_URL)
         .post('/auth/register', { email: 'test@example.com', password: 'Password123' })
-        .reply(201, {
-          data: {
-            user: { id: 'user-1', email: 'test@example.com' },
-            token: 'jwt-token-123',
-          },
-        });
+        .reply(201, { data: mockRegister });
 
       const result = await client.auth.register({
         email: 'test@example.com',
         password: 'Password123',
       });
 
-      expect(result.user.email).toBe('test@example.com');
-      expect(result.token).toBe('jwt-token-123');
+      expect(result.email).toBe('test@example.com');
     });
 
     it('should login and return token', async () => {
+      const mockLogin = createMockLoginResponse();
       nock(BASE_URL)
         .post('/auth/login', { email: 'test@example.com', password: 'password123' })
-        .reply(200, {
-          data: {
-            user: { id: 'user-1', email: 'test@example.com' },
-            token: 'jwt-token-456',
-          },
-        });
+        .reply(200, { data: mockLogin });
 
       const result = await client.auth.login({
         email: 'test@example.com',
         password: 'password123',
       });
 
-      expect(result.token).toBe('jwt-token-456');
+      expect(result.sessionToken).toBeDefined();
     });
 
     it('should get current user', async () => {
+      const mockUser = createMockAuthUser({ email: 'test@example.com' });
       nock(BASE_URL)
         .get('/auth/me')
-        .reply(200, {
-          data: {
-            id: 'user-1',
-            email: 'test@example.com',
-            role: 'user',
-          },
-        });
+        .reply(200, { data: mockUser });
 
       const user = await client.auth.getMe();
 
-      expect(user.id).toBe('user-1');
       expect(user.email).toBe('test@example.com');
     });
 
     it('should list API keys', async () => {
+      const mockKey = createMockPublicApiKey({ name: 'Test Key' });
       nock(BASE_URL)
         .get('/auth/keys')
-        .reply(200, {
-          data: [
-            { id: 'key-1', name: 'Test Key', prefix: 'ulr_test' },
-          ],
-        });
+        .reply(200, { data: [mockKey] });
 
       const keys = await client.auth.listApiKeys();
 
@@ -104,19 +95,14 @@ describe('OpsClient', () => {
     });
 
     it('should create API key', async () => {
+      const mockCreated = createMockApiKeyCreated();
       nock(BASE_URL)
         .post('/auth/keys', { name: 'New Key' })
-        .reply(201, {
-          data: {
-            id: 'key-2',
-            name: 'New Key',
-            key: 'ulr_full-key-value',
-          },
-        });
+        .reply(201, { data: mockCreated });
 
       const result = await client.auth.createApiKey({ name: 'New Key' });
 
-      expect(result.key).toBe('ulr_full-key-value');
+      expect(result.key).toBeDefined();
     });
   });
 
@@ -126,8 +112,8 @@ describe('OpsClient', () => {
         .get('/projects')
         .reply(200, {
           data: [
-            { id: 'proj-1', name: 'Project A' },
-            { id: 'proj-2', name: 'Project B' },
+            createMockProject({ name: 'Project A' }),
+            createMockProject({ name: 'Project B' }),
           ],
         });
 
@@ -138,24 +124,21 @@ describe('OpsClient', () => {
     });
 
     it('should get project by ID or name', async () => {
+      const mockProj = createMockProject({ name: 'Project A' });
       nock(BASE_URL)
-        .get('/projects/proj-1')
-        .reply(200, {
-          data: { id: 'proj-1', name: 'Project A', createdAt: '2024-01-01' },
-        });
+        .get(`/projects/${mockProj.id}`)
+        .reply(200, { data: mockProj });
 
-      const project = await client.projects.get('proj-1');
+      const project = await client.projects.get(mockProj.id);
 
-      expect(project.id).toBe('proj-1');
       expect(project.name).toBe('Project A');
     });
 
     it('should create project', async () => {
+      const mockProj = createMockProject({ name: 'New Project' });
       nock(BASE_URL)
         .post('/projects', { name: 'New Project' })
-        .reply(201, {
-          data: { id: 'proj-3', name: 'New Project' },
-        });
+        .reply(201, { data: mockProj });
 
       const project = await client.projects.create({ name: 'New Project' });
 
@@ -163,21 +146,15 @@ describe('OpsClient', () => {
     });
 
     it('should get project summary', async () => {
+      const mockSummary = createMockProjectSummary({ totalRuns: 10, openIssues: 5, totalIssues: 25 });
       nock(BASE_URL)
-        .get('/projects/proj-1/summary')
-        .reply(200, {
-          data: {
-            project: { id: 'proj-1', name: 'Project A' },
-            totalRuns: 10,
-            totalIssues: 25,
-            openIssues: 5,
-          },
-        });
+        .get(`/projects/${mockSummary.project.id}/summary`)
+        .reply(200, { data: mockSummary });
 
-      const summary = await client.projects.getSummary('proj-1');
+      const summary = await client.projects.getSummary(mockSummary.project.id);
 
-      expect(summary.totalRuns).toBe(10);
-      expect(summary.openIssues).toBe(5);
+      expect(summary.stats.totalRuns).toBe(10);
+      expect(summary.stats.openIssues).toBe(5);
     });
 
     it('should get project trends', async () => {
@@ -185,8 +162,8 @@ describe('OpsClient', () => {
         .get('/projects/proj-1/trends')
         .reply(200, {
           data: [
-            { date: '2024-01-01', openIssues: 10, closedIssues: 5 },
-            { date: '2024-01-02', openIssues: 8, closedIssues: 7 },
+            createMockTrendDataPoint({ date: '2024-01-01', openIssues: 10 }),
+            createMockTrendDataPoint({ date: '2024-01-02', openIssues: 8 }),
           ],
         });
 
@@ -284,15 +261,10 @@ describe('OpsClient', () => {
 
   describe('issue operations', () => {
     it('should create user issue', async () => {
+      const mockIssue = createMockIssue({ title: 'Manual issue', priority: 'critical' });
       nock(BASE_URL)
         .post('/issues')
-        .reply(201, {
-          data: {
-            id: 'issue-1',
-            title: 'Manual issue',
-            priority: 'critical',
-          },
-        });
+        .reply(201, { data: mockIssue });
 
       const issue = await client.issues.create({
         project: 'proj-1',
@@ -309,8 +281,8 @@ describe('OpsClient', () => {
         .query({ query: 'authentication' })
         .reply(200, {
           data: [
-            { id: 'issue-1', title: 'Auth bug' },
-            { id: 'issue-2', title: 'Login authentication issue' },
+            createMockIssue({ title: 'Auth bug' }),
+            createMockIssue({ title: 'Login authentication issue' }),
           ],
         });
 
@@ -320,29 +292,30 @@ describe('OpsClient', () => {
     });
 
     it('should get issue details', async () => {
+      const mockIssue = createMockIssue({ title: 'Bug' });
       nock(BASE_URL)
-        .get('/issues/issue-1/details')
+        .get(`/issues/${mockIssue.id}/details`)
         .reply(200, {
           data: {
-            issue: { id: 'issue-1', title: 'Bug' },
-            occurrences: 5,
+            issue: mockIssue,
+            occurrences: [],
             notes: [],
+            history: [],
           },
         });
 
-      const details = await client.issues.getDetails('issue-1');
+      const details = await client.issues.getDetails(mockIssue.id);
 
-      expect(details.occurrences).toBe(5);
+      expect(details.issue.title).toBe('Bug');
     });
 
     it('should update issue status', async () => {
+      const mockIssue = createMockIssue({ status: 'completed' });
       nock(BASE_URL)
-        .patch('/issues/issue-1/status', { status: 'completed', reason: 'Fixed' })
-        .reply(200, {
-          data: { id: 'issue-1', status: 'completed' },
-        });
+        .patch(`/issues/${mockIssue.id}/status`, { status: 'completed', reason: 'Fixed' })
+        .reply(200, { data: mockIssue });
 
-      const issue = await client.issues.updateStatus('issue-1', {
+      const issue = await client.issues.updateStatus(mockIssue.id, {
         status: 'completed',
         reason: 'Fixed',
       });
@@ -351,11 +324,17 @@ describe('OpsClient', () => {
     });
 
     it('should add note to issue', async () => {
+      const mockNote = {
+        id: '00000000-0000-4000-a000-000000000061',
+        issueId: '00000000-0000-4000-a000-000000000021',
+        content: 'This is a note',
+        noteType: 'context',
+        createdBy: null,
+        createdAt: new Date().toISOString(),
+      };
       nock(BASE_URL)
         .post('/issues/issue-1/notes', { content: 'This is a note', noteType: 'context' })
-        .reply(201, {
-          data: { id: 'note-1', content: 'This is a note' },
-        });
+        .reply(201, { data: mockNote });
 
       const note = await client.issues.addNote('issue-1', {
         content: 'This is a note',
@@ -516,7 +495,14 @@ describe('OpsClient', () => {
           return true;
         })
         .reply(201, {
-          data: { id: 'note-1', content: 'Fixed the bug', noteType: 'resolution' },
+          data: {
+            id: '00000000-0000-4000-a000-000000000062',
+            issueId: '00000000-0000-4000-a000-000000000021',
+            content: 'Fixed the bug',
+            noteType: 'resolution',
+            createdBy: null,
+            createdAt: new Date().toISOString(),
+          },
         });
 
       await client.issues.addNote('issue-1', {
@@ -549,7 +535,7 @@ describe('OpsClient', () => {
           include_resolved: false,
         })
         .reply(200, {
-          data: [{ id: 'issue-1', title: 'Critical issue', status: 'open' }],
+          data: [createMockIssue({ title: 'Critical issue', status: 'open', priority: 'critical' })],
         });
 
       const issues = await client.projects.listIssues('proj-1', {

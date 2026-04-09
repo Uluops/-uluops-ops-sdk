@@ -152,7 +152,7 @@ describe('Project Operations', () => {
           confirm: true,
           confirmationPhrase: TEST_IDS.proj1,
         })
-        .reply(200, { data: {} });
+        .reply(200, { data: { deleted: true } });
 
       const result = await projectOps.deleteProject(client, TEST_IDS.proj1, {
         confirm: true,
@@ -169,7 +169,7 @@ describe('Project Operations', () => {
           confirm: true,
           confirmationPhrase: TEST_IDS.proj1,
         })
-        .reply(200, { data: {} });
+        .reply(200, { data: { deleted: true } });
 
       const result = await projectOps.softDelete(client, TEST_IDS.proj1, {
         confirm: true,

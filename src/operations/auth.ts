@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import type {
   RegisterInput,
@@ -16,6 +17,16 @@ import type {
 } from '../types/auth.js';
 import type { MessageResponse } from '../types/responses.js';
 import {
+  AuthUserResponseSchema,
+  PublicUserResponseSchema,
+  LoginResponseSchema,
+  RegisterResponseSchema,
+  PublicApiKeyResponseSchema,
+  ApiKeyCreatedResponseSchema,
+  PublicSessionResponseSchema,
+  MessageResponseSchema,
+} from '../types/response-schemas.js';
+import {
   validateRegisterInput,
   validateLoginInput,
   validateUpdateProfileInput,
@@ -23,6 +34,8 @@ import {
   validateResetPasswordInput,
   validateCreateApiKeyInput,
 } from '../config/validators.js';
+
+const ProfileResponseSchema = z.object({ user: PublicUserResponseSchema });
 
 /**
  * Register a new user
@@ -32,7 +45,7 @@ export async function register(
   input: RegisterInput
 ): Promise<RegisterResponse> {
   validateRegisterInput(input);
-  return client.post<RegisterResponse>('/auth/register', input, { skipAuth: true });
+  return client.post('/auth/register', input, { skipAuth: true, schema: RegisterResponseSchema });
 }
 
 /**
@@ -43,7 +56,7 @@ export async function login(
   input: LoginInput
 ): Promise<LoginResponse> {
   validateLoginInput(input);
-  return client.post<LoginResponse>('/auth/login', input, { skipAuth: true });
+  return client.post('/auth/login', input, { skipAuth: true, schema: LoginResponseSchema });
 }
 
 /**
@@ -52,7 +65,7 @@ export async function login(
 export async function logoutAll(
   client: OpsHttpClient
 ): Promise<{ sessionsRevoked: number }> {
-  return client.post<{ sessionsRevoked: number }>('/auth/logout-all');
+  return client.post('/auth/logout-all', undefined, { schema: z.object({ sessionsRevoked: z.number() }) });
 }
 
 /**
@@ -62,7 +75,7 @@ export async function forgotPassword(
   client: OpsHttpClient,
   email: string
 ): Promise<MessageResponse> {
-  return client.post<MessageResponse>('/auth/forgot-password', { email }, { skipAuth: true });
+  return client.post('/auth/forgot-password', { email }, { skipAuth: true, schema: MessageResponseSchema });
 }
 
 /**
@@ -73,7 +86,7 @@ export async function resetPassword(
   input: ResetPasswordInput
 ): Promise<MessageResponse> {
   validateResetPasswordInput(input);
-  return client.post<MessageResponse>('/auth/reset-password', input, { skipAuth: true });
+  return client.post('/auth/reset-password', input, { skipAuth: true, schema: MessageResponseSchema });
 }
 
 /**
@@ -84,7 +97,7 @@ export async function changePassword(
   input: ChangePasswordInput
 ): Promise<MessageResponse> {
   validateChangePasswordInput(input);
-  return client.put<MessageResponse>('/auth/password', input);
+  return client.put('/auth/password', input, { schema: MessageResponseSchema });
 }
 
 /**
@@ -94,21 +107,21 @@ export async function setPassword(
   client: OpsHttpClient,
   password: string
 ): Promise<MessageResponse> {
-  return client.post<MessageResponse>('/auth/password', { password });
+  return client.post('/auth/password', { password }, { schema: MessageResponseSchema });
 }
 
 /**
  * Get current user info (minimal)
  */
 export async function getMe(client: OpsHttpClient): Promise<AuthUser> {
-  return client.get<AuthUser>('/auth/me');
+  return client.get('/auth/me', undefined, { schema: AuthUserResponseSchema });
 }
 
 /**
  * Get current user's full profile
  */
 export async function getProfile(client: OpsHttpClient): Promise<{ user: PublicUser }> {
-  return client.get<{ user: PublicUser }>('/auth/profile');
+  return client.get('/auth/profile', undefined, { schema: ProfileResponseSchema });
 }
 
 /**
@@ -119,7 +132,7 @@ export async function updateProfile(
   input: UpdateProfileInput
 ): Promise<{ user: PublicUser }> {
   validateUpdateProfileInput(input);
-  return client.patch<{ user: PublicUser }>('/auth/profile', input);
+  return client.patch('/auth/profile', input, { schema: ProfileResponseSchema });
 }
 
 /**
@@ -148,7 +161,7 @@ export async function deleteAvatar(client: OpsHttpClient): Promise<void> {
 export async function listApiKeys(
   client: OpsHttpClient
 ): Promise<PublicApiKey[]> {
-  return client.get<PublicApiKey[]>('/auth/keys');
+  return client.get('/auth/keys', undefined, { schema: z.array(PublicApiKeyResponseSchema) });
 }
 
 /**
@@ -159,7 +172,7 @@ export async function createApiKey(
   input?: CreateApiKeyInput
 ): Promise<ApiKeyCreatedResponse> {
   if (input) validateCreateApiKeyInput(input);
-  return client.post<ApiKeyCreatedResponse>('/auth/keys', input);
+  return client.post('/auth/keys', input, { schema: ApiKeyCreatedResponseSchema });
 }
 
 /**
@@ -178,7 +191,7 @@ export async function revokeApiKey(
 export async function listSessions(
   client: OpsHttpClient
 ): Promise<PublicSession[]> {
-  return client.get<PublicSession[]>('/auth/sessions');
+  return client.get('/auth/sessions', undefined, { schema: z.array(PublicSessionResponseSchema) });
 }
 
 /**

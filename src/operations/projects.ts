@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import type {
@@ -19,6 +20,15 @@ import type {
 import type { Issue } from '../types/issues.js';
 import type { DeleteResult } from '../types/responses.js';
 import {
+  ProjectResponseSchema,
+  ProjectSummaryResponseSchema,
+  TrendDataPointResponseSchema,
+  IssueResponseSchema,
+  DeleteResultResponseSchema,
+  BulkStatusUpdateResultResponseSchema,
+  MergeIssuesResultResponseSchema,
+} from '../types/response-schemas.js';
+import {
   validateCreateProjectInput,
   validateDeleteProjectInput,
   validateRenameProjectInput,
@@ -29,7 +39,7 @@ import { buildIssueListParams } from './query-utils.js';
  * List all projects for the current user
  */
 export async function list(client: OpsHttpClient): Promise<Project[]> {
-  return client.get<Project[]>('/projects');
+  return client.get('/projects', undefined, { schema: z.array(ProjectResponseSchema) });
 }
 
 /**
@@ -39,7 +49,7 @@ export async function get(
   client: OpsHttpClient,
   idOrName: string
 ): Promise<Project> {
-  return client.get<Project>(`/projects/${encodeURIComponent(idOrName)}`);
+  return client.get(`/projects/${encodeURIComponent(idOrName)}`, undefined, { schema: ProjectResponseSchema });
 }
 
 /**
@@ -50,7 +60,7 @@ export async function create(
   input: CreateProjectInput
 ): Promise<Project> {
   validateCreateProjectInput(input);
-  return client.post<Project>('/projects', input);
+  return client.post('/projects', input, { schema: ProjectResponseSchema });
 }
 
 /**
@@ -61,7 +71,7 @@ export async function update(
   idOrName: string,
   input: UpdateProjectInput
 ): Promise<Project> {
-  return client.patch<Project>(`/projects/${encodeURIComponent(idOrName)}`, input);
+  return client.patch(`/projects/${encodeURIComponent(idOrName)}`, input, { schema: ProjectResponseSchema });
 }
 
 /**
@@ -73,11 +83,10 @@ export async function deleteProject(
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  await client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
+  return client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
-  });
-  return { deleted: true };
+  }, { schema: DeleteResultResponseSchema });
 }
 
 /**
@@ -89,11 +98,10 @@ export async function softDelete(
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  await client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
+  return client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
-  });
-  return { deleted: true };
+  }, { schema: DeleteResultResponseSchema });
 }
 
 /**
@@ -103,7 +111,7 @@ export async function restore(
   client: OpsHttpClient,
   idOrName: string
 ): Promise<Project> {
-  return client.post<Project>(`/projects/${encodeURIComponent(idOrName)}/restore`);
+  return client.post(`/projects/${encodeURIComponent(idOrName)}/restore`, undefined, { schema: ProjectResponseSchema });
 }
 
 /**
@@ -114,10 +122,10 @@ export async function rename(
   input: RenameProjectInput
 ): Promise<Project> {
   validateRenameProjectInput(input);
-  return client.post<Project>('/projects/rename', {
+  return client.post('/projects/rename', {
     oldName: input.oldName,
     newName: input.newName,
-  });
+  }, { schema: ProjectResponseSchema });
 }
 
 /**
@@ -127,7 +135,7 @@ export async function getSummary(
   client: OpsHttpClient,
   idOrName: string
 ): Promise<ProjectSummaryResponse> {
-  return client.get<ProjectSummaryResponse>(`/projects/${encodeURIComponent(idOrName)}/summary`);
+  return client.get(`/projects/${encodeURIComponent(idOrName)}/summary`, undefined, { schema: ProjectSummaryResponseSchema });
 }
 
 /**
@@ -138,9 +146,10 @@ export async function getTrends(
   idOrName: string,
   query?: ProjectTrendsQuery
 ): Promise<TrendDataPoint[]> {
-  return client.get<TrendDataPoint[]>(
+  return client.get(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
-    toApiQuery(query)
+    toApiQuery(query),
+    { schema: z.array(TrendDataPointResponseSchema) }
   );
 }
 
@@ -152,9 +161,10 @@ export async function listIssues(
   idOrName: string,
   query?: ListProjectIssuesQuery
 ): Promise<Issue[]> {
-  return client.get<Issue[]>(
+  return client.get(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
-    buildIssueListParams(query)
+    buildIssueListParams(query),
+    { schema: z.array(IssueResponseSchema) }
   );
 }
 
@@ -186,9 +196,10 @@ export async function bulkUpdateIssueStatus(
   idOrName: string,
   updates: BulkIssueStatusUpdate[]
 ): Promise<BulkIssueStatusResult[]> {
-  return client.patch<BulkIssueStatusResult[]>(
+  return client.patch(
     `/projects/${encodeURIComponent(idOrName)}/issues/status`,
-    { updates }
+    { updates },
+    { schema: z.array(BulkStatusUpdateResultResponseSchema) }
   );
 }
 
@@ -200,12 +211,13 @@ export async function mergeIssues(
   idOrName: string,
   input: MergeIssuesInput
 ): Promise<MergeIssuesResult> {
-  return client.post<MergeIssuesResult>(
+  return client.post(
     `/projects/${encodeURIComponent(idOrName)}/issues/merge`,
     {
       targetIssueId: input.targetIssueId,
       sourceIssueIds: input.sourceIssueIds,
       strategy: input.strategy,
-    }
+    },
+    { schema: MergeIssuesResultResponseSchema }
   );
 }

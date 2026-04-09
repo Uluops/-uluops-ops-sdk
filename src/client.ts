@@ -77,6 +77,7 @@ import type {
   BulkStatusUpdateItem,
   StatusUpdateResult,
 } from './types/issues.js';
+import type { BulkStatusUpdateResultResponseSchema } from './types/response-schemas.js';
 
 import type {
   AnalyticsQuery,
@@ -398,7 +399,7 @@ export class OpsClient {
     undoLastChange: (issueId: string): Promise<Issue> =>
       issueOps.undoLastChange(this.httpClient, issueId),
 
-    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]): Promise<StatusUpdateResult[]> =>
+    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>[]> =>
       issueOps.bulkUpdateStatus(this.httpClient, updates),
 
     listByProject: (projectId: string, query?: ListIssuesQuery): Promise<Issue[]> =>

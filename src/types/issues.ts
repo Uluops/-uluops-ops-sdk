@@ -101,7 +101,7 @@ export interface Occurrence {
   id: string;
   issueId: string;
   runId: string;
-  agent: string;
+  agentName: string;
   description: string | null;
   filePath: string | null;
   lineNumber: number | null;
