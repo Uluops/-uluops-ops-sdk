@@ -353,13 +353,11 @@ export const RunDetailsResponseSchema = z.object({
   run: RunResponseSchema,
   agents: z.array(AgentSnapshotResponseSchema),
   recommendations: z.array(z.object({
-    id: z.string().uuid(),
+    issueId: z.string().uuid(),
     title: z.string(),
     priority: PriorityResponseSchema,
-    severity: SeverityResponseSchema.nullable(),
     agent: z.string(),
     status: z.string(),
-    correlation: z.enum(['new', 'recurring', 'regression']),
   })),
 });
 

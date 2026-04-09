@@ -429,13 +429,11 @@ describe('Run Operations', () => {
             agents: [mockAgent],
             recommendations: [
               {
-                id: TEST_IDS.issue1,
+                issueId: TEST_IDS.issue1,
                 title: 'Fix this',
                 priority: 'suggested',
-                severity: null,
                 agent: 'code-validator',
                 status: 'open',
-                correlation: 'new',
               },
             ],
           },
@@ -444,7 +442,7 @@ describe('Run Operations', () => {
       const details = await runOps.getDetails(client, TEST_IDS.proj1);
 
       expect(details.recommendations).toHaveLength(1);
-      expect(details.recommendations[0].correlation).toBe('new');
+      expect(details.recommendations[0].status).toBe('open');
       expect(details.agents).toHaveLength(1);
       expect(details.run.runNumber).toBe(10);
     });

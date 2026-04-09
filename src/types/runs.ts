@@ -282,13 +282,11 @@ export interface RunDetails {
   run: Run;
   agents: AgentSnapshot[];
   recommendations: Array<{
-    id: string;
+    issueId: string;
     title: string;
     priority: Priority;
-    severity: Severity | null;
     agent: string;
     status: string;
-    correlation: 'new' | 'recurring' | 'regression';
   }>;
 }
 
