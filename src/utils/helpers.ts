@@ -198,6 +198,7 @@ export function normalizeKeys<T>(input: T): CamelCaseKeys<T> {
   if (input !== null && typeof input === 'object') {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
       result[toCamelCase(key)] = normalizeKeys(value);
     }
     return result as CamelCaseKeys<T>;

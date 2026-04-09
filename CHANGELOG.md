@@ -4,6 +4,78 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.1] - 2026-04-09
+
+### Fixed
+- Package description updated to reflect full SDK scope (tracker, analytics, auth, org management)
+- `issues.search()` refactored to use `toApiQuery()` instead of manual query serialization
+- `normalizeKeys()` now guards against prototype pollution (`__proto__`, `constructor`, `prototype` keys) — matches `deepMerge()` behavior
+- README version updated from 0.7.0 to 1.0.1
+- README Quick Start base URL comment corrected (defaults to production, not localhost)
+- JSDoc on `OpsClientConfig.baseUrl` corrected to document NODE_ENV-conditional default
+- `files` field in package.json now includes README.md and CHANGELOG.md in published tarball
+
+## [1.0.0] - 2026-04-08
+
+### Changed
+- **Breaking:** All response types now derived from Zod schemas via `z.infer<>` — hand-written interfaces removed. Type shapes are identical but provenance changed. Consumers importing types may see different IDE hover text.
+- `SDK_VERSION` constant synced to `1.0.0`
+
+### Added
+- Phase 6: Response types derived from Zod schemas — single source of truth for all domain types (Run, Issue, Project, Auth, Analytics)
+
+## [0.10.1] - 2026-04-08
+
+### Fixed
+- `deleteProject` and `softDelete` return 204 no-content handling
+
+## [0.10.0] - 2026-04-08
+
+### Added
+- Phase 5: Response schemas wired into all analytics operations — runtime validation on all 14 analytics endpoints
+
+## [0.9.4] - 2026-04-08
+
+### Fixed
+- `ValidateRunResponse.preview` contains arrays not counts
+
+## [0.9.3] - 2026-04-08
+
+### Fixed
+- `ValidateRunResponse` and `ProjectTrends` schemas aligned to API reality
+
+## [0.9.2] - 2026-04-08
+
+### Fixed
+- `Issue.deletedAt` stripped by API `issueToPublic` — removed from schema
+
+## [0.9.1] - 2026-04-08
+
+### Fixed
+- `Project` and `ProjectSummary` schemas aligned to API reality
+
+## [0.9.0] - 2026-04-08
+
+### Added
+- Phase 4: Response schemas wired into issue, project, and auth operations
+
+## [0.8.2] - 2026-04-08
+
+### Fixed
+- `ArchiveRunsResult` schema aligned to API reality
+
+## [0.8.1] - 2026-04-08
+
+### Fixed
+- `RunDetailsResponseSchema` aligned to API reality
+
+## [0.8.0] - 2026-04-08
+
+### Added
+- Phase 3: Response schemas wired into all run operations — runtime Zod validation on every runs endpoint
+- Phase 1: All response schemas aligned to API reality (optional→required where API guarantees, missing fields added)
+- `@uluops/sdk-core` bumped to 0.3.0 (adds `patch()` schema support and `ResponseValidationError`)
+
 ## [0.7.0] - 2026-04-08
 
 ### Added

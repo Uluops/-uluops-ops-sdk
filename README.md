@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 0.7.0** | [Changelog](./CHANGELOG.md)
+**Current version: 1.0.1** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -20,8 +20,8 @@ Official TypeScript SDK with Zod runtime validation for the UluOps validation tr
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
 
-// Defaults to http://localhost:3100/api/v1 for local dev.
-// For production, set ULUOPS_BASE_URL env var or pass baseUrl below.
+// Defaults to https://api.uluops.ai/api/v1/ops in production.
+// Set NODE_ENV=development for localhost:3100, or pass baseUrl explicitly.
 const client = new OpsClient({
   apiKey: 'ulr_your-api-key-here', // Create via client.auth.createApiKey() or admin dashboard
 });

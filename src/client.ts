@@ -102,7 +102,7 @@ export interface OpsClientConfig {
   password?: string;
   /** Existing session token */
   sessionToken?: string;
-  /** API base URL (defaults to localhost:3100) */
+  /** API base URL (defaults to https://api.uluops.ai/api/v1/ops; localhost:3100 when NODE_ENV=development) */
   baseUrl?: string;
   /** Request timeout in ms */
   timeout?: number;
