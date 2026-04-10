@@ -19,9 +19,10 @@ export const Status = {
   Wontfix: 'wontfix',
   Merged: 'merged',
   FalsePositive: 'false-positive',
+  Observation: 'observation',
 } as const;
 export type Status = (typeof Status)[keyof typeof Status];
-export const STATUSES = ['open', 'completed', 'deferred', 'wontfix', 'merged', 'false-positive'] as const;
+export const STATUSES = ['open', 'completed', 'deferred', 'wontfix', 'merged', 'false-positive', 'observation'] as const;
 
 /**
  * Status filter type (includes 'all' for query parameters)

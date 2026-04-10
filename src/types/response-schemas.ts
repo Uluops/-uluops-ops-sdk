@@ -339,6 +339,7 @@ export const CorrelationResultResponseSchema = z.object({
   newIssues: z.number().int().nonnegative(),
   recurringIssues: z.number().int().nonnegative(),
   regressions: z.number().int().nonnegative(),
+  observed: z.number().int().nonnegative().optional(),
 });
 
 export const SaveRunResponseSchema = z.object({
