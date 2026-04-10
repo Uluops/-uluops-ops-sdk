@@ -136,9 +136,9 @@ export async function updateStatus(
 }
 
 /**
- * Edit issue metadata
+ * Update issue metadata
  */
-export async function edit(
+export async function update(
   client: OpsHttpClient,
   issueId: string,
   input: UpdateIssueInput
@@ -227,3 +227,6 @@ export async function listByProject(
     { schema: z.array(IssueResponseSchema) }
   );
 }
+
+/** @deprecated Use update instead */
+export const edit = update;

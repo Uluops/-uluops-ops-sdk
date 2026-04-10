@@ -38,7 +38,7 @@ import type {
   MergeIssuesResult,
 } from './types/projects.js';
 
-import type { z } from 'zod';
+import { type z } from 'zod';
 import type {
   Run,
   SaveRunInput,
@@ -87,6 +87,20 @@ import type {
   AgentMatrixQuery,
   TaxonomySchema,
 } from './types/analytics.js';
+
+import {
+  AgentPerformanceResponseSchema,
+  AgentReliabilityResultResponseSchema,
+  ResolutionRateResponseSchema,
+  FileHotspotResponseSchema,
+  TaxonomyDistributionResponseSchema,
+  FullTaxonomyAnalyticsResponseSchema,
+  BurndownResultResponseSchema,
+  VelocityResultResponseSchema,
+  DiscoveryResultResponseSchema,
+  AgentMatrixResultResponseSchema,
+  TrendSummaryResponseSchema,
+} from './types/response-schemas.js';
 
 import type { MessageResponse, DeleteResult } from './types/responses.js';
 
@@ -374,8 +388,12 @@ export class OpsClient {
     updateStatus: (issueId: string, input: UpdateIssueStatusInput): Promise<Issue> =>
       issueOps.updateStatus(this.httpClient, issueId, input),
 
+    update: (issueId: string, input: UpdateIssueInput): Promise<Issue> =>
+      issueOps.update(this.httpClient, issueId, input),
+
+    /** @deprecated Use update instead */
     edit: (issueId: string, input: UpdateIssueInput): Promise<Issue> =>
-      issueOps.edit(this.httpClient, issueId, input),
+      issueOps.update(this.httpClient, issueId, input),
 
     addNote: (issueId: string, input: CreateIssueNoteInput): Promise<IssueNote> =>
       issueOps.addNote(this.httpClient, issueId, input),
@@ -399,37 +417,37 @@ export class OpsClient {
 
   /** Agent performance, taxonomy analytics, burndown, velocity, and discovery */
   readonly analytics = {
-    getAgentPerformance: (query?: AnalyticsQuery) =>
+    getAgentPerformance: (query?: AnalyticsQuery): Promise<z.infer<typeof AgentPerformanceResponseSchema>[]> =>
       analyticsOps.getAgentPerformance(this.httpClient, query),
 
-    getAgentReliability: (query?: AgentReliabilityQuery) =>
+    getAgentReliability: (query?: AgentReliabilityQuery): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> =>
       analyticsOps.getAgentReliability(this.httpClient, query),
 
-    getResolutionRates: (query?: AnalyticsQuery) =>
+    getResolutionRates: (query?: AnalyticsQuery): Promise<z.infer<typeof ResolutionRateResponseSchema>[]> =>
       analyticsOps.getResolutionRates(this.httpClient, query),
 
-    getFileHotspots: (query?: AnalyticsQuery) =>
+    getFileHotspots: (query?: AnalyticsQuery): Promise<z.infer<typeof FileHotspotResponseSchema>[]> =>
       analyticsOps.getFileHotspots(this.httpClient, query),
 
-    getTaxonomyDistribution: (query?: AnalyticsQuery) =>
+    getTaxonomyDistribution: (query?: AnalyticsQuery): Promise<z.infer<typeof TaxonomyDistributionResponseSchema>[]> =>
       analyticsOps.getTaxonomyDistribution(this.httpClient, query),
 
-    getFullTaxonomy: (query?: AnalyticsQuery) =>
+    getFullTaxonomy: (query?: AnalyticsQuery): Promise<z.infer<typeof FullTaxonomyAnalyticsResponseSchema>> =>
       analyticsOps.getFullTaxonomy(this.httpClient, query),
 
-    getBurndown: (query?: BurndownQuery) =>
+    getBurndown: (query?: BurndownQuery): Promise<z.infer<typeof BurndownResultResponseSchema>> =>
       analyticsOps.getBurndown(this.httpClient, query),
 
-    getVelocity: (query?: VelocityQuery) =>
+    getVelocity: (query?: VelocityQuery): Promise<z.infer<typeof VelocityResultResponseSchema>> =>
       analyticsOps.getVelocity(this.httpClient, query),
 
-    getDiscovery: (query?: DiscoveryQuery) =>
+    getDiscovery: (query?: DiscoveryQuery): Promise<z.infer<typeof DiscoveryResultResponseSchema>> =>
       analyticsOps.getDiscovery(this.httpClient, query),
 
-    getAgentMatrix: (query?: AgentMatrixQuery) =>
+    getAgentMatrix: (query?: AgentMatrixQuery): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> =>
       analyticsOps.getAgentMatrix(this.httpClient, query),
 
-    getTrendSummary: (query?: AnalyticsQuery) =>
+    getTrendSummary: (query?: AnalyticsQuery): Promise<z.infer<typeof TrendSummaryResponseSchema>[]> =>
       analyticsOps.getTrendSummary(this.httpClient, query),
 
     /**
@@ -444,13 +462,13 @@ export class OpsClient {
 
     // Backwards-compatible aliases
     /** @deprecated Use getAgentPerformance instead */
-    getValidatorPerformance: (query?: AnalyticsQuery) =>
+    getValidatorPerformance: (query?: AnalyticsQuery): Promise<z.infer<typeof AgentPerformanceResponseSchema>[]> =>
       analyticsOps.getAgentPerformance(this.httpClient, query),
     /** @deprecated Use getAgentReliability instead */
-    getValidatorReliability: (query?: AgentReliabilityQuery) =>
+    getValidatorReliability: (query?: AgentReliabilityQuery): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> =>
       analyticsOps.getAgentReliability(this.httpClient, query),
     /** @deprecated Use getAgentMatrix instead */
-    getValidatorMatrix: (query?: AgentMatrixQuery) =>
+    getValidatorMatrix: (query?: AgentMatrixQuery): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> =>
       analyticsOps.getAgentMatrix(this.httpClient, query),
     /** @deprecated Use listAgents instead */
     listValidators: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>

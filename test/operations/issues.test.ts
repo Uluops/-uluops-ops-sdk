@@ -299,8 +299,8 @@ describe('Issue Operations', () => {
     });
   });
 
-  describe('edit', () => {
-    it('should edit issue metadata', async () => {
+  describe('update', () => {
+    it('should update issue metadata', async () => {
       const issueId = '00000000-0000-4000-a000-000000000094';
       const mockIssue = createMockIssue({
         id: issueId,
@@ -315,7 +315,7 @@ describe('Issue Operations', () => {
         })
         .reply(200, { data: mockIssue });
 
-      const issue = await issueOps.edit(client, issueId, {
+      const issue = await issueOps.update(client, issueId, {
         title: 'Updated title',
         severity: 'high',
       });
@@ -339,7 +339,7 @@ describe('Issue Operations', () => {
         })
         .reply(200, { data: mockIssue });
 
-      const issue = await issueOps.edit(client, issueId, {
+      const issue = await issueOps.update(client, issueId, {
         filePath: 'src/new-location.ts',
         lineNumber: 100,
       });

@@ -3,6 +3,21 @@ import nock from 'nock';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as analyticsOps from '../../src/operations/analytics.js';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
+import {
+  mockValidatedListEndpoint,
+  mockValidatedEndpoint,
+  AgentPerformanceResponseSchema,
+  AgentReliabilityResultResponseSchema,
+  ResolutionRateResponseSchema,
+  FileHotspotResponseSchema,
+  TaxonomyDistributionResponseSchema,
+  FullTaxonomyAnalyticsResponseSchema,
+  BurndownResultResponseSchema,
+  VelocityResultResponseSchema,
+  DiscoveryResultResponseSchema,
+  AgentMatrixResultResponseSchema,
+  TrendSummaryResponseSchema,
+} from '../contract-helpers.js';
 
 describe('Analytics Operations', () => {
   let client: OpsHttpClient;
@@ -16,14 +31,14 @@ describe('Analytics Operations', () => {
 
   describe('getAgentPerformance', () => {
     it('should get validator performance metrics', async () => {
-      nock(BASE_URL)
-        .get('/analytics/agents/performance')
-        .reply(200, {
-          data: [
-            { name: 'code-validator', totalRuns: 100, averageScore: 85.5, passRate: 92, totalIssuesFound: 250 },
-            { name: 'test-architect', totalRuns: 80, averageScore: 78.2, passRate: 85, totalIssuesFound: 180 },
-          ],
-        });
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/analytics/agents/performance',
+        [
+          { name: 'code-validator', totalRuns: 100, averageScore: 85.5, passRate: 92, totalIssuesFound: 250 },
+          { name: 'test-architect', totalRuns: 80, averageScore: 78.2, passRate: 85, totalIssuesFound: 180 },
+        ],
+        AgentPerformanceResponseSchema,
+      );
 
       const perf = await analyticsOps.getAgentPerformance(client);
 
@@ -50,22 +65,22 @@ describe('Analytics Operations', () => {
 
   describe('getAgentReliability', () => {
     it('should get agent reliability stats', async () => {
-      nock(BASE_URL)
-        .get('/analytics/agents/reliability')
-        .reply(200, {
-          data: {
-            agents: [
-              {
-                name: 'code-validator',
-                totalIssues: 250,
-                falsePositiveRate: 5,
-                resolutionRate: 75,
-                avgTimeToResolveDays: 1.5,
-                reliabilityScore: 82,
-              },
-            ],
-          },
-        });
+      mockValidatedEndpoint(
+        BASE_URL, 'get', '/analytics/agents/reliability',
+        {
+          agents: [
+            {
+              name: 'code-validator',
+              totalIssues: 250,
+              falsePositiveRate: 5,
+              resolutionRate: 75,
+              avgTimeToResolveDays: 1.5,
+              reliabilityScore: 82,
+            },
+          ],
+        },
+        AgentReliabilityResultResponseSchema,
+      );
 
       const result = await analyticsOps.getAgentReliability(client);
 
@@ -100,14 +115,14 @@ describe('Analytics Operations', () => {
 
   describe('getResolutionRates', () => {
     it('should get resolution rates by project', async () => {
-      nock(BASE_URL)
-        .get('/analytics/projects/resolution-rates')
-        .reply(200, {
-          data: [
-            { project: 'proj-1', totalIssues: 100, resolvedIssues: 50, resolutionRate: 50, averageTimeToResolve: null },
-            { project: 'proj-2', totalIssues: 100, resolvedIssues: 80, resolutionRate: 80, averageTimeToResolve: null },
-          ],
-        });
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/analytics/projects/resolution-rates',
+        [
+          { project: 'proj-1', totalIssues: 100, resolvedIssues: 50, resolutionRate: 50, averageTimeToResolve: null },
+          { project: 'proj-2', totalIssues: 100, resolvedIssues: 80, resolutionRate: 80, averageTimeToResolve: null },
+        ],
+        ResolutionRateResponseSchema,
+      );
 
       const rates = await analyticsOps.getResolutionRates(client);
 
@@ -120,14 +135,14 @@ describe('Analytics Operations', () => {
 
   describe('getFileHotspots', () => {
     it('should get files with most issues', async () => {
-      nock(BASE_URL)
-        .get('/analytics/files/hotspots')
-        .reply(200, {
-          data: [
-            { filePath: 'src/auth.ts', totalIssues: 15, openIssues: 5, resolvedIssues: 10, topAgents: ['code-validator'] },
-            { filePath: 'src/api/client.ts', totalIssues: 10, openIssues: 3, resolvedIssues: 7, topAgents: ['test-architect'] },
-          ],
-        });
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/analytics/files/hotspots',
+        [
+          { filePath: 'src/auth.ts', totalIssues: 15, openIssues: 5, resolvedIssues: 10, topAgents: ['code-validator'] },
+          { filePath: 'src/api/client.ts', totalIssues: 10, openIssues: 3, resolvedIssues: 7, topAgents: ['test-architect'] },
+        ],
+        FileHotspotResponseSchema,
+      );
 
       const hotspots = await analyticsOps.getFileHotspots(client);
 
@@ -152,16 +167,16 @@ describe('Analytics Operations', () => {
 
   describe('getTaxonomyDistribution', () => {
     it('should get basic taxonomy distribution', async () => {
-      nock(BASE_URL)
-        .get('/analytics/taxonomy/distribution')
-        .reply(200, {
-          data: [
-            { domain: 'STR', count: 50, percentage: 28 },
-            { domain: 'SEM', count: 80, percentage: 44 },
-            { domain: 'PRA', count: 30, percentage: 17 },
-            { domain: 'EPI', count: 20, percentage: 11 },
-          ],
-        });
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/analytics/taxonomy/distribution',
+        [
+          { domain: 'STR', count: 50, percentage: 28 },
+          { domain: 'SEM', count: 80, percentage: 44 },
+          { domain: 'PRA', count: 30, percentage: 17 },
+          { domain: 'EPI', count: 20, percentage: 11 },
+        ],
+        TaxonomyDistributionResponseSchema,
+      );
 
       const dist = await analyticsOps.getTaxonomyDistribution(client);
 
@@ -172,19 +187,19 @@ describe('Analytics Operations', () => {
 
   describe('getFullTaxonomy', () => {
     it('should get full taxonomy analytics', async () => {
-      nock(BASE_URL)
-        .get('/analytics/taxonomy/full')
-        .reply(200, {
-          data: {
-            byDomain: [{ domain: 'STR', label: 'Structural', count: 50, percentage: 28 }],
-            byMode: [{ mode: 'STR-OMI', label: 'Omission', domain: 'STR', domainLabel: 'Structural', count: 20, percentage: 11 }],
-            bySeverity: [{ severity: 'M', label: 'Medium', count: 40, percentage: 22 }],
-            topCodes: [{ code: 'STR-OMI/M', domain: 'STR', mode: 'STR-OMI', severity: 'M', label: 'Omission (Medium)', count: 15, percentage: 8 }],
-            heatmapData: [{ domain: 'STR', domainLabel: 'Structural', mode: 'STR-OMI', modeLabel: 'Omission', count: 20, percentage: 11, intensity: 1 }],
-            totals: { totalIssues: 180, classifiedIssues: 150, unclassifiedIssues: 30, classificationRate: 83.3 },
-            period: { start: '2024-01-01T00:00:00Z', end: '2024-01-31T00:00:00Z', days: 30 },
-          },
-        });
+      mockValidatedEndpoint(
+        BASE_URL, 'get', '/analytics/taxonomy/full',
+        {
+          byDomain: [{ domain: 'STR', label: 'Structural', count: 50, percentage: 28 }],
+          byMode: [{ mode: 'STR-OMI', label: 'Omission', domain: 'STR', domainLabel: 'Structural', count: 20, percentage: 11 }],
+          bySeverity: [{ severity: 'M', label: 'Medium', count: 40, percentage: 22 }],
+          topCodes: [{ code: 'STR-OMI/M', domain: 'STR', mode: 'STR-OMI', severity: 'M', label: 'Omission (Medium)', count: 15, percentage: 8 }],
+          heatmapData: [{ domain: 'STR', domainLabel: 'Structural', mode: 'STR-OMI', modeLabel: 'Omission', count: 20, percentage: 11, intensity: 1 }],
+          totals: { totalIssues: 180, classifiedIssues: 150, unclassifiedIssues: 30, classificationRate: 83.3 },
+          period: { start: '2024-01-01T00:00:00Z', end: '2024-01-31T00:00:00Z', days: 30 },
+        },
+        FullTaxonomyAnalyticsResponseSchema,
+      );
 
       const result = await analyticsOps.getFullTaxonomy(client);
 
@@ -197,22 +212,22 @@ describe('Analytics Operations', () => {
 
   describe('getBurndown', () => {
     it('should get burndown time series', async () => {
-      nock(BASE_URL)
-        .get('/analytics/taxonomy/burndown')
-        .reply(200, {
-          data: {
-            timeSeries: [
-              { date: '2024-01-01', STR: 50, SEM: 80, PRA: 30, EPI: 20, total: 180 },
-              { date: '2024-01-08', STR: 45, SEM: 70, PRA: 25, EPI: 18, total: 158 },
-            ],
-            trends: {
-              STR: { netChange: -5, trend: 'improving', avgDailyChange: -0.7, confidence: 'high', sampleSize: 7, rSquared: 0.85, standardError: 0.3, confidenceInterval: [-1.2, -0.2], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
-              SEM: { netChange: -10, trend: 'improving', avgDailyChange: -1.4, confidence: 'high', sampleSize: 7, rSquared: 0.9, standardError: 0.2, confidenceInterval: [-2, -0.8], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
-              PRA: { netChange: -5, trend: 'improving', avgDailyChange: -0.7, confidence: 'medium', sampleSize: 7, rSquared: 0.6, standardError: 0.5, confidenceInterval: [-1.5, 0.1], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
-              EPI: { netChange: -2, trend: 'stable', avgDailyChange: -0.3, confidence: 'low', sampleSize: 7, rSquared: 0.3, standardError: 0.4, confidenceInterval: [-1, 0.4], outliers: [], diagnostics: null, ciReliable: false, warnings: ['Insufficient data'], weeklyPatternDetected: false },
-            },
+      mockValidatedEndpoint(
+        BASE_URL, 'get', '/analytics/taxonomy/burndown',
+        {
+          timeSeries: [
+            { date: '2024-01-01', STR: 50, SEM: 80, PRA: 30, EPI: 20, total: 180 },
+            { date: '2024-01-08', STR: 45, SEM: 70, PRA: 25, EPI: 18, total: 158 },
+          ],
+          trends: {
+            STR: { netChange: -5, trend: 'improving', avgDailyChange: -0.7, confidence: 'high', sampleSize: 7, rSquared: 0.85, standardError: 0.3, confidenceInterval: [-1.2, -0.2], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
+            SEM: { netChange: -10, trend: 'improving', avgDailyChange: -1.4, confidence: 'high', sampleSize: 7, rSquared: 0.9, standardError: 0.2, confidenceInterval: [-2, -0.8], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
+            PRA: { netChange: -5, trend: 'improving', avgDailyChange: -0.7, confidence: 'medium', sampleSize: 7, rSquared: 0.6, standardError: 0.5, confidenceInterval: [-1.5, 0.1], outliers: [], diagnostics: null, ciReliable: true, warnings: [], weeklyPatternDetected: false },
+            EPI: { netChange: -2, trend: 'stable', avgDailyChange: -0.3, confidence: 'low', sampleSize: 7, rSquared: 0.3, standardError: 0.4, confidenceInterval: [-1, 0.4], outliers: [], diagnostics: null, ciReliable: false, warnings: ['Insufficient data'], weeklyPatternDetected: false },
           },
-        });
+        },
+        BurndownResultResponseSchema,
+      );
 
       const burndown = await analyticsOps.getBurndown(client);
 
@@ -244,17 +259,17 @@ describe('Analytics Operations', () => {
 
   describe('getVelocity', () => {
     it('should get velocity per failure mode', async () => {
-      nock(BASE_URL)
-        .get('/analytics/taxonomy/velocity')
-        .reply(200, {
-          data: {
-            items: [
-              { domain: 'STR', mode: 'OMI', failureCode: 'STR-OMI', currentCount: 5, previousCount: 10, velocityPercent: -50, alert: false, sparkline: [10, 8, 6, 5], trendReliability: 'high' },
-              { domain: 'SEM', mode: 'VAL', failureCode: 'SEM-VAL', currentCount: 8, previousCount: 5, velocityPercent: 60, alert: true, sparkline: [5, 6, 7, 8], trendReliability: 'medium' },
-            ],
-            summary: { improving: ['STR-OMI'], stable: [], degrading: ['SEM-VAL'], mostImproved: 'STR-OMI', mostConcerning: 'SEM-VAL' },
-          },
-        });
+      mockValidatedEndpoint(
+        BASE_URL, 'get', '/analytics/taxonomy/velocity',
+        {
+          items: [
+            { domain: 'STR', mode: 'OMI', failureCode: 'STR-OMI', currentCount: 5, previousCount: 10, velocityPercent: -50, alert: false, sparkline: [10, 8, 6, 5], trendReliability: 'high' },
+            { domain: 'SEM', mode: 'VAL', failureCode: 'SEM-VAL', currentCount: 8, previousCount: 5, velocityPercent: 60, alert: true, sparkline: [5, 6, 7, 8], trendReliability: 'medium' },
+          ],
+          summary: { improving: ['STR-OMI'], stable: [], degrading: ['SEM-VAL'], mostImproved: 'STR-OMI', mostConcerning: 'SEM-VAL' },
+        },
+        VelocityResultResponseSchema,
+      );
 
       const velocity = await analyticsOps.getVelocity(client);
 
@@ -278,16 +293,16 @@ describe('Analytics Operations', () => {
 
   describe('getDiscovery', () => {
     it('should get discovery timeline', async () => {
-      nock(BASE_URL)
-        .get('/analytics/taxonomy/discovery')
-        .reply(200, {
-          data: {
-            timeline: [
-              { period: '2024-01-01', newIssues: 5, recurringIssues: 10, domains: { STR: { new: 2, recurring: 3 }, SEM: { new: 3, recurring: 7 }, PRA: { new: 0, recurring: 0 }, EPI: { new: 0, recurring: 0 } } },
-            ],
-            summary: { totalNew: 5, totalRecurring: 10, newToRecurringRatio: 0.5, peakNewPeriod: { period: '2024-01-01', count: 5 } },
-          },
-        });
+      mockValidatedEndpoint(
+        BASE_URL, 'get', '/analytics/taxonomy/discovery',
+        {
+          timeline: [
+            { period: '2024-01-01', newIssues: 5, recurringIssues: 10, domains: { STR: { new: 2, recurring: 3 }, SEM: { new: 3, recurring: 7 }, PRA: { new: 0, recurring: 0 }, EPI: { new: 0, recurring: 0 } } },
+          ],
+          summary: { totalNew: 5, totalRecurring: 10, newToRecurringRatio: 0.5, peakNewPeriod: { period: '2024-01-01', count: 5 } },
+        },
+        DiscoveryResultResponseSchema,
+      );
 
       const discovery = await analyticsOps.getDiscovery(client);
 
@@ -314,21 +329,21 @@ describe('Analytics Operations', () => {
 
   describe('getAgentMatrix', () => {
     it('should get validator-taxonomy coverage matrix', async () => {
-      nock(BASE_URL)
-        .get('/analytics/taxonomy/agent-matrix')
-        .reply(200, {
-          data: {
-            matrix: [
-              { agent: 'code-validator', domains: { STR: 30, SEM: 50, PRA: 10, EPI: 5 }, total: 95, coverage: 4, coveragePercent: 100 },
-              { agent: 'test-architect', domains: { STR: 5, SEM: 20, PRA: 40, EPI: 0 }, total: 65, coverage: 3, coveragePercent: 75 },
-            ],
-            analysis: {
-              blindSpots: [{ agent: 'test-architect', missingDomains: ['EPI'] }],
-              singlePoints: [{ domain: 'STR', mode: 'OMI', onlyAgent: 'code-validator' }],
-              highOverlap: [{ mode: 'SEM-VAL', agentCount: 3, agents: ['code-validator', 'test-architect', 'type-safety'] }],
-            },
+      mockValidatedEndpoint(
+        BASE_URL, 'get', '/analytics/taxonomy/agent-matrix',
+        {
+          matrix: [
+            { agent: 'code-validator', domains: { STR: 30, SEM: 50, PRA: 10, EPI: 5 }, total: 95, coverage: 4, coveragePercent: 100 },
+            { agent: 'test-architect', domains: { STR: 5, SEM: 20, PRA: 40, EPI: 0 }, total: 65, coverage: 3, coveragePercent: 75 },
+          ],
+          analysis: {
+            blindSpots: [{ agent: 'test-architect', missingDomains: ['EPI'] }],
+            singlePoints: [{ domain: 'STR', mode: 'OMI', onlyAgent: 'code-validator' }],
+            highOverlap: [{ mode: 'SEM-VAL', agentCount: 3, agents: ['code-validator', 'test-architect', 'type-safety'] }],
           },
-        });
+        },
+        AgentMatrixResultResponseSchema,
+      );
 
       const result = await analyticsOps.getAgentMatrix(client);
 
@@ -353,14 +368,14 @@ describe('Analytics Operations', () => {
 
   describe('getTrendSummary', () => {
     it('should get general trend summary', async () => {
-      nock(BASE_URL)
-        .get('/analytics/trends/summary')
-        .reply(200, {
-          data: [
-            { metric: 'total_issues', current: 180, previous: 190, change: -10, changePercent: -5.3, trend: 'improving' },
-            { metric: 'avg_score', current: 85, previous: 80, change: 5, changePercent: 6.25, trend: 'improving' },
-          ],
-        });
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/analytics/trends/summary',
+        [
+          { metric: 'total_issues', current: 180, previous: 190, change: -10, changePercent: -5.3, trend: 'improving' },
+          { metric: 'avg_score', current: 85, previous: 80, change: 5, changePercent: 6.25, trend: 'improving' },
+        ],
+        TrendSummaryResponseSchema,
+      );
 
       const trends = await analyticsOps.getTrendSummary(client);
 
@@ -424,14 +439,14 @@ describe('Analytics Operations', () => {
 
   describe('listAgents', () => {
     it('should return simplified validator info', async () => {
-      nock(BASE_URL)
-        .get('/analytics/agents/performance')
-        .reply(200, {
-          data: [
-            { name: 'code-validator', totalRuns: 100, averageScore: 85.5, passRate: 92, totalIssuesFound: 250 },
-            { name: 'test-architect', totalRuns: 80, averageScore: 78.2, passRate: 85, totalIssuesFound: 180 },
-          ],
-        });
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/analytics/agents/performance',
+        [
+          { name: 'code-validator', totalRuns: 100, averageScore: 85.5, passRate: 92, totalIssuesFound: 250 },
+          { name: 'test-architect', totalRuns: 80, averageScore: 78.2, passRate: 85, totalIssuesFound: 180 },
+        ],
+        AgentPerformanceResponseSchema,
+      );
 
       const agents = await analyticsOps.listAgents(client);
 

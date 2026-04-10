@@ -1046,9 +1046,9 @@ const issue = await client.issues.updateStatus('issue-uuid', {
 });
 ```
 
-#### `client.issues.edit(issueId, input)`
+#### `client.issues.update(issueId, input)`
 
-Edit issue metadata.
+Update issue metadata.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1060,7 +1060,7 @@ Edit issue metadata.
 | `failureCode` | `string` | No | New failure code |
 
 ```typescript
-const issue = await client.issues.edit('issue-uuid', {
+const issue = await client.issues.update('issue-uuid', {
   title: 'Updated title',
   severity: 'high',
 });
@@ -1321,6 +1321,19 @@ for (const v of agents) {
   console.log(`${v.name}: avg=${v.avgScore}, runs=${v.totalRuns}, pass=${v.passRate}`);
 }
 ```
+
+#### Deprecated Aliases
+
+The following analytics methods were renamed from "validator" to "agent" terminology. The old names still work but will be removed in a future major version:
+
+| Deprecated | Replacement |
+|-----------|-------------|
+| `getValidatorPerformance` | `getAgentPerformance` |
+| `getValidatorReliability` | `getAgentReliability` |
+| `getValidatorMatrix` | `getAgentMatrix` |
+| `listValidators` | `listAgents` |
+
+Similarly, `client.issues.edit()` is deprecated in favor of `client.issues.update()`.
 
 ---
 

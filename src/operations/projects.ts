@@ -186,6 +186,9 @@ export async function listIssuesWithCount(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
     buildIssueListParams(query) as object | undefined
   );
+  if (!response) {
+    return { issues: [], count: 0 };
+  }
   return { issues: response.data ?? [], count: response.count ?? response.data?.length ?? 0 };
 }
 
