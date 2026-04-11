@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 1.1.0** | [Changelog](./CHANGELOG.md)
+**Current version: 1.2.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -159,7 +159,7 @@ console.log(client.getAuthType()); // 'api_key'
 
 ### Session-Based Authentication
 
-For interactive applications, you can authenticate with email/password:
+For interactive applications, use `client.login()` which automatically configures token auto-refresh:
 
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
@@ -168,20 +168,20 @@ const client = new OpsClient({
   baseUrl: 'https://api.uluops.ai/api/v1/ops',
 });
 
-// Login to get a session
-const { token, user } = await client.auth.login({
-  email: 'user@example.com',
-  password: 'your-password',
-});
+// Login — installs session auth with automatic token refresh
+const { sessionToken, user } = await client.login(
+  'user@example.com',
+  'your-password',
+);
 
-// Create a new client with the session token
-const authenticatedClient = new OpsClient({
-  sessionToken: token,
-});
+// Client is now authenticated — subsequent requests use the session token
+const projects = await client.projects.list();
 
 // Logout when done
-await authenticatedClient.logout();
+await client.logout();
 ```
+
+> **Note:** Prefer `client.login()` over `client.auth.login()`. The latter only returns the token without installing it, requiring manual client construction.
 
 ### Credential Priority Chain
 
@@ -1401,7 +1401,7 @@ Create a `.env` file in your project:
 
 ```env
 ULUOPS_API_KEY=ulr_your-api-key-here
-ULUOPS_BASE_URL=https://api.uluops.com/api/v1
+ULUOPS_BASE_URL=https://api.uluops.ai/api/v1/ops
 ```
 
 Or configure globally in `~/.uluops/.env`.
@@ -1460,7 +1460,7 @@ try {
 | `ServiceUnavailableError` | 503 | Server unavailable |
 | `NetworkError` | - | Connection error |
 | `TimeoutError` | - | Request timeout |
-| `InputValidationError` | - | Client-side Zod validation failure (import from `/config`) |
+| `InputValidationError` | - | Client-side Zod validation failure (import from `@uluops/ops-sdk/config`) |
 
 ### Automatic Retries
 
@@ -1606,7 +1606,7 @@ Or configure the correct base URL:
 
 ```typescript
 const client = new OpsClient({
-  baseUrl: 'https://api.uluops.com/api/v1',
+  baseUrl: 'https://api.uluops.ai/api/v1/ops',
   apiKey: 'ulr_...',
 });
 ```

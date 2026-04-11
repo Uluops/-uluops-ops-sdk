@@ -4,6 +4,12 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-04-10
+
+### Added
+- `observation` status support — new `Observation` value in `Status` const and `STATUSES` array
+- `observed` field in `CorrelationResultResponseSchema` (optional for backward compatibility with older API versions)
+
 ## [1.1.0] - 2026-04-09
 
 ### Fixed

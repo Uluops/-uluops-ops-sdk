@@ -682,4 +682,59 @@ describe('Run Operations', () => {
       expect(result.total).toBe(1);
     });
   });
+
+  describe('save invalid input', () => {
+    it('should reject save with missing project', async () => {
+      await expect(
+        runOps.save(client, {
+          project: '',
+          workflowType: 'ship',
+          agents: [{ name: 'v', score: 50, decision: 'PASS' }],
+          recommendations: [],
+        } as any)
+      ).rejects.toThrow();
+    });
+
+    it('should reject save with empty agents array', async () => {
+      await expect(
+        runOps.save(client, {
+          project: 'my-project',
+          workflowType: 'ship',
+          agents: [],
+          recommendations: [],
+        } as any)
+      ).rejects.toThrow();
+    });
+
+    it('should reject save with missing workflowType', async () => {
+      await expect(
+        runOps.save(client, {
+          project: 'my-project',
+          workflowType: '',
+          agents: [{ name: 'v', score: 50, decision: 'PASS' }],
+          recommendations: [],
+        } as any)
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('archive invalid input', () => {
+    it('should reject archive with missing project', async () => {
+      await expect(
+        runOps.archive(client, {
+          project: '',
+          workflowType: 'ship',
+        } as any)
+      ).rejects.toThrow();
+    });
+
+    it('should reject archive with missing workflowType', async () => {
+      await expect(
+        runOps.archive(client, {
+          project: 'my-project',
+          workflowType: '',
+        } as any)
+      ).rejects.toThrow();
+    });
+  });
 });
