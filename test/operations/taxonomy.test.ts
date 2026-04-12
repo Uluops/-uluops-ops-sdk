@@ -71,16 +71,24 @@ describe('Taxonomy Operations', () => {
               { code: 'I', name: 'info', weight: 0 },
             ],
             priorities: ['critical', 'suggested', 'backlog'],
+            statuses: ['open', 'completed', 'deferred', 'wontfix', 'merged', 'false-positive', 'observation'],
+            failureCodePattern: {
+              pattern: '^(STR|SEM|PRA|EPI)-[A-Z]{3}/[CHMLI]$',
+              format: '{DOMAIN}-{MODE}/{SEVERITY}',
+              example: 'SEM-INC/H',
+            },
           },
         });
 
       const schema = await taxonomyOps.get(client);
 
       expect(schema.domains).toHaveLength(4);
-      expect(schema.domains[0].code).toBe('STR');
-      expect(schema.domains[0].modes).toHaveLength(3);
+      expect(schema.domains[0]!.code).toBe('STR');
+      expect(schema.domains[0]!.modes).toHaveLength(3);
       expect(schema.severities).toHaveLength(5);
       expect(schema.priorities).toContain('critical');
+      expect(schema.statuses).toContain('open');
+      expect(schema.failureCodePattern.pattern).toBe('^(STR|SEM|PRA|EPI)-[A-Z]{3}/[CHMLI]$');
     });
 
     it('should include all domain codes with names', async () => {
@@ -98,6 +106,8 @@ describe('Taxonomy Operations', () => {
               { code: 'C', name: 'critical', weight: 10 },
             ],
             priorities: ['critical', 'suggested', 'backlog'],
+            statuses: ['open'],
+            failureCodePattern: { pattern: 'x', format: 'x', example: 'x' },
           },
         });
 
@@ -106,10 +116,10 @@ describe('Taxonomy Operations', () => {
       expect(schema.domains).toHaveLength(4);
       const domainCodes = schema.domains.map((d) => d.code);
       expect(domainCodes).toEqual(['STR', 'SEM', 'PRA', 'EPI']);
-      expect(schema.domains[0].name).toBe('Structural');
-      expect(schema.domains[0].description).toBe('Structural issues');
+      expect(schema.domains[0]!.name).toBe('Structural');
+      expect(schema.domains[0]!.description).toBe('Structural issues');
       expect(schema.severities).toHaveLength(1);
-      expect(schema.severities[0].code).toBe('C');
+      expect(schema.severities[0]!.code).toBe('C');
       expect(schema.priorities).toEqual(['critical', 'suggested', 'backlog']);
     });
   });

@@ -410,13 +410,17 @@ describe('OpsClient', () => {
             ],
             severities: [{ code: 'C', name: 'critical', weight: 10 }, { code: 'H', name: 'high', weight: 5 }],
             priorities: ['critical', 'suggested', 'backlog'],
+            statuses: ['open', 'completed'],
+            failureCodePattern: { pattern: 'x', format: 'x', example: 'x' },
           },
         });
 
       const taxonomy = await client.taxonomy.get();
 
       expect(taxonomy.domains).toHaveLength(2);
-      expect(taxonomy.severities[0].name).toBe('critical');
+      expect(taxonomy.severities[0]!.name).toBe('critical');
+      expect(taxonomy.statuses).toContain('open');
+      expect(taxonomy.failureCodePattern).toBeDefined();
     });
   });
 

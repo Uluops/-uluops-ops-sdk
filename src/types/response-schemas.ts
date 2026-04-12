@@ -817,10 +817,18 @@ const TaxonomySeveritySchema = z.object({
   weight: z.number(),
 });
 
+const FailureCodePatternSchema = z.object({
+  pattern: z.string(),
+  format: z.string(),
+  example: z.string(),
+});
+
 export const TaxonomyResponseSchema = z.object({
   domains: z.array(TaxonomyDomainSchema),
   severities: z.array(TaxonomySeveritySchema),
   priorities: z.array(z.string()),
+  statuses: z.array(z.string()),
+  failureCodePattern: FailureCodePatternSchema,
 });
 
 // Type exports
