@@ -6,8 +6,6 @@ import {
   FAILURE_DOMAINS,
   ISSUE_TYPES,
   NOTE_TYPES,
-  USER_ROLES,
-  SUBSCRIPTION_TIERS,
   AVATAR_MIME_TYPES,
   FAILURE_CODE_PATTERN,
 } from './enums.js';
@@ -24,8 +22,6 @@ export const SeveritySchema = z.enum(SEVERITIES);
 export const FailureDomainSchema = z.enum(FAILURE_DOMAINS);
 export const IssueTypeSchema = z.enum(ISSUE_TYPES);
 export const NoteTypeSchema = z.enum(NOTE_TYPES);
-export const UserRoleSchema = z.enum(USER_ROLES);
-export const SubscriptionTierSchema = z.enum(SUBSCRIPTION_TIERS);
 export const AvatarMimeTypeSchema = z.enum(AVATAR_MIME_TYPES);
 
 export const FailureCodeSchema = z.string().regex(FAILURE_CODE_PATTERN, {

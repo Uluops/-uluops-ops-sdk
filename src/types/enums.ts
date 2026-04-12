@@ -134,13 +134,12 @@ export type ClassifiedBy = (typeof ClassifiedBy)[keyof typeof ClassifiedBy];
  * User roles
  */
 export const UserRole = {
-  Viewer: 'viewer',
-  Developer: 'developer',
-  Publisher: 'publisher',
+  User: 'user',
   Admin: 'admin',
+  System: 'system',
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-export const USER_ROLES = ['viewer', 'developer', 'publisher', 'admin'] as const;
+export const USER_ROLES = ['user', 'admin', 'system'] as const;
 
 /**
  * Subscription tiers
@@ -148,12 +147,12 @@ export const USER_ROLES = ['viewer', 'developer', 'publisher', 'admin'] as const
 export const SubscriptionTier = {
   Free: 'free',
   Hobbyist: 'hobbyist',
+  Plus: 'plus',
   Pro: 'pro',
-  Team: 'team',
   Enterprise: 'enterprise',
 } as const;
 export type SubscriptionTier = (typeof SubscriptionTier)[keyof typeof SubscriptionTier];
-export const SUBSCRIPTION_TIERS = ['free', 'hobbyist', 'pro', 'team', 'enterprise'] as const;
+export const SUBSCRIPTION_TIERS = ['free', 'hobbyist', 'plus', 'pro', 'enterprise'] as const;
 
 /**
  * Avatar MIME types
