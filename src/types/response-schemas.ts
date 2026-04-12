@@ -647,12 +647,11 @@ export const AgentMatrixResultResponseSchema = z.object({
 });
 
 export const TrendSummaryResponseSchema = z.object({
-  metric: z.string(),
-  current: z.number(),
-  previous: z.number(),
-  change: z.number(),
-  changePercent: z.number(),
-  trend: z.string(),
+  period: z.string(),
+  newIssues: z.number().int().nonnegative(),
+  resolvedIssues: z.number().int().nonnegative(),
+  regressions: z.number().int().nonnegative(),
+  averageScore: z.number(),
 });
 
 export const CrossProjectPatternResponseSchema = z.object({

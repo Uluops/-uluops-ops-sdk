@@ -424,15 +424,14 @@ export type ValidatorMatrixQuery = AgentMatrixQuery;
 // ============================================
 
 /**
- * Generic trend summary
+ * Weekly trend summary — one entry per period (e.g., "Week 1", "Week 2").
  */
 export interface TrendSummary {
-  metric: string;
-  current: number;
-  previous: number;
-  change: number;
-  changePercent: number;
-  trend: Trend;
+  period: string;
+  newIssues: number;
+  resolvedIssues: number;
+  regressions: number;
+  averageScore: number;
 }
 
 // ============================================
