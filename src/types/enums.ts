@@ -124,7 +124,7 @@ export type ClassificationConfidence =
  * Classification sources
  */
 export const ClassifiedBy = {
-  Validator: 'validator',
+  Agent: 'agent',
   Classifier: 'classifier',
   Human: 'human',
 } as const;

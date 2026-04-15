@@ -140,7 +140,7 @@ export const RecommendationInputSchema = z.object({
   lineNumber: z.number().int().nonnegative().nullish(),
   description: z.string().max(10000).optional(),
   classificationConfidence: z.enum(['high', 'medium', 'low']).optional(),
-  classifiedBy: z.enum(['validator', 'classifier', 'human']).optional(),
+  classifiedBy: z.enum(['agent', 'classifier', 'human']).optional(),
   secondaryFailureCodes: z.array(z.string()).optional(),
   taxonomyVersion: z.string().optional(),
 });

@@ -230,7 +230,7 @@ export const OccurrenceResponseSchema = z.object({
   filePath: z.string().nullable(),
   lineNumber: z.number().int().nonnegative().nullable(),
   classificationConfidence: z.enum(['high', 'medium', 'low']).nullable(),
-  classifiedBy: z.enum(['validator', 'classifier', 'human']).nullable(),
+  classifiedBy: z.enum(['agent', 'classifier', 'human']).nullable(),
   createdAt: DateTimeStringSchema,
 });
 
