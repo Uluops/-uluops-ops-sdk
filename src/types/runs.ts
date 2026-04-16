@@ -94,6 +94,7 @@ export interface TokenUsage {
  */
 export interface AgentInput {
   name: string;
+  definitionVersion?: string;
   score: number;
   maxScore?: number;
   decision: string;
