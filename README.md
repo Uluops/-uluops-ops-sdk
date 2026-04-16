@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 1.2.0** | [Changelog](./CHANGELOG.md)
+**Current version: 1.4.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -697,6 +697,7 @@ const result = await client.runs.save({
       name: 'code-validator',
       score: 85,
       decision: 'PASS',
+      summary: 'Code quality is strong — minor naming inconsistencies in utils/',
       model: 'sonnet',
       tokens: { inputTokens: 1000, outputTokens: 500 },
     },
@@ -704,6 +705,7 @@ const result = await client.runs.save({
       name: 'test-architect',
       score: 72,
       decision: 'APPROVED',
+      summary: 'Good coverage overall but edge cases missing in auth module',
     },
   ],
   recommendations: [

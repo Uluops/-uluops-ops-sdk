@@ -4,6 +4,25 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] - 2026-04-16
+
+### Added
+- `summary` field on `AgentInput` — optional per-agent human-readable summary, stored in tracker's `agent_snapshots` table
+- `summary` field on `AgentSnapshotResponseSchema` — surfaces stored summaries on the read path
+- `definitionVersion` field on `AgentSnapshotResponseSchema` — was missing since DB migration 031
+
+## [1.3.0] - 2026-04-14
+
+### Changed
+- **Breaking:** `ClassifiedBy.Validator` renamed to `ClassifiedBy.Agent` — aligns with DB migration 034 (`classified_by_validator` → `classified_by_agent`)
+
+### Added
+- `statuses` and `failureCodePattern` fields on `TaxonomyResponseSchema`
+
+### Fixed
+- `TrendSummary` response schema corrected to match API response shape
+- Removed dead `UserRoleSchema` and `SubscriptionTierSchema`
+
 ## [1.2.0] - 2026-04-10
 
 ### Added
