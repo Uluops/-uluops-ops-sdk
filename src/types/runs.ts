@@ -97,6 +97,7 @@ export interface AgentInput {
   score: number;
   maxScore?: number;
   decision: string;
+  summary?: string;
   model?: string;
   tokens?: TokenUsage;
   durationMs?: number;
