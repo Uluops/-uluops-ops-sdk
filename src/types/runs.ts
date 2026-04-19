@@ -150,6 +150,8 @@ export interface SaveRunInput {
   definitionName?: string;
   definitionVersion?: string;
   definitionHash?: string;
+  /** Registry definition UUID — enables direct identity linkage */
+  definitionId?: string;
   /** Structured analysis records (v1.4.0 — optional) */
   analysisRecords?: AnalysisRecordInput[];
   /** Analysis summary with system metrics and epistemic assessment (v1.4.0 — optional) */
