@@ -164,6 +164,7 @@ export const SaveRunInputSchema = z.object({
   definitionName: z.string().max(100).optional(),
   definitionVersion: z.string().max(50).optional(),
   definitionHash: z.string().max(64).optional(),
+  definitionMinSubscription: z.enum(['free', 'hobbyist', 'plus', 'pro', 'enterprise']).optional(),
   analysisRecords: z.array(z.object({
     recordType: z.string().min(1),
     recordId: z.string().min(1).max(20),

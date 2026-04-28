@@ -6,6 +6,7 @@ import type {
   IssueType,
   ClassificationConfidence,
   ClassifiedBy,
+  SubscriptionTier,
 } from './enums.js';
 import {
   RunResponseSchema,
@@ -150,6 +151,8 @@ export interface SaveRunInput {
   definitionName?: string;
   definitionVersion?: string;
   definitionHash?: string;
+  /** Minimum subscription tier required for this definition (for tier validation on submission) */
+  definitionMinSubscription?: SubscriptionTier;
   /** Registry definition UUID — enables direct identity linkage */
   definitionId?: string;
   /** Structured analysis records (v1.4.0 — optional) */

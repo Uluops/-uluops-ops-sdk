@@ -60,6 +60,7 @@ export async function save(
     definitionName: input.definitionName,
     definitionVersion: input.definitionVersion,
     definitionHash: input.definitionHash,
+    definitionMinSubscription: input.definitionMinSubscription,
     definitionId: input.definitionId,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
