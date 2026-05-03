@@ -371,8 +371,8 @@ describe('Analytics Operations', () => {
       mockValidatedListEndpoint(
         BASE_URL, 'get', '/analytics/trends/summary',
         [
-          { metric: 'total_issues', current: 180, previous: 190, change: -10, changePercent: -5.3, trend: 'improving' },
-          { metric: 'avg_score', current: 85, previous: 80, change: 5, changePercent: 6.25, trend: 'improving' },
+          { period: 'Week 1', newIssues: 10, resolvedIssues: 5, regressions: 1, averageScore: 85 },
+          { period: 'Week 2', newIssues: 8, resolvedIssues: 12, regressions: 0, averageScore: 88 },
         ],
         TrendSummaryResponseSchema,
       );
@@ -380,10 +380,10 @@ describe('Analytics Operations', () => {
       const trends = await analyticsOps.getTrendSummary(client);
 
       expect(trends).toHaveLength(2);
-      expect(trends[0].metric).toBe('total_issues');
-      expect(trends[0].current).toBe(180);
-      expect(trends[0].change).toBe(-10);
-      expect(trends[0].trend).toBe('improving');
+      expect(trends[0].period).toBe('Week 1');
+      expect(trends[0].newIssues).toBe(10);
+      expect(trends[0].resolvedIssues).toBe(5);
+      expect(trends[0].averageScore).toBe(85);
     });
   });
 

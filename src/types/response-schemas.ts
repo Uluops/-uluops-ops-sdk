@@ -336,11 +336,26 @@ export const AgentSnapshotResponseSchema = z.object({
   updatedAt: DateTimeStringSchema,
 });
 
+export const CrossAgentMatchSchema = z.object({
+  issueId: z.string(),
+  agent: z.string(),
+  title: z.string(),
+  status: z.string(),
+});
+
+export const CrossAgentItemSchema = z.object({
+  issueId: z.string(),
+  title: z.string(),
+  agent: z.string(),
+  crossAgentMatches: z.array(CrossAgentMatchSchema),
+});
+
 export const CorrelationResultResponseSchema = z.object({
   newIssues: z.number().int().nonnegative(),
   recurringIssues: z.number().int().nonnegative(),
   regressions: z.number().int().nonnegative(),
   observed: z.number().int().nonnegative().optional(),
+  crossAgentMatches: z.array(CrossAgentItemSchema).optional(),
 });
 
 export const SaveRunResponseSchema = z.object({

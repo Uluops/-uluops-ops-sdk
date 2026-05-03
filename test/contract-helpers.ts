@@ -618,7 +618,7 @@ export function createMockAuthUser(overrides: Partial<z.infer<typeof AuthUserRes
   const data = {
     id: generateId(),
     email: `user${idCounter}@example.com`,
-    role: 'developer' as UserRole,
+    role: 'user' as UserRole,
     subscriptionTier: 'free' as SubscriptionTier,
     username: null,
     name: null,
@@ -695,7 +695,7 @@ export function createMockRegisterResponse(overrides: Partial<z.infer<typeof Reg
     token: `jwt-token-${idCounter}`,
     email: `user${idCounter}@example.com`,
     isActive: true,
-    role: 'developer' as const,
+    role: 'user' as const,
     subscriptionTier: 'free' as const,
     createdAt: isoDate(),
     updatedAt: isoDate(),
@@ -833,7 +833,7 @@ export function createMockAdminUser(overrides: Partial<z.infer<typeof AdminUserR
   const data = {
     id: generateId(),
     email: `user${idCounter}@example.com`,
-    role: 'developer' as UserRole,
+    role: 'user' as UserRole,
     subscriptionTier: 'free' as SubscriptionTier,
     isActive: true,
     deactivatedAt: null,

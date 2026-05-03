@@ -423,6 +423,9 @@ export class OpsClient {
     getAgentReliability: (query?: AgentReliabilityQuery): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> =>
       analyticsOps.getAgentReliability(this.httpClient, query),
 
+    getAgentLifecycle: (agentName: string, query?: AnalyticsQuery): Promise<unknown> =>
+      analyticsOps.getAgentLifecycle(this.httpClient, agentName, query),
+
     getResolutionRates: (query?: AnalyticsQuery): Promise<z.infer<typeof ResolutionRateResponseSchema>[]> =>
       analyticsOps.getResolutionRates(this.httpClient, query),
 

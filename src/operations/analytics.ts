@@ -53,6 +53,20 @@ export async function getAgentReliability(
 }
 
 /**
+ * Get agent lifecycle trajectory across versions
+ */
+export async function getAgentLifecycle(
+  client: OpsHttpClient,
+  agentName: string,
+  query?: AnalyticsQuery,
+): Promise<unknown> {
+  return client.get(
+    `/agents/${encodeURIComponent(agentName)}/lifecycle`,
+    toApiQuery(query),
+  );
+}
+
+/**
  * Get issue resolution rates by project
  */
 export async function getResolutionRates(

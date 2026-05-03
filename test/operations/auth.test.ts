@@ -161,7 +161,7 @@ describe('Auth Operations', () => {
       const mockUser = createMockAuthUser({
         id: TEST_IDS.user1,
         email: 'user@example.com',
-        role: 'developer',
+        role: 'user',
       });
 
       nock(BASE_URL)
@@ -172,7 +172,7 @@ describe('Auth Operations', () => {
 
       expect(user.id).toBe(TEST_IDS.user1);
       expect(user.email).toBe('user@example.com');
-      expect(user.role).toBe('developer');
+      expect(user.role).toBe('user');
     });
   });
 
