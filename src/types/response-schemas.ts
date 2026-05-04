@@ -321,6 +321,8 @@ export const AgentSnapshotResponseSchema = z.object({
   id: z.string().uuid(),
   runId: z.string().uuid(),
   name: z.string(),
+  definitionVersion: z.string().nullable().optional(),
+  registryDefinitionId: z.string().uuid().nullable().optional(),
   score: z.number().min(0).max(100),
   maxScore: z.number().min(0).max(100),
   decision: z.string(),
