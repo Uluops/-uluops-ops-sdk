@@ -3,11 +3,12 @@
  */
 export const Priority = {
   Critical: 'critical',
+  High: 'high',
   Suggested: 'suggested',
   Backlog: 'backlog',
 } as const;
 export type Priority = (typeof Priority)[keyof typeof Priority];
-export const PRIORITIES = ['critical', 'suggested', 'backlog'] as const;
+export const PRIORITIES = ['critical', 'high', 'suggested', 'backlog'] as const;
 
 /**
  * Issue status values

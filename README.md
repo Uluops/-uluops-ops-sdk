@@ -931,7 +931,7 @@ Create a user-submitted issue.
 |-----------|------|----------|-------------|
 | `project` | `string` | Yes | Project name or ID |
 | `title` | `string` | Yes | Issue title |
-| `priority` | `Priority` | Yes | `'critical'`, `'suggested'`, `'backlog'` |
+| `priority` | `Priority` | Yes | `'critical'`, `'high'`, `'suggested'`, `'backlog'` |
 | `severity` | `Severity` | No | `'critical'`, `'high'`, `'medium'`, `'low'`, `'info'` |
 | `type` | `IssueType` | No | `'bug'`, `'feature'`, `'refactor'`, etc. |
 | `filePath` | `string` | No | File path where issue exists |
@@ -1362,7 +1362,7 @@ console.log('Severities:', taxonomy.severities);
 // [{ code: 'C', name: 'critical', weight: 10 }, { code: 'H', name: 'high', weight: 5 }, ...]
 
 console.log('Priorities:', taxonomy.priorities);
-// ['critical', 'suggested', 'backlog']
+// ['critical', 'high', 'suggested', 'backlog']
 ```
 
 ---

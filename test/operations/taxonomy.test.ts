@@ -70,7 +70,7 @@ describe('Taxonomy Operations', () => {
               { code: 'L', name: 'low', weight: 1 },
               { code: 'I', name: 'info', weight: 0 },
             ],
-            priorities: ['critical', 'suggested', 'backlog'],
+            priorities: ['critical', 'high', 'suggested', 'backlog'],
             statuses: ['open', 'completed', 'deferred', 'wontfix', 'merged', 'false-positive', 'observation'],
             failureCodePattern: {
               pattern: '^(STR|SEM|PRA|EPI)-[A-Z]{3}/[CHMLI]$',
@@ -105,7 +105,7 @@ describe('Taxonomy Operations', () => {
             severities: [
               { code: 'C', name: 'critical', weight: 10 },
             ],
-            priorities: ['critical', 'suggested', 'backlog'],
+            priorities: ['critical', 'high', 'suggested', 'backlog'],
             statuses: ['open'],
             failureCodePattern: { pattern: 'x', format: 'x', example: 'x' },
           },
@@ -120,7 +120,7 @@ describe('Taxonomy Operations', () => {
       expect(schema.domains[0]!.description).toBe('Structural issues');
       expect(schema.severities).toHaveLength(1);
       expect(schema.severities[0]!.code).toBe('C');
-      expect(schema.priorities).toEqual(['critical', 'suggested', 'backlog']);
+      expect(schema.priorities).toEqual(['critical', 'high', 'suggested', 'backlog']);
     });
   });
 });

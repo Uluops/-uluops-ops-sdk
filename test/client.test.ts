@@ -409,7 +409,7 @@ describe('OpsClient', () => {
               { code: 'SEM', name: 'Semantic', description: 'Semantic issues', modes: [{ code: 'VAL', name: 'Validation', description: 'Validation issues' }] },
             ],
             severities: [{ code: 'C', name: 'critical', weight: 10 }, { code: 'H', name: 'high', weight: 5 }],
-            priorities: ['critical', 'suggested', 'backlog'],
+            priorities: ['critical', 'high', 'suggested', 'backlog'],
             statuses: ['open', 'completed'],
             failureCodePattern: { pattern: 'x', format: 'x', example: 'x' },
           },
