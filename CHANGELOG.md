@@ -4,6 +4,11 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.0] - 2026-05-06
+
+### Added
+- `'high'` priority level — new value in `Priority` const and `PRIORITIES` array, sorted between `critical` and `suggested`
+
 ## [1.4.0] - 2026-04-16
 
 ### Added
