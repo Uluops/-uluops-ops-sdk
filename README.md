@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 1.6.0** | [Changelog](./CHANGELOG.md)
+**Current version: 1.8.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -687,6 +687,7 @@ Save a new validation run.
 | `definitionHash` | `string` | No | SHA-256 content hash of the definition |
 | `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.2.0) |
 | `analysisSummary` | `AnalysisSummaryInput` | No | System metrics + epistemic assessment (v0.2.0) |
+| `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
 
 ```typescript
 const result = await client.runs.save({
@@ -871,6 +872,20 @@ const run = await client.runs.updateById('run-uuid-here', {
     { agentName: 'epictetus-forecaster', recordType: 'decay_vector', recordId: 'DV-1',
       title: 'Fail-open compounding', data: { timeline: '12-24 months' } },
   ],
+});
+
+// Enrich with explorer structural maps (v1.8.0)
+const run = await client.runs.updateById('run-uuid-here', {
+  analysisSummary: {
+    agentName: 'bateson-explorer', decision: 'EXPLORED', score: 0,
+    explorationMaps: [{
+      metadata: { explorerName: 'bateson-explorer', framework: 'bateson' },
+      sections: [
+        { type: 'topology', label: 'Logical Level Map', entities: [...], relationships: [...] },
+        { type: 'agenda', label: 'Inquiry Agenda', questions: [...] },
+      ],
+    }],
+  },
 });
 ```
 

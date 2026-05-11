@@ -4,6 +4,14 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.0] - 2026-05-11
+
+### Added
+- `explorationMaps` field on `AnalysisSummaryInput` and `AnalysisSummaryResponseSchema` — captures structural mappings from Explorer-class agents (level maps, atomic inventories, relational topologies, claim extractions, inquiry agendas)
+- `ExplorationMap` interface with typed `sections` array supporting 8 section types: `inventory`, `topology`, `landscape`, `classification`, `mapping`, `synthesis`, `limitation`, `agenda`
+- `ExplorationMapResponseSchema` Zod schema for response validation
+- Section type interfaces: `InventorySection`, `TopologySection`, `LandscapeSection`, `ClassificationSection`, `MappingSection`, `SynthesisSection`, `LimitationSection`, `AgendaSection`
+
 ## [1.7.3] - 2026-05-11
 
 ### Fixed

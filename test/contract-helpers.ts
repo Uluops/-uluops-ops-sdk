@@ -342,6 +342,7 @@ export function createMockAnalysisSummary(overrides: Partial<z.infer<typeof Anal
     categoryScores: null,
     epistemicAssessment: null,
     auditImplications: null,
+    explorationMaps: null,
     createdAt: isoDate(1),
     ...overrides,
   };

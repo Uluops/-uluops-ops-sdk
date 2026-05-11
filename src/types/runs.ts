@@ -231,6 +231,91 @@ export interface ListRunsQuery {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Exploration Map Types (v1.8.0)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Structural mapping produced by Explorer-class agents.
+ * Captures level maps, atomic inventories, relational topologies,
+ * claim extractions, inquiry agendas, and other structural output.
+ */
+export interface ExplorationMap {
+  metadata: {
+    explorerName: string;
+    framework: string;
+    artifactPath?: string;
+  };
+  sections: ExplorationSection[];
+}
+
+/**
+ * Typed section within an exploration map.
+ * The `type` discriminator determines the section's structure.
+ */
+export type ExplorationSection =
+  | InventorySection
+  | TopologySection
+  | LandscapeSection
+  | ClassificationSection
+  | MappingSection
+  | SynthesisSection
+  | LimitationSection
+  | AgendaSection;
+
+interface SectionBase {
+  type: string;
+  label: string;
+  summary?: string;
+}
+
+export interface InventorySection extends SectionBase {
+  type: 'inventory';
+  items: Record<string, unknown>[];
+  gaps?: string[];
+}
+
+export interface TopologySection extends SectionBase {
+  type: 'topology';
+  entities: Record<string, unknown>[];
+  relationships: Record<string, unknown>[];
+  clusters?: Record<string, unknown>[];
+}
+
+export interface LandscapeSection extends SectionBase {
+  type: 'landscape';
+  dimensions: string[];
+  findings: Record<string, unknown>[];
+}
+
+export interface ClassificationSection extends SectionBase {
+  type: 'classification';
+  hierarchy: Record<string, unknown>[];
+}
+
+export interface MappingSection extends SectionBase {
+  type: 'mapping';
+  sourceDomain?: string;
+  targetDomain?: string;
+  translations: Record<string, unknown>[];
+}
+
+export interface SynthesisSection extends SectionBase {
+  type: 'synthesis';
+  patterns: Record<string, unknown>[];
+  archetypes?: Record<string, unknown>[];
+}
+
+export interface LimitationSection extends SectionBase {
+  type: 'limitation';
+  blindSpots: Record<string, unknown>[];
+}
+
+export interface AgendaSection extends SectionBase {
+  type: 'agenda';
+  questions: Record<string, unknown>[];
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Analysis Input Types (v1.4.0)
 // ─────────────────────────────────────────────────────────────────
 
@@ -270,6 +355,7 @@ export interface AnalysisSummaryInput {
   categoryScores?: CategoryScore[] | null;
   epistemicAssessment?: Record<string, unknown> | null;
   auditImplications?: string[] | null;
+  explorationMaps?: ExplorationMap[] | null;
 }
 
 /**

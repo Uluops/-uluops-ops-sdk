@@ -439,6 +439,23 @@ export const AnalysisRecordResponseSchema = z.object({
   createdAt: DateTimeStringSchema,
 });
 
+/** Exploration section within an exploration map */
+const ExplorationSectionResponseSchema = z.object({
+  type: z.string(),
+  label: z.string(),
+  summary: z.string().optional(),
+}).passthrough();
+
+/** Exploration map produced by Explorer-class agents */
+export const ExplorationMapResponseSchema = z.object({
+  metadata: z.object({
+    explorerName: z.string(),
+    framework: z.string(),
+    artifactPath: z.string().optional(),
+  }),
+  sections: z.array(ExplorationSectionResponseSchema),
+});
+
 /** Analysis summary returned by getProjectAnalysis */
 export const AnalysisSummaryResponseSchema = z.object({
   id: z.string().uuid(),
@@ -456,6 +473,7 @@ export const AnalysisSummaryResponseSchema = z.object({
   })).nullable(),
   epistemicAssessment: z.record(z.string(), z.unknown()).nullable(),
   auditImplications: z.array(z.string()).nullable(),
+  explorationMaps: z.array(ExplorationMapResponseSchema).nullable(),
   createdAt: DateTimeStringSchema,
 });
 
