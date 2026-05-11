@@ -478,6 +478,21 @@ export const AnalysisRecordsListResponseSchema = z.object({
   total: z.number().int().nonnegative(),
 });
 
+/** Analysis summary with run context (getAgentRunsAnalysis) */
+export const AgentRunSummaryResponseSchema = AnalysisSummaryResponseSchema.extend({
+  runNumber: z.number().int(),
+  runTimestamp: DateTimeStringSchema,
+  workflowType: z.string(),
+  runStatus: z.string().nullable(),
+  snapshotScore: z.number().nullable(),
+});
+
+/** Paginated agent runs analysis response */
+export const AgentRunsAnalysisResponseSchema = z.object({
+  data: z.array(AgentRunSummaryResponseSchema),
+  total: z.number().int().nonnegative(),
+});
+
 // ============================================
 // MERGE ISSUES RESPONSE SCHEMA
 // ============================================

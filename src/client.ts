@@ -54,12 +54,14 @@ import type {
   RunDetails,
   ProjectAnalysisQuery,
   AnalysisRecordsQuery,
+  AgentRunsAnalysisQuery,
 } from './types/runs.js';
 import type {
   RunSummaryResponseSchema,
   RunAnalysisResponseSchema,
   ProjectAnalysisListResponseSchema,
   AnalysisRecordsListResponseSchema,
+  AgentRunsAnalysisResponseSchema,
 } from './types/response-schemas.js';
 
 import type {
@@ -356,6 +358,9 @@ export class OpsClient {
 
     queryAnalysisRecords: (query?: AnalysisRecordsQuery): Promise<z.infer<typeof AnalysisRecordsListResponseSchema>> =>
       runOps.queryAnalysisRecords(this.httpClient, query),
+
+    getAgentRunsAnalysis: (agentName: string, query: AgentRunsAnalysisQuery): Promise<z.infer<typeof AgentRunsAnalysisResponseSchema>> =>
+      runOps.getAgentRunsAnalysis(this.httpClient, agentName, query),
   };
 
   // ============================================

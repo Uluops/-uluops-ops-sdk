@@ -24,6 +24,7 @@ import {
   AnalysisRecordResponseSchema,
   AnalysisSummaryResponseSchema,
   RunAnalysisResponseSchema,
+  AgentRunSummaryResponseSchema,
 } from './response-schemas.js';
 
 // ─────────────────────────────────────────────────────────────────
@@ -74,6 +75,9 @@ export type AnalysisSummary = z.infer<typeof AnalysisSummaryResponseSchema>;
 
 /** Analysis data for a run */
 export type RunAnalysis = z.infer<typeof RunAnalysisResponseSchema>;
+
+/** Analysis summary with run context */
+export type AgentRunSummary = z.infer<typeof AgentRunSummaryResponseSchema>;
 
 // ─────────────────────────────────────────────────────────────────
 // Input types (hand-written — not API responses)
@@ -288,6 +292,16 @@ export interface AnalysisRecordsQuery {
   agentName?: string;
   agentType?: string;
   severity?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Agent runs analysis query options
+ */
+export interface AgentRunsAnalysisQuery {
+  project: string;
+  decision?: string;
   limit?: number;
   offset?: number;
 }

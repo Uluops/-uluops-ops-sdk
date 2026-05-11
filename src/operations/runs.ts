@@ -16,6 +16,7 @@ import type {
   RunDetails,
   ProjectAnalysisQuery,
   AnalysisRecordsQuery,
+  AgentRunsAnalysisQuery,
 } from '../types/runs.js';
 import type { DeleteResult } from '../types/responses.js';
 import {
@@ -30,6 +31,7 @@ import {
   RunAnalysisResponseSchema,
   ProjectAnalysisListResponseSchema,
   AnalysisRecordsListResponseSchema,
+  AgentRunsAnalysisResponseSchema,
 } from '../types/response-schemas.js';
 import {
   validateSaveRunInput,
@@ -267,5 +269,20 @@ export async function queryAnalysisRecords(
     '/analysis/records',
     toApiQuery(query),
     { schema: AnalysisRecordsListResponseSchema }
+  );
+}
+
+/**
+ * Get analysis summaries with run context for a specific agent
+ */
+export async function getAgentRunsAnalysis(
+  client: OpsHttpClient,
+  agentName: string,
+  query: AgentRunsAnalysisQuery
+): Promise<z.infer<typeof AgentRunsAnalysisResponseSchema>> {
+  return client.get(
+    `/agents/${encodeURIComponent(agentName)}/runs-analysis`,
+    toApiQuery(query),
+    { schema: AgentRunsAnalysisResponseSchema }
   );
 }
