@@ -483,7 +483,6 @@ export const AgentRunSummaryResponseSchema = AnalysisSummaryResponseSchema.exten
   runNumber: z.number().int(),
   runTimestamp: DateTimeStringSchema,
   workflowType: z.string(),
-  runStatus: z.string().nullable(),
   snapshotScore: z.number().nullable(),
 });
 
