@@ -4,6 +4,12 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.3] - 2026-05-11
+
+### Fixed
+- `AgentRunsAnalysisResponseSchema` now uses `{ items, total }` shape matching SDK envelope unwrap convention
+- Removed `runStatus` field from `AgentRunSummaryResponseSchema` (column does not exist on pipeline_runs)
+
 ## [1.7.2] - 2026-05-11
 
 ### Added
