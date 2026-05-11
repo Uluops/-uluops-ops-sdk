@@ -850,11 +850,27 @@ const run = await client.runs.update({
 
 #### `client.runs.updateById(runId, input)`
 
-Update run metadata by run UUID (alternative to `update` which uses project+runNumber).
+Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0).
 
 ```typescript
+// Basic metadata update
 const run = await client.runs.updateById('run-uuid-here', {
   agents: [{ name: 'code-validator', score: 92 }],
+});
+
+// Enrich with per-agent analysis summaries (v1.7.1)
+const run = await client.runs.updateById('run-uuid-here', {
+  analysisSummary: [
+    { agentName: 'epictetus-analyst', decision: 'FACTUAL', score: 82,
+      categoryScores: [{ name: 'Fact/Judgment Separation', weight: 30, score: 25 }] },
+    { agentName: 'epictetus-validator', decision: 'ALIGNED', score: 82 },
+  ],
+  analysisRecords: [
+    { agentName: 'epictetus-analyst', recordType: 'evidence_claim', recordId: 'EC-1',
+      title: 'Registry overclaim', data: { claim: '...' } },
+    { agentName: 'epictetus-forecaster', recordType: 'decay_vector', recordId: 'DV-1',
+      title: 'Fail-open compounding', data: { timeline: '12-24 months' } },
+  ],
 });
 ```
 
