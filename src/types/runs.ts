@@ -206,8 +206,8 @@ export interface UpdateRunInput {
   }>;
   /** Structured analysis records (v1.4.0) — replaces existing records if present */
   analysisRecords?: AnalysisRecordInput[];
-  /** Analysis summary with system metrics (v1.4.0) — replaces existing summary if present */
-  analysisSummary?: AnalysisSummaryInput;
+  /** Analysis summary/summaries (v1.7.0) — single or per-agent array. Replaces existing. */
+  analysisSummary?: AnalysisSummaryInput | AnalysisSummaryInput[];
 }
 
 /**
@@ -234,6 +234,8 @@ export interface ListRunsQuery {
  * Analysis record input for structured analytical output
  */
 export interface AnalysisRecordInput {
+  /** Agent name — overrides run-level default when provided */
+  agentName?: string;
   recordType: string;
   recordId: string;
   title: string;
@@ -255,6 +257,8 @@ export interface CategoryScore {
  * Analysis summary input for system-level metrics
  */
 export interface AnalysisSummaryInput {
+  /** Agent name — overrides run-level default when provided */
+  agentName?: string;
   decision: string;
   score: number;
   decisionVocabulary?: string | null;
