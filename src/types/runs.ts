@@ -204,6 +204,10 @@ export interface UpdateRunInput {
     totalEffectiveTokens?: number;
     durationMs?: number;
   }>;
+  /** Structured analysis records (v1.4.0) — replaces existing records if present */
+  analysisRecords?: AnalysisRecordInput[];
+  /** Analysis summary with system metrics (v1.4.0) — replaces existing summary if present */
+  analysisSummary?: AnalysisSummaryInput;
 }
 
 /**

@@ -135,6 +135,8 @@ export async function update(
     archiveReason: input.archiveReason,
     agents: input.agents,
     recommendations: input.recommendations,
+    analysisRecords: input.analysisRecords,
+    analysisSummary: input.analysisSummary,
   }, { schema: RunResponseSchema });
 }
 
@@ -207,6 +209,8 @@ export async function updateById(
     archiveReason: input.archiveReason,
     agents: input.agents,
     recommendations: input.recommendations,
+    analysisRecords: input.analysisRecords,
+    analysisSummary: input.analysisSummary,
   }, { schema: RunResponseSchema });
 }
 
