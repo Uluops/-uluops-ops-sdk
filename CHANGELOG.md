@@ -4,6 +4,14 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.2] - 2026-05-11
+
+### Added
+- `getAgentRunsAnalysis(agentName, query)` operation on `runs` namespace — fetches analysis summaries with run context (run number, timestamp, workflow type, snapshot score) for a specific agent
+- `AgentRunSummary` type — analysis summary extended with run metadata
+- `AgentRunsAnalysisQuery` type — query options (project, decision, limit, offset)
+- `AgentRunSummaryResponseSchema` and `AgentRunsAnalysisResponseSchema` Zod schemas
+
 ## [1.7.1] - 2026-05-10
 
 ### Added

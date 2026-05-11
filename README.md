@@ -933,6 +933,26 @@ const { data } = await client.runs.queryAnalysisRecords({
 });
 ```
 
+#### `client.runs.getAgentRunsAnalysis(agentName, query)`
+
+Get analysis summaries with run context for a specific agent. Returns analysis decision, score, category scores, system metrics alongside run metadata (number, timestamp, workflow type).
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `agentName` | `string` | Yes | Agent name |
+| `query.project` | `string` | Yes | Project name or ID |
+| `query.decision` | `string` | No | Filter by decision |
+| `query.limit` | `number` | No | Max results (1-100, default 20) |
+| `query.offset` | `number` | No | Pagination offset |
+
+```typescript
+const { data, total } = await client.runs.getAgentRunsAnalysis('epictetus-validator', {
+  project: 'my-project',
+  limit: 10,
+});
+// data[0]: { decision, score, categoryScores, runNumber, runTimestamp, workflowType, snapshotScore, ... }
+```
+
 ---
 
 ### Issue Operations
