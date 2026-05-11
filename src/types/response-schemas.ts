@@ -486,9 +486,9 @@ export const AgentRunSummaryResponseSchema = AnalysisSummaryResponseSchema.exten
   snapshotScore: z.number().nullable(),
 });
 
-/** Paginated agent runs analysis response */
+/** Agent runs analysis response (after SDK envelope unwrap) */
 export const AgentRunsAnalysisResponseSchema = z.object({
-  data: z.array(AgentRunSummaryResponseSchema),
+  items: z.array(AgentRunSummaryResponseSchema),
   total: z.number().int().nonnegative(),
 });
 

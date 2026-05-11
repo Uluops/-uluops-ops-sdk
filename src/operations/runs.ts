@@ -273,7 +273,8 @@ export async function queryAnalysisRecords(
 }
 
 /**
- * Get analysis summaries with run context for a specific agent
+ * Get analysis summaries with run context for a specific agent.
+ * Returns the unwrapped data array (SDK auto-unwraps { data } envelope).
  */
 export async function getAgentRunsAnalysis(
   client: OpsHttpClient,
@@ -283,6 +284,6 @@ export async function getAgentRunsAnalysis(
   return client.get(
     `/agents/${encodeURIComponent(agentName)}/runs-analysis`,
     toApiQuery(query),
-    { schema: AgentRunsAnalysisResponseSchema }
+    { schema: AgentRunsAnalysisResponseSchema },
   );
 }
