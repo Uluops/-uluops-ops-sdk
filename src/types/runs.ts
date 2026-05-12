@@ -161,8 +161,8 @@ export interface SaveRunInput {
   definitionId?: string;
   /** Structured analysis records (v1.4.0 — optional) */
   analysisRecords?: AnalysisRecordInput[];
-  /** Analysis summary with system metrics and epistemic assessment (v1.4.0 — optional) */
-  analysisSummary?: AnalysisSummaryInput;
+  /** Analysis summaries — single or per-agent array (v1.8.0). */
+  analysisSummary?: AnalysisSummaryInput | AnalysisSummaryInput[];
 }
 
 /**

@@ -686,7 +686,7 @@ Save a new validation run.
 | `definitionVersion` | `string` | No | Definition version (e.g., `'1.2.0'`) |
 | `definitionHash` | `string` | No | SHA-256 content hash of the definition |
 | `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.2.0) |
-| `analysisSummary` | `AnalysisSummaryInput` | No | System metrics + epistemic assessment (v0.2.0) |
+| `analysisSummary` | `AnalysisSummaryInput \| AnalysisSummaryInput[]` | No | Single or per-agent array of analysis summaries (v1.8.1) |
 | `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
 
 ```typescript

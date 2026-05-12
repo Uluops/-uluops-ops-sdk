@@ -4,6 +4,12 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.1] - 2026-05-12
+
+### Changed
+- `SaveRunInputSchema.analysisSummary` now accepts single object (backward compat) or per-agent array — enables per-agent analysis summaries on pipeline saves without requiring `update_run` enrichment
+- `SaveRunInput.analysisSummary` type widened to `AnalysisSummaryInput | AnalysisSummaryInput[]`
+
 ## [1.8.0] - 2026-05-11
 
 ### Added
