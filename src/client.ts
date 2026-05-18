@@ -87,7 +87,7 @@ import type {
   VelocityQuery,
   DiscoveryQuery,
   AgentMatrixQuery,
-  TaxonomySchema,
+  TaxonomyResponse,
 } from './types/analytics.js';
 
 import {
@@ -492,7 +492,7 @@ export class OpsClient {
 
   /** Failure taxonomy schema (domains, modes, severities) */
   readonly taxonomy = {
-    get: (): Promise<TaxonomySchema> =>
+    get: (): Promise<TaxonomyResponse> =>
       taxonomyOps.get(this.httpClient),
   };
 

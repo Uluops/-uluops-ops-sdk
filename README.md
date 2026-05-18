@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 1.8.0** | [Changelog](./CHANGELOG.md)
+**Current version: 1.8.3** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -1366,7 +1366,7 @@ for (const trend of trends) {
 
 Get analytics by specific metric name.
 
-Available metrics: `agent_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`, `category_performance`.
+Available metrics: `agent_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`.
 
 ```typescript
 const costData = await client.analytics.getByMetric('cost_analysis', { days: 30 });
@@ -1522,7 +1522,7 @@ try {
 | `ServiceUnavailableError` | 503 | Server unavailable |
 | `NetworkError` | - | Connection error |
 | `TimeoutError` | - | Request timeout |
-| `InputValidationError` | - | Client-side Zod validation failure (import from `@uluops/ops-sdk/config`) |
+| `InputValidationError` | - | Client-side Zod validation failure |
 
 ### Automatic Retries
 
@@ -1552,7 +1552,8 @@ Requests exceeding these limits will receive a `413 Payload Too Large` or `422 U
 The SDK includes Zod-based runtime validators for all mutating operations. Import them from `@uluops/ops-sdk/config`:
 
 ```typescript
-import { validateCreateProjectInput, InputValidationError } from '@uluops/ops-sdk/config';
+import { InputValidationError } from '@uluops/ops-sdk/errors';
+import { validateCreateProjectInput } from '@uluops/ops-sdk/config';
 
 try {
   const validated = validateCreateProjectInput({ name: '' }); // throws

@@ -237,7 +237,7 @@ describe('OpsClient', () => {
       const compareRun = createMockRun({ runNumber: 2, workflowType: 'ship', averageScore: 95 });
       nock(BASE_URL)
         .get('/runs/diff')
-        .query({ project: 'proj-1', baseRun: 1, compareRun: 2 })
+        .query({ project: 'proj-1', base_run: 1, compare_run: 2 })
         .reply(200, {
           data: {
             baseRun,

@@ -30,3 +30,6 @@ export {
   isNetworkError,
   isTimeoutError,
 } from '@uluops/sdk-core/errors';
+
+// SDK-specific errors
+export { InputValidationError } from '../config/validators.js';

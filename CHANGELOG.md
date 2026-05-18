@@ -4,6 +4,15 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.3] - 2026-05-18
+
+### Fixed
+- `TaxonomySchema` type alias renamed to `TaxonomyResponse` — "Schema" suffix was inconsistent with codebase convention where it means Zod runtime object. Deprecated `TaxonomySchema` alias preserved for backward compatibility.
+- `diff()`, `getLatest()`, `getDetails()` now route query parameters through `toApiQuery()` for consistent camelCase→snake_case conversion, matching all other operations
+- `InputValidationError` now exported from `@uluops/ops-sdk/errors` barrel — previously only accessible via `@uluops/ops-sdk/config`
+- JSDoc on `AgentInput`, `RecommendationInput`, `RunSummaryInput` updated from stale `save_features_list` references to `save_run`
+- Removed `category_performance` from `ANALYTICS_METRICS` — API does not support this metric
+
 ## [1.8.2] - 2026-05-18
 
 ### Added

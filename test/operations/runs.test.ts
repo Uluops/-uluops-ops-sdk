@@ -175,7 +175,7 @@ describe('Run Operations', () => {
 
       nock(BASE_URL)
         .get('/runs/diff')
-        .query({ project: 'my-project', baseRun: 1, compareRun: 2 })
+        .query({ project: 'my-project', base_run: 1, compare_run: 2 })
         .reply(200, {
           data: {
             baseRun,
@@ -406,7 +406,7 @@ describe('Run Operations', () => {
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}/latest`)
-        .query({ workflowType: 'post-implementation' })
+        .query({ workflow_type: 'post-implementation' })
         .reply(200, {
           data: mockRun,
         });
@@ -453,7 +453,7 @@ describe('Run Operations', () => {
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}/details`)
-        .query({ runNumber: 5 })
+        .query({ run_number: 5 })
         .reply(200, {
           data: {
             run: mockRun,

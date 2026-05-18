@@ -95,11 +95,11 @@ export async function diff(
   client: OpsHttpClient,
   query: RunDiffQuery
 ): Promise<RunDiffResult> {
-  return client.get('/runs/diff', {
+  return client.get('/runs/diff', toApiQuery({
     project: query.project,
     baseRun: query.baseRun,
     compareRun: query.compareRun,
-  }, { schema: RunDiffResultResponseSchema });
+  }), { schema: RunDiffResultResponseSchema });
 }
 
 /**
@@ -167,7 +167,7 @@ export async function getLatest(
 ): Promise<Run> {
   return client.get(
     `/runs/project/${encodeURIComponent(projectId)}/latest`,
-    workflowType ? { workflowType } : undefined,
+    workflowType ? toApiQuery({ workflowType }) : undefined,
     { schema: RunResponseSchema }
   );
 }
@@ -182,7 +182,7 @@ export async function getDetails(
 ): Promise<RunDetails> {
   return client.get(
     `/runs/project/${encodeURIComponent(projectId)}/details`,
-    runNumber !== undefined ? { runNumber } : undefined,
+    runNumber !== undefined ? toApiQuery({ runNumber }) : undefined,
     { schema: RunDetailsResponseSchema }
   );
 }

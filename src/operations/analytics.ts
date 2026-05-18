@@ -224,7 +224,6 @@ export const ANALYTICS_METRICS = [
   'trend_summary',
   'cost_analysis',
   'taxonomy_distribution',
-  'category_performance',
 ] as const;
 
 export type AnalyticsMetric = (typeof ANALYTICS_METRICS)[number];

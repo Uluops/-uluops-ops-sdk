@@ -95,7 +95,7 @@ export interface TokenUsage {
 }
 
 /**
- * Agent input for save_features_list
+ * Agent input for save_run
  */
 export interface AgentInput {
   name: string;
@@ -110,7 +110,7 @@ export interface AgentInput {
 }
 
 /**
- * Recommendation/issue input for save_features_list
+ * Recommendation/issue input for save_run
  */
 export interface RecommendationInput {
   agent: string;
@@ -132,7 +132,7 @@ export interface RecommendationInput {
 }
 
 /**
- * Summary input for save_features_list
+ * Summary input for save_run
  */
 export interface RunSummaryInput {
   allGatesPassed?: boolean;

@@ -487,7 +487,7 @@ describe('Analytics Operations', () => {
       expect(analyticsOps.ANALYTICS_METRICS).toContain('file_hotspots');
       expect(analyticsOps.ANALYTICS_METRICS).toContain('trend_summary');
       expect(analyticsOps.ANALYTICS_METRICS).toContain('cost_analysis');
-      expect(analyticsOps.ANALYTICS_METRICS).toHaveLength(9);
+      expect(analyticsOps.ANALYTICS_METRICS).toHaveLength(8);
     });
   });
 });

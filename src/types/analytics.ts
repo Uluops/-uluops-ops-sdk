@@ -497,11 +497,14 @@ export interface CategoryPerformanceEntry {
 }
 
 // ============================================
-// TAXONOMY SCHEMA
+// TAXONOMY
 // ============================================
 
 /**
- * Failure taxonomy schema (reference data).
+ * Failure taxonomy reference data (domains, modes, severities).
  * Derived from TaxonomyResponseSchema — see response-schemas.ts.
  */
+export type { TaxonomyResponse } from './response-schemas.js';
+
+/** @deprecated Use TaxonomyResponse instead */
 export type { TaxonomyResponse as TaxonomySchema } from './response-schemas.js';
