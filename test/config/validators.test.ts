@@ -10,7 +10,7 @@ import {
   validateCreateProjectInput,
   validateDeleteProjectInput,
   validateRenameProjectInput,
-  validateSaveFeaturesListInput,
+  validateSaveRunInput,
   validateArchiveRunsInput,
   validateCreateUserIssueInput,
   validateUpdateIssueInput,
@@ -256,7 +256,7 @@ describe('Config Validators', () => {
     });
   });
 
-  describe('validateSaveFeaturesListInput', () => {
+  describe('validateSaveRunInput', () => {
     it('should accept valid input and return validated data', () => {
       const input = {
         project: 'my-project',
@@ -264,7 +264,7 @@ describe('Config Validators', () => {
         agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
         recommendations: [],
       };
-      const result = validateSaveFeaturesListInput(input);
+      const result = validateSaveRunInput(input);
       expect(result.project).toBe('my-project');
       expect(result.workflowType).toBe('post-implementation');
       expect(result.agents).toHaveLength(1);
@@ -282,7 +282,7 @@ describe('Config Validators', () => {
           { agent: 'code-validator', title: 'Issue', priority: 'suggested' },
         ],
       };
-      const result = validateSaveFeaturesListInput(input);
+      const result = validateSaveRunInput(input);
       expect(result.recommendations).toHaveLength(1);
       expect(result.recommendations[0].title).toBe('Issue');
       expect(result.recommendations[0].priority).toBe('suggested');
@@ -290,7 +290,7 @@ describe('Config Validators', () => {
 
     it('should reject missing project with error path', () => {
       try {
-        validateSaveFeaturesListInput({
+        validateSaveRunInput({
           workflowType: 'post-implementation',
           agents: [{ name: 'test', score: 80, decision: 'PASS' }],
           recommendations: [],
@@ -306,7 +306,7 @@ describe('Config Validators', () => {
 
     it('should reject invalid validator format with error details', () => {
       try {
-        validateSaveFeaturesListInput({
+        validateSaveRunInput({
           project: 'my-project',
           workflowType: 'post-implementation',
           agents: [{ name: 'test' }], // missing score and status
@@ -633,9 +633,9 @@ describe('Config Validators', () => {
     });
   });
 
-  describe('validateSaveFeaturesListInput - boundaries', () => {
+  describe('validateSaveRunInput - boundaries', () => {
     it('should reject score below 0', () => {
-      expect(() => validateSaveFeaturesListInput({
+      expect(() => validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: -1, decision: 'FAIL' }],
         recommendations: [],
@@ -643,7 +643,7 @@ describe('Config Validators', () => {
     });
 
     it('should reject score above 100', () => {
-      expect(() => validateSaveFeaturesListInput({
+      expect(() => validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 101, decision: 'FAIL' }],
         recommendations: [],
@@ -651,7 +651,7 @@ describe('Config Validators', () => {
     });
 
     it('should accept score 0 and preserve exact value', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 0, decision: 'FAIL' }],
         recommendations: [],
@@ -660,7 +660,7 @@ describe('Config Validators', () => {
     });
 
     it('should accept score 100 and preserve exact value', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 100, decision: 'PASS' }],
         recommendations: [],
@@ -670,7 +670,7 @@ describe('Config Validators', () => {
 
     it('should reject empty validators array with error details', () => {
       try {
-        validateSaveFeaturesListInput({
+        validateSaveRunInput({
           project: 'p', workflowType: 'w',
           agents: [],
           recommendations: [],
@@ -685,7 +685,7 @@ describe('Config Validators', () => {
 
     it('should reject invalid recommendation priority with error path', () => {
       try {
-        validateSaveFeaturesListInput({
+        validateSaveRunInput({
           project: 'p', workflowType: 'w',
           agents: [{ name: 'v', score: 80, decision: 'PASS' }],
           recommendations: [{ agent: 'v', title: 'Issue', priority: 'invalid' }],
@@ -699,7 +699,7 @@ describe('Config Validators', () => {
     });
 
     it('should preserve all validator fields through validation', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'test-proj', workflowType: 'ship',
         agents: [
           { name: 'code-validator', score: 88, decision: 'PASS', model: 'sonnet' },
@@ -716,9 +716,9 @@ describe('Config Validators', () => {
     });
   });
 
-  describe('validateSaveFeaturesListInput - complex boundary values', () => {
+  describe('validateSaveRunInput - complex boundary values', () => {
     it('should accept recommendation title at max length (500 chars)', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [{ agent: 'v', title: 'x'.repeat(500), priority: 'suggested' }],
@@ -727,7 +727,7 @@ describe('Config Validators', () => {
     });
 
     it('should reject recommendation title exceeding max length (501 chars)', () => {
-      expect(() => validateSaveFeaturesListInput({
+      expect(() => validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [{ agent: 'v', title: 'x'.repeat(501), priority: 'suggested' }],
@@ -735,7 +735,7 @@ describe('Config Validators', () => {
     });
 
     it('should accept description at max length (10000 chars)', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [{
@@ -747,7 +747,7 @@ describe('Config Validators', () => {
     });
 
     it('should reject description exceeding max length (10001 chars)', () => {
-      expect(() => validateSaveFeaturesListInput({
+      expect(() => validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [{
@@ -758,7 +758,7 @@ describe('Config Validators', () => {
     });
 
     it('should accept filePath at max length (1000 chars)', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [{
@@ -770,7 +770,7 @@ describe('Config Validators', () => {
     });
 
     it('should accept project name at max length (200 chars)', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p'.repeat(200), workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [],
@@ -785,7 +785,7 @@ describe('Config Validators', () => {
       const recommendations = Array.from({ length: 50 }, (_, i) => ({
         agent: `agent-${i % 20}`, title: `Issue ${i}`, priority: 'suggested' as const,
       }));
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w', agents, recommendations,
       });
       expect(result.agents).toHaveLength(20);
@@ -793,7 +793,7 @@ describe('Config Validators', () => {
     });
 
     it('should accept empty recommendations array', () => {
-      const result = validateSaveFeaturesListInput({
+      const result = validateSaveRunInput({
         project: 'p', workflowType: 'w',
         agents: [{ name: 'v', score: 50, decision: 'PASS' }],
         recommendations: [],

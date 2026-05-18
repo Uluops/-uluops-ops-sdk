@@ -242,6 +242,9 @@ export class OpsClient {
     updateProfile: (input: UpdateProfileInput): Promise<{ user: PublicUser }> =>
       authOps.updateProfile(this.httpClient, input),
 
+    getAvatar: (): Promise<{ data: ArrayBuffer; contentType: string }> =>
+      authOps.getAvatar(this.httpClient),
+
     deleteAvatar: (): Promise<void> =>
       authOps.deleteAvatar(this.httpClient),
 
