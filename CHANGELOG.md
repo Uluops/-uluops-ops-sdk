@@ -4,6 +4,8 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
 ## [1.8.3] - 2026-05-18
 
 ### Fixed
@@ -55,9 +57,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [1.7.1] - 2026-05-10
 
 ### Added
-- `analysisRecords` and `analysisSummary` fields on `UpdateRunInput` — enables post-hoc enrichment of runs with structured analysis data (replace semantics)
 - `agentName` field on `AnalysisRecordInput` and `AnalysisSummaryInput` — per-item agent attribution, overrides run-level default
 - `analysisSummary` on `UpdateRunInput` accepts single object or array of per-agent summaries
+
+## [1.7.0] - 2026-05-10
+
+### Added
+- `analysisRecords` and `analysisSummary` fields on `UpdateRunInput` — enables post-hoc enrichment of runs with structured analysis data (replace semantics)
 
 ## [1.6.0] - 2026-05-06
 

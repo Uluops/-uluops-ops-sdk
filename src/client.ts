@@ -148,6 +148,9 @@ export class OpsClient {
       else if (creds.email && creds.password) config = { ...config, email: creds.email, password: creds.password };
     }
     this.httpClient = new OpsHttpClient(config);
+    if (config.debug && !this.isAuthenticated()) {
+      console.warn('[ops-sdk] No credentials found — API calls will fail with UnauthorizedError. Set ULUOPS_API_KEY or pass apiKey in config.');
+    }
   }
 
   // ============================================

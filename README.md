@@ -758,8 +758,8 @@ Preview what a save would do without persisting.
 const preview = await client.runs.validate({
   project: 'my-project',
   workflowType: 'post-implementation',
-  agents: [...],
-  recommendations: [...],
+  agents: [{ name: 'code-validator', score: 90, decision: 'PASS' }],
+  recommendations: [{ agent: 'code-validator', title: 'Unused import', priority: 'backlog', failure_code: 'STR-OMI/L' }],
 });
 
 console.log('Would create:', preview.wouldCreate);
@@ -943,7 +943,7 @@ const { data, total } = await client.runs.getProjectAnalysis('my-project', {
   agentName: 'nietzsche-analyst',
   limit: 10,
 });
-// Track active/reactive ratio trend over time
+// data[0]: { decision, score, categoryScores, systemMetrics, runNumber, runTimestamp, workflowType }
 data.forEach(s => console.log(s.decision, s.systemMetrics));
 ```
 
@@ -961,10 +961,12 @@ Cross-project query for analysis records with filters (v0.3.0).
 
 ```typescript
 // Find all calcified conventions across all projects
-const { data } = await client.runs.queryAnalysisRecords({
+const { data, total } = await client.runs.queryAnalysisRecords({
   recordType: 'convention',
   classification: 'CALCIFIED',
 });
+// data[0]: { recordType, recordId, title, classification, severity, data: { ... } }
+console.log(`Found ${total} records`);
 ```
 
 #### `client.runs.getAgentRunsAnalysis(agentName, query)`
@@ -1645,7 +1647,7 @@ console.log(config.baseUrl);
 
 ### Invalid API Key Format
 
-```
+```text
 Error: Invalid API key format. Keys must start with 'ulr_'
 ```
 
@@ -1658,7 +1660,7 @@ console.log(key); // ulr_abc123...
 
 ### Authentication Errors
 
-```
+```text
 UnauthorizedError: Authentication required
 ```
 
@@ -1674,7 +1676,7 @@ echo $ULUOPS_API_KEY
 
 ### Connection Errors
 
-```
+```text
 NetworkError: connect ECONNREFUSED 127.0.0.1:3100
 ```
 
@@ -1695,7 +1697,7 @@ const client = new OpsClient({
 
 ### Rate Limiting
 
-```
+```text
 RateLimitError: Rate limit exceeded. Retry after 60 seconds
 ```
 

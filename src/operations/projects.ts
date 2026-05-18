@@ -77,7 +77,13 @@ export async function create(
 }
 
 /**
- * Update a project
+ * Update a project's mutable fields (name, description).
+ * Unlike create/delete, does not run client-side Zod validation — input is validated server-side only.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param input - Fields to update
+ * @returns Updated project
  */
 export async function update(
   client: OpsHttpClient,
@@ -206,6 +212,7 @@ export async function listIssues(
  * Uses `requestRaw` to access the `count` field outside the `data` envelope.
  * Note: `requestRaw` does not include automatic retry or token refresh.
  * For retry-safe access without count, use {@link listIssues}.
+ * For retry-safe pagination count, call `getSummary()` separately for `totalIssues`.
  */
 export async function listIssuesWithCount(
   client: OpsHttpClient,

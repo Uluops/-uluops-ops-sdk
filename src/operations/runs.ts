@@ -47,6 +47,16 @@ import {
  * @returns Save result with run metadata and issue correlation (new/recurring/regressions)
  * @throws {InputValidationError} If input fails client-side Zod validation
  * @throws {ConflictError} If idempotencyKey was already used
+ * @example
+ * ```typescript
+ * const result = await client.runs.save({
+ *   project: 'my-project',
+ *   workflowType: 'post-implementation',
+ *   agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
+ *   recommendations: [{ agent: 'code-validator', title: 'Missing null check', priority: 'suggested', failure_code: 'SEM-VAL/M' }],
+ * });
+ * console.log(result.run.runNumber, result.correlation.newIssues);
+ * ```
  */
 export async function save(
   client: OpsHttpClient,

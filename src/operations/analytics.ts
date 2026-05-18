@@ -84,7 +84,11 @@ export async function getAgentLifecycle(
 }
 
 /**
- * Get issue resolution rates by project
+ * Get issue resolution rates by project.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days (default 30)
+ * @returns Array of `{ project, resolved, total, rate }` records
  */
 export async function getResolutionRates(
   client: OpsHttpClient,
@@ -98,7 +102,11 @@ export async function getResolutionRates(
 }
 
 /**
- * Get files with most issues (hotspots)
+ * Get files with most issues (hotspots).
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days, limit
+ * @returns Array of `{ filePath, issueCount, failureDomains }` ordered by issueCount desc
  */
 export async function getFileHotspots(
   client: OpsHttpClient,
@@ -112,7 +120,11 @@ export async function getFileHotspots(
 }
 
 /**
- * Get basic taxonomy distribution
+ * Get basic taxonomy distribution (issue counts by failure domain and mode).
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days
+ * @returns Array of `{ domain, mode, count }` records
  */
 export async function getTaxonomyDistribution(
   client: OpsHttpClient,
@@ -181,7 +193,11 @@ export async function getVelocity(
 }
 
 /**
- * Get discovery timeline (new vs recurring issues)
+ * Get discovery timeline — new vs recurring issues over time.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days, granularity ('daily' | 'weekly')
+ * @returns `{ timeSeries, summary }` — summary includes newRate, recurringRate, totalNew, totalRecurring
  */
 export async function getDiscovery(
   client: OpsHttpClient,
@@ -232,6 +248,11 @@ export async function getTrendSummary(
 
 /**
  * List agents with summary info (derived from performance data).
+ * Calls `getAgentPerformance` internally — O(n) where n = total agent records.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days, limit
+ * @returns Array of `{ name, totalRuns, avgScore }` agent summaries
  */
 export async function listAgents(
   client: OpsHttpClient,
@@ -263,7 +284,16 @@ export const ANALYTICS_METRICS = [
 export type AnalyticsMetric = (typeof ANALYTICS_METRICS)[number];
 
 /**
- * Check if a string is a valid analytics metric
+ * Check if a string is a valid analytics metric.
+ *
+ * @param metric - String to check
+ * @returns Type-narrowed `true` if metric is a valid `AnalyticsMetric`
+ * @example
+ * ```typescript
+ * if (isValidMetric(userInput)) {
+ *   const data = await client.analytics.getByMetric(userInput);
+ * }
+ * ```
  */
 export function isValidMetric(metric: string): metric is AnalyticsMetric {
   return ANALYTICS_METRICS.includes(metric as AnalyticsMetric);
