@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.4] - 2026-05-18
+
+### Fixed
+- **Breaking (type only):** `AgentPerformance.avgScore` and `AgentInfo.avgScore` renamed to `averageScore` — aligns with `AgentPerformanceResponseSchema` field name. Callers accessing `.avgScore` must update to `.averageScore`
+- `SaveRunInputSchema` now validates `definitionId` (UUID format) — was accepted by TypeScript interface but bypassed Zod client-side validation
+- `AgentInputSchema` now validates `definitionVersion` — field was silently stripped by Zod on save
+- `runs.save()` auto-generates idempotency key via `randomUUID()` when caller does not provide one — prevents duplicate runs on retry
+- Broken README import paths: `SaveRunInput` from `types/runs` (was `types/schemas`), `Credentials` from `config` (was `types/auth`)
+- Debug-mode unauthenticated warning no longer fires when email/password login is planned
+- `deleteProject`/`softDelete` deduplicated via private `deleteWithConfirmation` helper
+- `buildIssueListParams` widening cast removed — `QueryParams` assignable to `object` directly
+- `listIssuesWithCount` JSDoc upgraded to `@remarks` with full reliability caveat documentation
+- `toApiQuery` JSDoc now documents the `'all'` stripping convention with `StatusFilter`/`PriorityFilter` context
+- Ghost `dist/operations/admin.*` artifacts cleaned; build script now runs `rm -rf dist` before `tsc`
+- `response-schemas.ts` barrel removed from public `@uluops/ops-sdk/types` export (semver protection)
+- `getByMetric` now throws `InputValidationError` instead of bare `Error`
+- `validateUuid`/`validateRequiredString` now populate `errors[]` with synthetic Zod-compatible issues
+- `npm audit` gate added to `prepublishOnly` script
+
+### Added
+- `npm audit --audit-level=high` in `prepublishOnly` — blocks publish on high-severity vulnerabilities
+- SDK_VERSION sync test — asserts `constants.ts` matches `package.json` via `createRequire`
+- Tests for `getAgentRunsAnalysis`, `getAgentLifecycle`, `getAvatar` (3 previously untested public functions)
+- Response validation tests for `listByProject` and `getLatest` operations
+- `redactSensitive` boundary test at length=5
+- README: exports table expanded to 12 rows, sign-up URL, `AnalyticsMetric` type example, analysis output shapes
+- CHANGELOG: `[Unreleased]` section, missing `[1.7.0]` entry restored
+- JSDoc enriched on 6 analytics/project operations, `runs.save()` `@example`, `isValidMetric()` `@example`
+
 ## [1.8.3] - 2026-05-18
 
 ### Fixed
