@@ -35,14 +35,22 @@ import {
 import { buildIssueListParams } from './query-utils.js';
 
 /**
- * List all projects for the current user
+ * List all projects accessible to the current user.
+ *
+ * @param client - HTTP client instance
+ * @returns Array of projects with metadata (runCount, issueCount, etc.)
  */
 export async function list(client: OpsHttpClient): Promise<Project[]> {
   return client.get('/projects', undefined, { schema: z.array(ProjectResponseSchema) });
 }
 
 /**
- * Get a single project by ID or name
+ * Get a project by UUID or name.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name string
+ * @returns Project record
+ * @throws {NotFoundError} If project does not exist
  */
 export async function get(
   client: OpsHttpClient,
@@ -52,7 +60,13 @@ export async function get(
 }
 
 /**
- * Create a new project
+ * Create a new project.
+ *
+ * @param client - HTTP client instance
+ * @param input - Project data: `{ name: string }` (1-200 chars, unique)
+ * @returns Created project
+ * @throws {InputValidationError} If name is empty or exceeds 200 chars
+ * @throws {ConflictError} If a project with that name already exists
  */
 export async function create(
   client: OpsHttpClient,
@@ -74,7 +88,13 @@ export async function update(
 }
 
 /**
- * Hard delete a project (requires confirmation)
+ * Permanently delete a project. Irreversible — use softDelete for recoverable removal.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param input - Confirmation: `{ confirm: true, confirmationPhrase: string }`
+ * @returns `{ deleted: true }`
+ * @throws {InputValidationError} If confirm is not `true` or phrase is missing
  */
 export async function deleteProject(
   client: OpsHttpClient,
@@ -90,7 +110,13 @@ export async function deleteProject(
 }
 
 /**
- * Soft delete a project (can be restored)
+ * Soft delete a project. Can be restored via `restore()`.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param input - Confirmation: `{ confirm: true, confirmationPhrase: string }`
+ * @returns `{ deleted: true }`
+ * @throws {InputValidationError} If confirm is not `true` or phrase is missing
  */
 export async function softDelete(
   client: OpsHttpClient,
@@ -116,7 +142,12 @@ export async function restore(
 }
 
 /**
- * Rename a project by name
+ * Rename a project by name.
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ oldName: string, newName: string }` (newName 1-200 chars)
+ * @returns Renamed project
+ * @throws {InputValidationError} If names are empty or newName exceeds 200 chars
  */
 export async function rename(
   client: OpsHttpClient,
@@ -193,7 +224,12 @@ export async function listIssuesWithCount(
 }
 
 /**
- * Bulk update issue statuses in a project
+ * Bulk update issue statuses within a project. Each item may succeed or fail independently.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param updates - Array of `{ issueId, status, reason? }`
+ * @returns Per-item results with success/failure status
  */
 export async function bulkUpdateIssueStatus(
   client: OpsHttpClient,
@@ -208,7 +244,12 @@ export async function bulkUpdateIssueStatus(
 }
 
 /**
- * Merge multiple issues into one
+ * Merge duplicate issues into a target issue. Source issues are closed.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param input - `{ targetIssueId, sourceIssueIds, strategy? }` — strategy: 'keep_target' or 'keep_highest_priority'
+ * @returns Merge result with counts
  */
 export async function mergeIssues(
   client: OpsHttpClient,

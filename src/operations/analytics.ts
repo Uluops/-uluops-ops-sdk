@@ -27,7 +27,11 @@ import {
 } from '../types/response-schemas.js';
 
 /**
- * Get agent performance metrics
+ * Get agent performance metrics (scores, pass rates, issue counts).
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days (default 30), limit
+ * @returns Array of agent performance records with name, avgScore, passRate, totalRuns
  */
 export async function getAgentPerformance(
   client: OpsHttpClient,
@@ -41,7 +45,11 @@ export async function getAgentPerformance(
 }
 
 /**
- * Get agent reliability stats
+ * Get agent reliability statistics (false positive rates, resolution rates).
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: agent name, days (default 90)
+ * @returns `{ agents: AgentReliability[] }` with reliabilityScore per agent
  */
 export async function getAgentReliability(
   client: OpsHttpClient,
@@ -55,7 +63,12 @@ export async function getAgentReliability(
 }
 
 /**
- * Get agent lifecycle trajectory across versions
+ * Get agent lifecycle trajectory — version history with performance per version.
+ *
+ * @param client - HTTP client instance
+ * @param agentName - Agent name (e.g. 'code-validator')
+ * @param query - Optional filters: project, days
+ * @returns Array of lifecycle entries with definitionVersion, firstSeenAt, runs, avgScore, passRate
  */
 export async function getAgentLifecycle(
   client: OpsHttpClient,
@@ -112,11 +125,12 @@ export async function getTaxonomyDistribution(
 }
 
 /**
- * Get full taxonomy analytics with all aggregations.
+ * Get comprehensive taxonomy analytics with all aggregations.
+ * Returns unwrapped data directly (HttpClient auto-strips the `{ data }` envelope).
  *
- * Returns the unwrapped taxonomy data (HttpClient auto-strips the { data } envelope).
- * Includes domain/mode/severity distributions, top failure codes, heatmap data,
- * classification totals, and time period metadata.
+ * @param client - HTTP client instance
+ * @param query - Optional filters: project, days
+ * @returns FullTaxonomyAnalytics with byDomain, byMode, bySeverity, topFailureCodes, heatmap, period
  */
 export async function getFullTaxonomy(
   client: OpsHttpClient,
@@ -130,7 +144,11 @@ export async function getFullTaxonomy(
 }
 
 /**
- * Get taxonomy burndown time series
+ * Get taxonomy burndown time series by failure domain.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional: project, days (default 30), granularity ('daily' | 'weekly')
+ * @returns `{ timeSeries, trends }` — trends keyed by domain with trend direction and avgDailyChange
  */
 export async function getBurndown(
   client: OpsHttpClient,
@@ -144,7 +162,11 @@ export async function getBurndown(
 }
 
 /**
- * Get taxonomy velocity (rate of change per failure mode)
+ * Get taxonomy velocity — rate of change per failure mode.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional: project, days, alertThreshold (10-500, default 50)
+ * @returns `{ items: VelocityItem[], summary: VelocitySummary, period }` — items have velocityPercent and alert flag
  */
 export async function getVelocity(
   client: OpsHttpClient,
@@ -172,7 +194,11 @@ export async function getDiscovery(
 }
 
 /**
- * Get agent-taxonomy coverage matrix
+ * Get agent-taxonomy coverage matrix showing which agents detect which failure modes.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional: project, days (default 90), minIssues (default 5)
+ * @returns `{ matrix: AgentMatrixRow[], analysis: { blindSpots, singlePoints, highOverlap } }`
  */
 export async function getAgentMatrix(
   client: OpsHttpClient,
@@ -186,7 +212,11 @@ export async function getAgentMatrix(
 }
 
 /**
- * Get general trend summary
+ * Get weekly trend summary with new issues, resolved issues, regressions, and average scores.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional: project, days
+ * @returns Array of TrendSummary entries with period, newIssues, resolvedIssues, regressions, averageScore
  */
 export async function getTrendSummary(
   client: OpsHttpClient,
@@ -239,9 +269,14 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
 }
 
 /**
- * Get analytics by metric name (generic endpoint).
- * Note: Response validation is not applied to this generic endpoint.
- * Use the typed methods (getAgentPerformance, getBurndown, etc.) for validated responses.
+ * Get analytics by metric name via the generic `/:metric` endpoint.
+ * Response is untyped (`unknown`) — prefer the typed methods for validated responses.
+ *
+ * @param client - HTTP client instance
+ * @param metric - One of: agent_performance, resolution_rates, cross_project_patterns, file_hotspots, regression_analysis, trend_summary, cost_analysis, taxonomy_distribution
+ * @param query - Optional: project, days
+ * @returns Unvalidated response data
+ * @throws {Error} If metric is not in ANALYTICS_METRICS
  */
 export async function getByMetric(
   client: OpsHttpClient,

@@ -32,7 +32,12 @@ import { toApiQuery } from '../http/http-client.js';
 import { buildIssueListParams } from './query-utils.js';
 
 /**
- * Create a user-submitted issue
+ * Create a user-submitted issue in a project.
+ *
+ * @param client - HTTP client instance
+ * @param input - Issue data with required project, title, priority
+ * @returns Created issue with generated fingerprint and UUID
+ * @throws {InputValidationError} If input fails client-side Zod validation
  */
 export async function create(
   client: OpsHttpClient,
@@ -57,7 +62,11 @@ export async function create(
 }
 
 /**
- * Search issues across projects
+ * Search issues across projects with full-text query and filters.
+ *
+ * @param client - HTTP client instance
+ * @param query - Search parameters: query string, projects, agents, status, priority, severities, failureDomains
+ * @returns Array of matching issues
  */
 export async function search(
   client: OpsHttpClient,
@@ -67,7 +76,13 @@ export async function search(
 }
 
 /**
- * Get an issue by its fingerprint
+ * Get an issue by its SHA-256 fingerprint hash.
+ *
+ * @param client - HTTP client instance
+ * @param fingerprint - Issue fingerprint (SHA-256 hash)
+ * @param project - Project name or ID
+ * @returns Issue matching the fingerprint
+ * @throws {NotFoundError} If no issue matches the fingerprint in the project
  */
 export async function getByFingerprint(
   client: OpsHttpClient,
@@ -78,7 +93,13 @@ export async function getByFingerprint(
 }
 
 /**
- * Update issue status by fingerprint
+ * Update an issue's status using its fingerprint hash.
+ *
+ * @param client - HTTP client instance
+ * @param fingerprint - Issue fingerprint (SHA-256 hash)
+ * @param project - Project name or ID
+ * @param input - Status update with new status and optional reason
+ * @returns Status update result with previous and new status
  */
 export async function updateStatusByFingerprint(
   client: OpsHttpClient,
@@ -94,14 +115,23 @@ export async function updateStatusByFingerprint(
 }
 
 /**
- * Get an issue by ID
+ * Get an issue by its UUID.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @returns Issue record
+ * @throws {NotFoundError} If issue does not exist
  */
 export async function get(client: OpsHttpClient, issueId: string): Promise<Issue> {
   return client.get(`/issues/${encodeURIComponent(issueId)}`, undefined, { schema: IssueResponseSchema });
 }
 
 /**
- * Get full issue details with occurrences, notes, and history
+ * Get full issue details including occurrences, notes, and status history.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @returns Issue details with nested occurrences, notes, and history arrays
  */
 export async function getDetails(
   client: OpsHttpClient,
@@ -111,7 +141,12 @@ export async function getDetails(
 }
 
 /**
- * Get issue status history
+ * Get status change history for an issue. Each entry has oldStatus, newStatus,
+ * reason, and changedAt timestamp.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @returns Array of status history entries (newest first)
  */
 export async function getHistory(
   client: OpsHttpClient,
@@ -121,7 +156,13 @@ export async function getHistory(
 }
 
 /**
- * Update issue status
+ * Update an issue's status with optional reason.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @param input - New status and optional reason
+ * @returns Updated issue
+ * @throws {InputValidationError} If status is not a valid enum value
  */
 export async function updateStatus(
   client: OpsHttpClient,
@@ -136,7 +177,13 @@ export async function updateStatus(
 }
 
 /**
- * Update issue metadata
+ * Update issue metadata (title, severity, file path, failure code, etc.).
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @param input - Fields to update (all optional)
+ * @returns Updated issue
+ * @throws {InputValidationError} If any provided field violates constraints
  */
 export async function update(
   client: OpsHttpClient,
@@ -160,7 +207,13 @@ export async function update(
 }
 
 /**
- * Add a note to an issue
+ * Add a note to an issue (context, resolution, or blocker).
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @param input - Note content (1-10000 chars), optional noteType and createdBy
+ * @returns Created note
+ * @throws {InputValidationError} If content is empty or exceeds limits
  */
 export async function addNote(
   client: OpsHttpClient,
@@ -176,7 +229,11 @@ export async function addNote(
 }
 
 /**
- * Restore a deleted issue
+ * Restore a soft-deleted issue.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @returns Restored issue
  */
 export async function restore(
   client: OpsHttpClient,
@@ -186,7 +243,11 @@ export async function restore(
 }
 
 /**
- * Undo the last status change (within 24 hours)
+ * Undo the last status change on an issue. Must be within 24 hours.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @returns Issue with previous status restored
  */
 export async function undoLastChange(
   client: OpsHttpClient,
@@ -196,7 +257,13 @@ export async function undoLastChange(
 }
 
 /**
- * Bulk update issue statuses
+ * Bulk update issue statuses. Max 100 items per request. Each item may
+ * succeed or fail independently — check per-item results.
+ *
+ * @param client - HTTP client instance
+ * @param updates - Array of `{ issueId, status, reason? }` (1-100 items)
+ * @returns Per-item results with success/failure status
+ * @throws {InputValidationError} If updates array is empty or exceeds 100 items
  */
 export async function bulkUpdateStatus(
   client: OpsHttpClient,
@@ -214,7 +281,12 @@ export async function bulkUpdateStatus(
 }
 
 /**
- * List issues in a project with filtering
+ * List issues for a project with optional filters.
+ *
+ * @param client - HTTP client instance
+ * @param projectId - Project ID or name
+ * @param query - Optional filters: status, priority, severity, agent, limit, offset
+ * @returns Array of issues
  */
 export async function listByProject(
   client: OpsHttpClient,

@@ -38,7 +38,12 @@ import {
 const ProfileResponseSchema = z.object({ user: PublicUserResponseSchema });
 
 /**
- * Register a new user
+ * Register a new user account. Does not require authentication.
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ email, password }` — password requires 8-128 chars, uppercase + lowercase + digit
+ * @returns `{ user, token }` — the token can be used for immediate session auth
+ * @throws {InputValidationError} If email invalid or password doesn't meet requirements
  */
 export async function register(
   client: OpsHttpClient,
@@ -49,7 +54,14 @@ export async function register(
 }
 
 /**
- * Login with email and password
+ * Login with email and password. Does not require authentication.
+ * Returns a session token — use `OpsClient.login()` instead for auto-install.
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ email, password }`
+ * @returns `{ user, sessionToken }` — token must be manually installed on the client
+ * @throws {InputValidationError} If email or password is missing
+ * @throws {UnauthorizedError} If credentials are invalid
  */
 export async function login(
   client: OpsHttpClient,
@@ -60,7 +72,10 @@ export async function login(
 }
 
 /**
- * Logout all sessions for the current user
+ * Revoke all sessions for the current user (not just the current session).
+ *
+ * @param client - HTTP client instance
+ * @returns `{ sessionsRevoked: number }`
  */
 export async function logoutAll(
   client: OpsHttpClient
@@ -90,7 +105,13 @@ export async function resetPassword(
 }
 
 /**
- * Change password (requires current password)
+ * Change the current user's password. Requires knowing the current password.
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ currentPassword, newPassword }` — new password must meet requirements
+ * @returns Success message
+ * @throws {InputValidationError} If new password doesn't meet requirements
+ * @throws {UnauthorizedError} If current password is incorrect
  */
 export async function changePassword(
   client: OpsHttpClient,
@@ -101,7 +122,11 @@ export async function changePassword(
 }
 
 /**
- * Set password (first time, no current password)
+ * Set password for the first time (accounts created without one, e.g. OAuth or admin-created).
+ *
+ * @param client - HTTP client instance
+ * @param password - New password
+ * @returns Success message
  */
 export async function setPassword(
   client: OpsHttpClient,
@@ -125,7 +150,12 @@ export async function getProfile(client: OpsHttpClient): Promise<{ user: PublicU
 }
 
 /**
- * Update current user's profile
+ * Update the current user's profile. At least one field must be provided.
+ *
+ * @param client - HTTP client instance
+ * @param input - Profile fields: username, name, bio, timezone, websiteUrl, avatar (base64), avatarMimeType
+ * @returns `{ user }` with updated profile
+ * @throws {InputValidationError} If no fields provided or constraints violated
  */
 export async function updateProfile(
   client: OpsHttpClient,
@@ -136,7 +166,10 @@ export async function updateProfile(
 }
 
 /**
- * Get current user's avatar (returns binary data)
+ * Get the current user's avatar image as binary data.
+ *
+ * @param client - HTTP client instance
+ * @returns `{ data: ArrayBuffer, contentType: string }` — contentType is e.g. 'image/png'
  */
 export async function getAvatar(
   client: OpsHttpClient
@@ -165,7 +198,12 @@ export async function listApiKeys(
 }
 
 /**
- * Create a new API key
+ * Create a new API key. The full key is only returned once — store it securely.
+ *
+ * @param client - HTTP client instance
+ * @param input - Optional: `{ name?, expiresAt? }`
+ * @returns `{ id, name, key }` — key starts with `ulr_` prefix
+ * @throws {InputValidationError} If name exceeds 100 chars
  */
 export async function createApiKey(
   client: OpsHttpClient,

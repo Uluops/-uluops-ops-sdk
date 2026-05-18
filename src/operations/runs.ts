@@ -39,10 +39,14 @@ import {
 } from '../config/validators.js';
 
 /**
- * Save validation run results (save_run)
+ * Save a validation run with agent scores and recommendations.
+ * Input is validated client-side via Zod before the network request.
  *
- * Sends SDK input directly in camelCase. The API accepts both
- * camelCase and snake_case via normalizeKeys().
+ * @param client - HTTP client instance
+ * @param input - Run data (project, workflowType, agents, recommendations required)
+ * @returns Save result with run metadata and issue correlation (new/recurring/regressions)
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {ConflictError} If idempotencyKey was already used
  */
 export async function save(
   client: OpsHttpClient,
@@ -70,10 +74,13 @@ export async function save(
 }
 
 /**
- * Validate run data without saving (preview)
+ * Preview what a save would produce without persisting. Returns projected
+ * issue correlation (what would be created, updated, regressed).
  *
- * Similar to save() but the API validates data and returns what
- * would be created/updated without actually persisting anything.
+ * @param client - HTTP client instance
+ * @param input - Same shape as save() input
+ * @returns Preview with projected new/recurring/regression counts
+ * @throws {InputValidationError} If input fails client-side Zod validation
  */
 export async function validate(
   client: OpsHttpClient,
@@ -89,7 +96,11 @@ export async function validate(
 }
 
 /**
- * Compare two runs (diff)
+ * Compare two runs to see fixed, new, and unchanged issues.
+ *
+ * @param client - HTTP client instance
+ * @param query - Diff parameters: project, baseRun number, compareRun number
+ * @returns Diff result with fixed/new/unchanged issues and agent score changes
  */
 export async function diff(
   client: OpsHttpClient,
@@ -103,7 +114,12 @@ export async function diff(
 }
 
 /**
- * Archive old runs
+ * Archive old runs by run number, date, or retention count.
+ *
+ * @param client - HTTP client instance
+ * @param input - Archive criteria: project (required), plus beforeRunNumber, beforeDate, keepLast, reason
+ * @returns Archive result with count of archived runs
+ * @throws {InputValidationError} If input fails client-side Zod validation
  */
 export async function archive(
   client: OpsHttpClient,
@@ -120,7 +136,12 @@ export async function archive(
 }
 
 /**
- * Update run metadata by project and run number
+ * Update run metadata by project and run number. Supports post-hoc
+ * enrichment with analysis records and summaries.
+ *
+ * @param client - HTTP client instance
+ * @param input - Update payload with project + runNumber identifier
+ * @returns Updated run
  */
 export async function update(
   client: OpsHttpClient,
@@ -143,7 +164,12 @@ export async function update(
 }
 
 /**
- * List runs for a project
+ * List runs for a project with optional filters.
+ *
+ * @param client - HTTP client instance
+ * @param projectId - Project ID or name
+ * @param query - Optional filters: workflowType, limit, offset
+ * @returns Array of run summaries
  */
 export async function listByProject(
   client: OpsHttpClient,
@@ -158,7 +184,13 @@ export async function listByProject(
 }
 
 /**
- * Get the latest run for a project
+ * Get the most recent run for a project, optionally filtered by workflow type.
+ *
+ * @param client - HTTP client instance
+ * @param projectId - Project ID or name
+ * @param workflowType - Optional workflow type filter (e.g. 'post-implementation')
+ * @returns Latest run
+ * @throws {NotFoundError} If no runs exist for the project/workflow
  */
 export async function getLatest(
   client: OpsHttpClient,
@@ -173,7 +205,12 @@ export async function getLatest(
 }
 
 /**
- * Get full run details with recommendations
+ * Get full run details including agents, recommendations, and analysis data.
+ *
+ * @param client - HTTP client instance
+ * @param projectId - Project ID or name
+ * @param runNumber - Specific run number (omit for latest)
+ * @returns Run details with nested agents and recommendations arrays
  */
 export async function getDetails(
   client: OpsHttpClient,
@@ -188,14 +225,25 @@ export async function getDetails(
 }
 
 /**
- * Get a run by ID
+ * Get a run by its UUID.
+ *
+ * @param client - HTTP client instance
+ * @param runId - Run UUID
+ * @returns Run record
+ * @throws {NotFoundError} If run does not exist
  */
 export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
   return client.get(`/runs/${encodeURIComponent(runId)}`, undefined, { schema: RunResponseSchema });
 }
 
 /**
- * Update a run by ID
+ * Update run metadata by UUID. Supports post-hoc enrichment with
+ * analysis records, summaries, and exploration maps.
+ *
+ * @param client - HTTP client instance
+ * @param runId - Run UUID
+ * @param input - Fields to update (all optional except identifier)
+ * @returns Updated run
  */
 export async function updateById(
   client: OpsHttpClient,
@@ -217,7 +265,11 @@ export async function updateById(
 }
 
 /**
- * Delete a run (requires confirmation header)
+ * Permanently delete a run. Requires the run ID as a confirmation header.
+ *
+ * @param client - HTTP client instance
+ * @param runId - Run UUID (also sent as X-Confirm-Delete header)
+ * @returns `{ deleted: true }` on success
  */
 export async function deleteRun(
   client: OpsHttpClient,
@@ -234,7 +286,12 @@ export async function deleteRun(
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Get analysis records and summaries for a specific run
+ * Get structured analysis records and summaries for a specific run.
+ * Includes convention inventories, tension maps, decay vectors, exploration maps, etc.
+ *
+ * @param client - HTTP client instance
+ * @param runId - Run UUID
+ * @returns Analysis data with records and summaries arrays
  */
 export async function getAnalysis(
   client: OpsHttpClient,
@@ -244,7 +301,13 @@ export async function getAnalysis(
 }
 
 /**
- * Get analysis summaries for a project over time
+ * Get analysis summaries for a project over time. Filter by agent name,
+ * agent type, or decision to track specific analytical trajectories.
+ *
+ * @param client - HTTP client instance
+ * @param projectId - Project ID or name
+ * @param query - Optional filters: agentName, agentType, decision, limit, offset
+ * @returns Paginated analysis summaries with `{ data, total }`
  */
 export async function getProjectAnalysis(
   client: OpsHttpClient,
@@ -259,7 +322,12 @@ export async function getProjectAnalysis(
 }
 
 /**
- * Query analysis records across projects with filters
+ * Query analysis records across projects. Filter by record type
+ * (convention, tension, decay_vector), classification, agent, or severity.
+ *
+ * @param client - HTTP client instance
+ * @param query - Optional filters: recordType, classification, agentName, severity, limit, offset
+ * @returns Paginated analysis records with `{ data, total }`
  */
 export async function queryAnalysisRecords(
   client: OpsHttpClient,
@@ -274,7 +342,13 @@ export async function queryAnalysisRecords(
 
 /**
  * Get analysis summaries with run context for a specific agent.
- * Returns the unwrapped data array (SDK auto-unwraps { data } envelope).
+ * Returns decision, score, category scores alongside run metadata
+ * (run number, timestamp, workflow type, snapshot score).
+ *
+ * @param client - HTTP client instance
+ * @param agentName - Agent name (e.g. 'epictetus-validator')
+ * @param query - Query with required `project`, optional `decision`, `limit`, `offset`
+ * @returns `{ items: AgentRunSummary[], total: number }`
  */
 export async function getAgentRunsAnalysis(
   client: OpsHttpClient,
