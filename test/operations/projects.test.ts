@@ -7,7 +7,7 @@ import {
   TEST_API_KEY,
   createMockProject,
   createMockProjectSummary,
-  createMockTrendDataPoint,
+  createMockDailyIssueCounts,
   createMockIssue,
   createMockBulkStatusUpdateResult,
   createMockMergeIssuesResult,
@@ -19,7 +19,7 @@ import {
 import {
   TEST_IDS,
   ProjectSummaryResponseSchema,
-  TrendDataPointResponseSchema,
+  DailyIssueCountsResponseSchema,
   BulkStatusUpdateResultResponseSchema,
   MergeIssuesResultResponseSchema,
 } from '../contract-helpers.js';

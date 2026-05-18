@@ -1401,18 +1401,7 @@ for (const v of agents) {
 }
 ```
 
-#### Deprecated Aliases
 
-The following analytics methods were renamed from "validator" to "agent" terminology. The old names still work but will be removed in a future major version:
-
-| Deprecated | Replacement |
-|-----------|-------------|
-| `getValidatorPerformance` | `getAgentPerformance` |
-| `getValidatorReliability` | `getAgentReliability` |
-| `getValidatorMatrix` | `getAgentMatrix` |
-| `listValidators` | `listAgents` |
-
-Similarly, `client.issues.edit()` is deprecated in favor of `client.issues.update()`.
 
 ---
 

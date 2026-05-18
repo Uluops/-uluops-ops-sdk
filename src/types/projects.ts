@@ -19,17 +19,11 @@ import type { Issue } from './issues.js';
 /** Project entity */
 export type Project = z.infer<typeof ProjectResponseSchema>;
 
-/** @deprecated Project no longer includes deletedAt — use Project directly */
-export type PublicProject = Project;
-
 /** Project summary statistics */
 export type ProjectSummaryStats = z.infer<typeof ProjectSummaryStatsResponseSchema>;
 
 /** Full project summary response (nested structure matching API) */
 export type ProjectSummaryResponse = z.infer<typeof ProjectSummaryResponseSchema>;
-
-/** @deprecated Use ProjectSummaryResponse */
-export type ProjectSummary = ProjectSummaryResponse;
 
 /** Daily issue counts for trend data */
 export type DailyIssueCounts = z.infer<typeof DailyIssueCountsResponseSchema>;
@@ -39,9 +33,6 @@ export type TrendsSummary = z.infer<typeof TrendsSummaryResponseSchema>;
 
 /** Full project trends response */
 export type ProjectTrends = z.infer<typeof ProjectTrendsResponseSchema>;
-
-/** @deprecated Use DailyIssueCounts */
-export type TrendDataPoint = DailyIssueCounts;
 
 /** Merge issues result */
 export type MergeIssuesResult = z.infer<typeof MergeIssuesResultResponseSchema>;

@@ -324,8 +324,3 @@ export const AgentMatrixQuerySchema = AnalyticsQuerySchema.extend({
 // (e.g., RegisterInput from auth.ts, SaveRunInput from runs.ts).
 // Do NOT re-export types here with the same name as the schema consts —
 // it creates consumer confusion between value and type imports.
-
-/** @deprecated Use AgentInputSchema instead */
-export const ValidatorInputSchema = AgentInputSchema;
-/** @deprecated Use AgentMatrixQuerySchema instead */
-export const ValidatorMatrixQuerySchema = AgentMatrixQuerySchema;

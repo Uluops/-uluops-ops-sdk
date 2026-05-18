@@ -7,7 +7,7 @@ import {
   TEST_IDS,
   createMockRun,
   createMockRunSummary,
-  createMockValidatorSnapshot,
+  createMockAgentSnapshot,
   createMockAnalysisRecord,
   createMockAnalysisSummary,
   resetMockIds,
@@ -40,7 +40,7 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            agents: [createMockValidatorSnapshot({ runId: mockRun.id })],
+            agents: [createMockAgentSnapshot({ runId: mockRun.id })],
             correlation: { newIssues: 2, recurringIssues: 0, regressions: 0 },
             deduplicated: false,
           },
@@ -73,7 +73,7 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            agents: [createMockValidatorSnapshot({ runId: mockRun.id })],
+            agents: [createMockAgentSnapshot({ runId: mockRun.id })],
             correlation: { newIssues: 1, recurringIssues: 0, regressions: 0 },
             deduplicated: false,
           },
@@ -112,7 +112,7 @@ describe('Run Operations', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            agents: [createMockValidatorSnapshot({ runId: mockRun.id, name: 'test-architect' })],
+            agents: [createMockAgentSnapshot({ runId: mockRun.id, name: 'test-architect' })],
             correlation: { newIssues: 0, recurringIssues: 0, regressions: 0 },
             deduplicated: false,
           },
@@ -420,7 +420,7 @@ describe('Run Operations', () => {
   describe('getDetails', () => {
     it('should get run details with recommendations', async () => {
       const mockRun = createMockRun({ runNumber: 10 });
-      const mockAgent = createMockValidatorSnapshot({ runId: mockRun.id });
+      const mockAgent = createMockAgentSnapshot({ runId: mockRun.id });
 
       nock(BASE_URL)
         .get(`/runs/project/${TEST_IDS.proj1}/details`)

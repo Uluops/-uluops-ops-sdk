@@ -16,12 +16,12 @@ import {
   IssueResponseSchema,
   RunResponseSchema,
   RunSummaryResponseSchema,
-  ValidatorSnapshotResponseSchema,
+  AgentSnapshotResponseSchema,
   AnalysisRecordResponseSchema,
   AnalysisSummaryResponseSchema,
   ProjectSummaryResponseSchema,
   ProjectSummaryStatsResponseSchema,
-  TrendDataPointResponseSchema,
+  DailyIssueCountsResponseSchema,
   OccurrenceResponseSchema,
   IssueNoteResponseSchema,
   StatusHistoryResponseSchema,
@@ -232,8 +232,8 @@ export function createMockRun(overrides: Partial<z.infer<typeof RunResponseSchem
 /**
  * Factory for creating valid ValidatorSnapshot response data
  */
-export function createMockValidatorSnapshot(
-  overrides: Partial<z.infer<typeof ValidatorSnapshotResponseSchema>> = {}
+export function createMockAgentSnapshot(
+  overrides: Partial<z.infer<typeof AgentSnapshotResponseSchema>> = {}
 ) {
   const data = {
     id: generateId(),
@@ -255,7 +255,7 @@ export function createMockValidatorSnapshot(
   };
 
   if (STRICT_CONTRACTS) {
-    const result = ValidatorSnapshotResponseSchema.safeParse(data);
+    const result = AgentSnapshotResponseSchema.safeParse(data);
     if (!result.success) {
       throw new Error(`Invalid mock validator snapshot data: ${result.error.message}`);
     }
@@ -401,8 +401,8 @@ export function createMockProjectSummary(
 /**
  * Factory for creating valid TrendDataPoint response data
  */
-export function createMockTrendDataPoint(
-  overrides: Partial<z.infer<typeof TrendDataPointResponseSchema>> = {}
+export function createMockDailyIssueCounts(
+  overrides: Partial<z.infer<typeof DailyIssueCountsResponseSchema>> = {}
 ) {
   const data = {
     date: isoDate(0).split('T')[0],
@@ -414,7 +414,7 @@ export function createMockTrendDataPoint(
   };
 
   if (STRICT_CONTRACTS) {
-    const result = TrendDataPointResponseSchema.safeParse(data);
+    const result = DailyIssueCountsResponseSchema.safeParse(data);
     if (!result.success) {
       throw new Error(`Invalid mock trend data point: ${result.error.message}`);
     }
@@ -1100,9 +1100,9 @@ export {
   ProjectResponseSchema,
   IssueResponseSchema,
   RunResponseSchema,
-  ValidatorSnapshotResponseSchema,
+  AgentSnapshotResponseSchema,
   ProjectSummaryResponseSchema,
-  TrendDataPointResponseSchema,
+  DailyIssueCountsResponseSchema,
   OccurrenceResponseSchema,
   IssueNoteResponseSchema,
   StatusHistoryResponseSchema,

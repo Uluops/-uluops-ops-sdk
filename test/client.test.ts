@@ -5,10 +5,10 @@ import { BASE_URL, TEST_API_KEY } from './setup.js';
 import {
   createMockRun,
   createMockRunSummary,
-  createMockValidatorSnapshot,
+  createMockAgentSnapshot,
   createMockProject,
   createMockProjectSummary,
-  createMockTrendDataPoint,
+  createMockDailyIssueCounts,
   createMockIssue,
   createMockAuthUser,
   createMockLoginResponse,
@@ -36,6 +36,8 @@ describe('OpsClient', () => {
     });
 
     it('should create client without credentials', () => {
+      // Clear env vars so auto-load doesn't pick them up
+      vi.stubEnv('ULUOPS_API_KEY', '');
       const unauthClient = new OpsClient({ baseUrl: BASE_URL });
       expect(unauthClient.isAuthenticated()).toBe(false);
       expect(unauthClient.getAuthType()).toBeNull();
@@ -186,7 +188,7 @@ describe('OpsClient', () => {
         .reply(201, {
           data: {
             run: mockRun,
-            agents: [createMockValidatorSnapshot({ runId: mockRun.id })],
+            agents: [createMockAgentSnapshot({ runId: mockRun.id })],
             correlation: { newIssues: 3, recurringIssues: 1, regressions: 0 },
             deduplicated: false,
           },
@@ -448,7 +450,7 @@ describe('OpsClient', () => {
         .reply(201, {
           data: {
             run: createMockRun({ runNumber: 1 }),
-            agents: [createMockValidatorSnapshot()],
+            agents: [createMockAgentSnapshot()],
             correlation: { newIssues: 1, recurringIssues: 0, regressions: 0 },
             deduplicated: false,
           },

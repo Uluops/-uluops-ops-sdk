@@ -299,6 +299,3 @@ export async function listByProject(
     { schema: z.array(IssueResponseSchema) }
   );
 }
-
-/** @deprecated Use update instead */
-export const edit = update;

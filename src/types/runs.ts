@@ -391,10 +391,3 @@ export interface AgentRunsAnalysisQuery {
   limit?: number;
   offset?: number;
 }
-
-/** @deprecated Use AgentSnapshot instead */
-export type ValidatorSnapshot = AgentSnapshot;
-/** @deprecated Use AgentInput instead */
-export type ValidatorInput = AgentInput;
-/** @deprecated Use AgentChange instead */
-export type ValidatorChange = AgentChange;

@@ -1,5 +1,6 @@
 import { OpsHttpClient, type HttpClientConfig } from './http/http-client.js';
 import { JwtSessionAuth } from './http/auth-strategy.js';
+import { loadCredentials } from './config/loaders.js';
 import * as authOps from './operations/auth.js';
 import * as projectOps from './operations/projects.js';
 import * as runOps from './operations/runs.js';
@@ -135,6 +136,15 @@ export class OpsClient {
   private readonly httpClient: OpsHttpClient;
 
   constructor(config: OpsClientConfig = {}) {
+    // Auto-load credentials from env vars / .env / ~/.uluops/credentials.json
+    // if no explicit auth was provided in config
+    const hasExplicitAuth = config.apiKey || config.sessionToken || (config.email && config.password);
+    if (!hasExplicitAuth) {
+      const creds = loadCredentials();
+      if (creds.apiKey) config = { ...config, apiKey: creds.apiKey };
+      else if (creds.sessionToken) config = { ...config, sessionToken: creds.sessionToken };
+      else if (creds.email && creds.password) config = { ...config, email: creds.email, password: creds.password };
+    }
     this.httpClient = new OpsHttpClient(config);
   }
 
@@ -380,10 +390,6 @@ export class OpsClient {
     update: (issueId: string, input: UpdateIssueInput): Promise<Issue> =>
       issueOps.update(this.httpClient, issueId, input),
 
-    /** @deprecated Use update instead */
-    edit: (issueId: string, input: UpdateIssueInput): Promise<Issue> =>
-      issueOps.update(this.httpClient, issueId, input),
-
     addNote: (issueId: string, input: CreateIssueNoteInput): Promise<IssueNote> =>
       issueOps.addNote(this.httpClient, issueId, input),
 
@@ -452,19 +458,6 @@ export class OpsClient {
     listAgents: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>
       analyticsOps.listAgents(this.httpClient, query),
 
-    // Backwards-compatible aliases
-    /** @deprecated Use getAgentPerformance instead */
-    getValidatorPerformance: (query?: AnalyticsQuery): Promise<z.infer<typeof AgentPerformanceResponseSchema>[]> =>
-      analyticsOps.getAgentPerformance(this.httpClient, query),
-    /** @deprecated Use getAgentReliability instead */
-    getValidatorReliability: (query?: AgentReliabilityQuery): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> =>
-      analyticsOps.getAgentReliability(this.httpClient, query),
-    /** @deprecated Use getAgentMatrix instead */
-    getValidatorMatrix: (query?: AgentMatrixQuery): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> =>
-      analyticsOps.getAgentMatrix(this.httpClient, query),
-    /** @deprecated Use listAgents instead */
-    listValidators: (query?: AnalyticsQuery): Promise<AgentInfo[]> =>
-      analyticsOps.listAgents(this.httpClient, query),
   };
 
   // ============================================

@@ -187,9 +187,6 @@ export const ProjectTrendsResponseSchema = z.object({
   summary: TrendsSummaryResponseSchema,
 });
 
-/** @deprecated Use DailyIssueCountsResponseSchema — kept for contract-helpers compat */
-export const TrendDataPointResponseSchema = DailyIssueCountsResponseSchema;
-
 // ============================================
 // ISSUE RESPONSE SCHEMAS
 // ============================================
@@ -840,7 +837,7 @@ export function createListResponseSchema<T extends z.ZodTypeAny>(itemSchema: T) 
 // Pre-built wrapped schemas for common responses
 export const ProjectListResponseSchema = createListResponseSchema(ProjectResponseSchema);
 export const IssueListResponseSchema = createListResponseSchema(IssueResponseSchema);
-export const TrendListResponseSchema = createListResponseSchema(TrendDataPointResponseSchema);
+export const TrendListResponseSchema = createListResponseSchema(DailyIssueCountsResponseSchema);
 export const BulkStatusUpdateListResponseSchema = createListResponseSchema(BulkStatusUpdateResultResponseSchema);
 export const StatusHistoryListResponseSchema = createListResponseSchema(StatusHistoryResponseSchema);
 
@@ -895,12 +892,6 @@ export type ProjectResponse = z.infer<typeof ProjectResponseSchema>;
 export type IssueResponse = z.infer<typeof IssueResponseSchema>;
 export type RunResponse = z.infer<typeof RunResponseSchema>;
 export type AgentSnapshotResponse = z.infer<typeof AgentSnapshotResponseSchema>;
-/** @deprecated Use AgentSnapshotResponse instead */
-export type ValidatorSnapshotResponse = AgentSnapshotResponse;
-/** @deprecated Use AgentSnapshotResponseSchema instead */
-export const ValidatorSnapshotResponseSchema = AgentSnapshotResponseSchema;
-/** @deprecated Use AgentChangeResponseSchema instead */
-export const ValidatorChangeResponseSchema = AgentChangeResponseSchema;
 export type OccurrenceResponse = z.infer<typeof OccurrenceResponseSchema>;
 export type IssueNoteResponse = z.infer<typeof IssueNoteResponseSchema>;
 export type StatusHistoryResponse = z.infer<typeof StatusHistoryResponseSchema>;

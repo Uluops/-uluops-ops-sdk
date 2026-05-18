@@ -293,13 +293,3 @@ export async function getByMetric(
     toApiQuery(query)
   );
 }
-
-// Backwards-compatible aliases
-/** @deprecated Use getAgentPerformance instead */
-export const getValidatorPerformance = getAgentPerformance;
-/** @deprecated Use getAgentReliability instead */
-export const getValidatorReliability = getAgentReliability;
-/** @deprecated Use getAgentMatrix instead */
-export const getValidatorMatrix = getAgentMatrix;
-/** @deprecated Use listAgents instead */
-export const listValidators = listAgents;

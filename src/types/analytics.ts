@@ -79,15 +79,6 @@ export interface AgentReliabilityQuery {
   days?: number;
 }
 
-/** @deprecated Use AgentInfo instead */
-export type ValidatorInfo = AgentInfo;
-/** @deprecated Use AgentPerformance instead */
-export type ValidatorPerformance = AgentPerformance;
-/** @deprecated Use AgentReliability instead */
-export type ValidatorReliability = AgentReliability;
-/** @deprecated Use AgentReliabilityQuery instead */
-export type ValidatorReliabilityQuery = AgentReliabilityQuery;
-
 // ============================================
 // RESOLUTION ANALYTICS
 // ============================================
@@ -424,13 +415,6 @@ export interface AgentMatrixQuery extends AnalyticsQuery {
   minIssues?: number; // 1-1000, default 5
 }
 
-/** @deprecated Use AgentMatrixRow instead */
-export type ValidatorMatrixRow = AgentMatrixRow;
-/** @deprecated Use AgentMatrixResult instead */
-export type ValidatorMatrixResult = AgentMatrixResult;
-/** @deprecated Use AgentMatrixQuery instead */
-export type ValidatorMatrixQuery = AgentMatrixQuery;
-
 // ============================================
 // TREND ANALYTICS
 // ============================================
@@ -517,6 +501,3 @@ export interface CategoryPerformanceEntry {
  * Derived from TaxonomyResponseSchema — see response-schemas.ts.
  */
 export type { TaxonomyResponse } from './response-schemas.js';
-
-/** @deprecated Use TaxonomyResponse instead */
-export type { TaxonomyResponse as TaxonomySchema } from './response-schemas.js';
