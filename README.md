@@ -251,8 +251,8 @@ import type { Run } from '@uluops/ops-sdk/types/runs';
 import type { BurndownResult } from '@uluops/ops-sdk/types/analytics';
 import type { Priority, Status, Severity } from '@uluops/ops-sdk/types/enums';
 import type { ApiResponse } from '@uluops/ops-sdk/types/responses';
-import type { SaveRunInput } from '@uluops/ops-sdk/types/schemas';
-import type { Credentials } from '@uluops/ops-sdk/types/auth';
+import type { SaveRunInput } from '@uluops/ops-sdk/types/runs';
+import type { Credentials } from '@uluops/ops-sdk/config';
 ```
 
 ## API Reference
