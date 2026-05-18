@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "description": "SDK for the UluOps platform API — validation tracker, analytics, auth, and org management",
   "type": "module",
   "main": "dist/index.js",

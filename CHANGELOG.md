@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.5] - 2026-05-18
+
+### Fixed
+- All 16 exported `validate*` functions now have explicit `z.infer<typeof Schema>` return types — prevents silent contract drift when schemas evolve
+- `BulkStatusUpdateItemSchema` now requires at least one of `issueId` or `id` via `.refine()` — previously both were optional with no enforcement
+- `deleteProject`/`softDelete` now validate server response via `DeleteResultResponseSchema` instead of hardcoding `{ deleted: true }`
+- `rawMarkdown` capped at 500,000 chars and `avatar` at 2,000,000 chars in Zod input schemas — prevents accidentally large payloads
+- Pinned `@uluops/sdk-core` to `^0.5.3` — picks up CWE-316 credential clear fix (password zeroed in `finally` block)
+
 ## [1.8.4] - 2026-05-18
 
 ### Fixed
