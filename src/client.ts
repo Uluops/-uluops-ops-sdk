@@ -35,6 +35,7 @@ import type {
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
   BulkIssueStatusUpdate,
+  BulkIssueStatusResult,
   MergeIssuesInput,
   MergeIssuesResult,
 } from './types/projects.js';
@@ -104,15 +105,16 @@ import {
   DiscoveryResultResponseSchema,
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
+  BulkStatusUpdateResultResponseSchema,
 } from './types/response-schemas.js';
 
 import type { MessageResponse, DeleteResult } from './types/responses.js';
 
 /**
  * OpsClient configuration options.
- * Extends HttpClientConfig — all HTTP-level options are available here.
+ * All HTTP-level options (baseUrl, timeout, retries, debug, auth) are available.
  */
-export interface OpsClientConfig extends HttpClientConfig {}
+export type OpsClientConfig = HttpClientConfig;
 
 /**
  * Main SDK client for the UluOps validation tracker API.
@@ -297,7 +299,7 @@ export class OpsClient {
     listIssuesWithCount: (idOrName: string, query?: ListProjectIssuesQuery): Promise<PaginatedIssues> =>
       projectOps.listIssuesWithCount(this.httpClient, idOrName, query),
 
-    bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[]) =>
+    bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[]): Promise<BulkIssueStatusResult> =>
       projectOps.bulkUpdateIssueStatus(this.httpClient, idOrName, updates),
 
     mergeIssues: (idOrName: string, input: MergeIssuesInput): Promise<MergeIssuesResult> =>
@@ -399,7 +401,7 @@ export class OpsClient {
     undoLastChange: (issueId: string): Promise<Issue> =>
       issueOps.undoLastChange(this.httpClient, issueId),
 
-    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]) =>
+    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>> =>
       issueOps.bulkUpdateStatus(this.httpClient, updates),
 
     listByProject: (projectId: string, query?: ListIssuesQuery): Promise<Issue[]> =>

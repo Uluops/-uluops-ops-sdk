@@ -246,7 +246,6 @@ export interface BurndownResult {
     PRA: DomainTrend;
     EPI: DomainTrend;
   };
-  period: Period;
 }
 
 /**
@@ -292,7 +291,6 @@ export interface VelocitySummary {
 export interface VelocityResult {
   items: VelocityItem[];
   summary: VelocitySummary;
-  period: Period;
 }
 
 /**
@@ -340,7 +338,6 @@ export interface DiscoverySummary {
 export interface DiscoveryResult {
   timeline: DiscoveryTimelinePoint[];
   summary: DiscoverySummary;
-  period: Period;
 }
 
 /**

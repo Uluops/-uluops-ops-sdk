@@ -694,6 +694,8 @@ Save a new validation run.
 | `definitionName` | `string` | No | Definition name (e.g., `'code-validator'`) |
 | `definitionVersion` | `string` | No | Definition version (e.g., `'1.2.0'`) |
 | `definitionHash` | `string` | No | SHA-256 content hash of the definition |
+| `definitionId` | `string` | No | Registry definition UUID for direct identity linkage |
+| `timestamp` | `string` | No | ISO 8601 timestamp override (defaults to server time) |
 | `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.2.0) |
 | `analysisSummary` | `AnalysisSummaryInput \| AnalysisSummaryInput[]` | No | Single or per-agent array of analysis summaries (v1.8.1) |
 | `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
@@ -1312,7 +1314,7 @@ Get burndown time series by failure domain.
 const burndown = await client.analytics.getBurndown({ days: 30 });
 console.log('Time series:', burndown.timeSeries);
 console.log('Trends:', burndown.trends);
-// { STR: { direction: 'declining', rate: -0.05 }, ... }
+// { STR: { trend: 'declining', avgDailyChange: -0.05, netChange: -12, confidence: 'high' }, ... }
 ```
 
 #### `client.analytics.getVelocity(query)`

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildIssueListParams } from '../../src/operations/query-utils.js';
+import { toApiQuery } from '../../src/http/http-client.js';
 
 describe('query-utils', () => {
   describe('buildIssueListParams', () => {
@@ -91,6 +92,34 @@ describe('query-utils', () => {
         date_start: '2025-06-01',
         date_end: '2025-06-30',
       });
+    });
+  });
+
+  describe('toApiQuery', () => {
+    it('should return undefined for undefined input', () => {
+      expect(toApiQuery(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined for empty object', () => {
+      expect(toApiQuery({})).toBeUndefined();
+    });
+
+    it('should skip array values that are all non-primitive objects', () => {
+      expect(toApiQuery({ items: [{ id: 1 }, { id: 2 }] })).toBeUndefined();
+    });
+
+    it('should skip empty arrays', () => {
+      expect(toApiQuery({ tags: [] })).toBeUndefined();
+    });
+
+    it('should filter non-primitive values from mixed arrays', () => {
+      const result = toApiQuery({ ids: ['a', { nested: true }, 'b'] });
+      expect(result).toEqual({ ids: 'a,b' });
+    });
+
+    it('should skip nested object values silently', () => {
+      const result = toApiQuery({ name: 'test', nested: { foo: 'bar' } });
+      expect(result).toEqual({ name: 'test' });
     });
   });
 });

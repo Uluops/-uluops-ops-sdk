@@ -21,6 +21,9 @@ export * from './errors/errors.js';
 // Types — all domain interfaces, input/output shapes, and enums
 export * from './types/index.js';
 
+// Analytics metric type (for getByMetric consumers)
+export type { AnalyticsMetric } from './operations/analytics.js';
+
 // Config — credential loading from env vars, .env files, and ~/.uluops/credentials.json
 export { loadCredentials, loadConfig, loadEnvFiles, type Credentials, type SdkConfig } from './config/loaders.js';
 export { DEFAULT_BASE_URL, API_KEY_PREFIX, ENV_VARS } from './config/constants.js';
