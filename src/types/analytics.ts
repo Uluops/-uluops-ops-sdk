@@ -28,7 +28,7 @@ export interface Period {
 export interface AgentInfo {
   name: string;
   totalRuns: number;
-  avgScore: number;
+  averageScore: number;
   passRate: number;
 }
 
@@ -38,7 +38,7 @@ export interface AgentInfo {
 export interface AgentPerformance {
   name: string;
   totalRuns: number;
-  avgScore: number;
+  averageScore: number;
   minScore: number;
   maxScore: number;
   passRate: number;

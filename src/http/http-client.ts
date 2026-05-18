@@ -16,7 +16,12 @@ import { toSnakeCase } from '../utils/helpers.js';
 
 /**
  * Convert a camelCase query object to snake_case QueryParams for the API.
- * Strips 'all' values (API doesn't accept 'all' as a filter — omit to get all).
+ *
+ * @remarks
+ * Values of `'all'` are intentionally stripped — the API interprets an absent
+ * filter parameter as "return all", so `status: 'all'` and omitting `status`
+ * produce the same result. This convention is used by `StatusFilter` and
+ * `PriorityFilter` union types which include `'all'` for consumer ergonomics.
  */
 export function toApiQuery(query: object | undefined): _QP | undefined {
   if (!query) return undefined;

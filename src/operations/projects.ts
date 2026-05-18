@@ -107,12 +107,7 @@ export async function deleteProject(
   idOrName: string,
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
-  validateDeleteProjectInput(input);
-  await client.delete(`/projects/${encodeURIComponent(idOrName)}`, {
-    confirm: input.confirm,
-    confirmationPhrase: input.confirmationPhrase,
-  });
-  return { deleted: true };
+  return deleteWithConfirmation(client, `/projects/${encodeURIComponent(idOrName)}`, input);
 }
 
 /**
@@ -129,8 +124,16 @@ export async function softDelete(
   idOrName: string,
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
+  return deleteWithConfirmation(client, `/projects/${encodeURIComponent(idOrName)}/soft`, input);
+}
+
+async function deleteWithConfirmation(
+  client: OpsHttpClient,
+  path: string,
+  input: DeleteProjectInput
+): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  await client.delete(`/projects/${encodeURIComponent(idOrName)}/soft`, {
+  await client.delete(path, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
   });
@@ -209,10 +212,16 @@ export async function listIssues(
 /**
  * List issues in a project with count (preserves pagination count from API envelope).
  *
+ * @remarks
  * Uses `requestRaw` to access the `count` field outside the `data` envelope.
- * Note: `requestRaw` does not include automatic retry or token refresh.
+ * This bypasses automatic retry, token refresh, and Zod schema validation.
  * For retry-safe access without count, use {@link listIssues}.
  * For retry-safe pagination count, call `getSummary()` separately for `totalIssues`.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param query - Optional filters: status, priority, agent, limit, offset
+ * @returns `{ issues, count }` — count reflects total matching issues for pagination
  */
 export async function listIssuesWithCount(
   client: OpsHttpClient,
@@ -222,7 +231,7 @@ export async function listIssuesWithCount(
   const response = await client.requestRaw<{ data: Issue[]; count: number }>(
     'GET',
     `/projects/${encodeURIComponent(idOrName)}/issues`,
-    buildIssueListParams(query) as object | undefined
+    buildIssueListParams(query)
   );
   if (!response) {
     return { issues: [], count: 0 };

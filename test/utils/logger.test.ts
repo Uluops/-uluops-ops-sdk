@@ -12,6 +12,12 @@ describe('Logger Utilities', () => {
       expect(redactSensitive('abcd')).toBe('[REDACTED]');
     });
 
+    it('should redact at the boundary (length=5 is first non-redacted)', () => {
+      const result = redactSensitive('abcde');
+      expect(result).not.toBe('[REDACTED]');
+      expect(result).toBe('*bcde');
+    });
+
     it('should handle custom showLast parameter', () => {
       expect(redactSensitive('secretvalue', 2)).toBe('*********ue');
     });

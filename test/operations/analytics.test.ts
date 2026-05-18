@@ -455,13 +455,13 @@ describe('Analytics Operations', () => {
       expect(agents[0]).toEqual({
         name: 'code-validator',
         totalRuns: 100,
-        avgScore: 85.5,
+        averageScore: 85.5,
         passRate: 92,
       });
       expect(agents[1]).toEqual({
         name: 'test-architect',
         totalRuns: 80,
-        avgScore: 78.2,
+        averageScore: 78.2,
         passRate: 85,
       });
     });

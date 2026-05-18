@@ -32,7 +32,7 @@ import {
  *
  * @param client - HTTP client instance
  * @param query - Optional filters: project, days (default 30), limit
- * @returns Array of agent performance records with name, avgScore, passRate, totalRuns
+ * @returns Array of agent performance records with name, averageScore, passRate, totalRuns
  */
 export async function getAgentPerformance(
   client: OpsHttpClient,
@@ -252,7 +252,7 @@ export async function getTrendSummary(
  *
  * @param client - HTTP client instance
  * @param query - Optional filters: project, days, limit
- * @returns Array of `{ name, totalRuns, avgScore }` agent summaries
+ * @returns Array of `{ name, totalRuns, averageScore }` agent summaries
  */
 export async function listAgents(
   client: OpsHttpClient,
@@ -262,7 +262,7 @@ export async function listAgents(
   return perf.map(v => ({
     name: v.name,
     totalRuns: v.totalRuns,
-    avgScore: v.averageScore,
+    averageScore: v.averageScore,
     passRate: v.passRate,
   }));
 }

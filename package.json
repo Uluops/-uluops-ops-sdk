@@ -67,7 +67,7 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm audit --audit-level=high && npm run build"
   },
   "keywords": [
     "uluops",

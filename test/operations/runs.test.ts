@@ -573,6 +573,31 @@ describe('Run Operations', () => {
         runOps.get(client, runId)
       ).rejects.toThrow(/API response validation failed/);
     });
+
+    it('should throw ResponseValidationError on malformed listByProject response', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/my-project')
+        .reply(200, {
+          data: [{ id: TEST_IDS.run1, workflowType: 'ship' }], // Missing required fields
+        });
+
+      await expect(
+        runOps.listByProject(client, 'my-project')
+      ).rejects.toThrow(/API response validation failed/);
+    });
+
+    it('should throw ResponseValidationError on malformed getLatest response', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/my-project/latest')
+        .query({ workflow_type: 'ship' })
+        .reply(200, {
+          data: { runNumber: 'not-a-number' }, // Wrong type
+        });
+
+      await expect(
+        runOps.getLatest(client, 'my-project', 'ship')
+      ).rejects.toThrow(/API response validation failed/);
+    });
   });
 
   describe('error paths', () => {
