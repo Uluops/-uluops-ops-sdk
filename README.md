@@ -139,7 +139,7 @@ pnpm add @uluops/ops-sdk
 
 ## Authentication
 
-The SDK supports two authentication methods:
+The SDK supports two authentication methods. To get an API key, visit the [UluOps Dashboard](https://app.uluops.ai) or create one programmatically via `client.auth.createApiKey()`.
 
 ### API Key Authentication (Recommended)
 
@@ -227,8 +227,16 @@ import { loadCredentials, DEFAULT_BASE_URL } from '@uluops/ops-sdk/config';
 
 | Export Path | Contents |
 |------------|----------|
-| `@uluops/ops-sdk` | Main `OpsClient`, `OpsHttpClient`, auth strategies |
-| `@uluops/ops-sdk/types` | All TypeScript types and Zod schemas |
+| `@uluops/ops-sdk` | Main `OpsClient`, `OpsHttpClient`, auth strategies, config helpers, all types |
+| `@uluops/ops-sdk/types` | All TypeScript types and Zod input schemas |
+| `@uluops/ops-sdk/types/projects` | Project types only |
+| `@uluops/ops-sdk/types/issues` | Issue types only |
+| `@uluops/ops-sdk/types/runs` | Run types only |
+| `@uluops/ops-sdk/types/analytics` | Analytics types only |
+| `@uluops/ops-sdk/types/enums` | Priority, Status, Severity enums |
+| `@uluops/ops-sdk/types/responses` | API response types |
+| `@uluops/ops-sdk/types/schemas` | Zod input validation schemas |
+| `@uluops/ops-sdk/types/auth` | Auth/credential types |
 | `@uluops/ops-sdk/errors` | Error classes and utilities |
 | `@uluops/ops-sdk/config` | Configuration loaders and constants |
 
@@ -1388,7 +1396,10 @@ Get analytics by specific metric name.
 Available metrics: `agent_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`.
 
 ```typescript
-const costData = await client.analytics.getByMetric('cost_analysis', { days: 30 });
+import type { AnalyticsMetric } from '@uluops/ops-sdk';
+
+const metric: AnalyticsMetric = 'cost_analysis'; // IDE autocomplete for valid metrics
+const costData = await client.analytics.getByMetric(metric, { days: 30 });
 const regressions = await client.analytics.getByMetric('regression_analysis', { project: 'my-project' });
 ```
 

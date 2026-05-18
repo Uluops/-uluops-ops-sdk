@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
+import { InputValidationError } from '../errors/errors.js';
 import type {
   AnalyticsQuery,
   AgentInfo,
@@ -284,8 +285,9 @@ export async function getByMetric(
   query?: AnalyticsQuery
 ): Promise<unknown> {
   if (!isValidMetric(metric)) {
-    throw new Error(
-      `Invalid analytics metric: "${metric}". Valid metrics: ${ANALYTICS_METRICS.join(', ')}`
+    throw new InputValidationError(
+      `Invalid analytics metric: "${metric}". Valid metrics: ${ANALYTICS_METRICS.join(', ')}`,
+      [{ code: 'custom', path: ['metric'], message: `must be one of: ${ANALYTICS_METRICS.join(', ')}` }]
     );
   }
   return client.get(

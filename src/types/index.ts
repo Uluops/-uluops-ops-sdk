@@ -16,5 +16,4 @@ export * from './responses.js';
 // Zod schemas (input validation)
 export * from './schemas.js';
 
-// Response schemas (contract validation)
-export * from './response-schemas.js';
+// Response schemas are internal — import from './response-schemas.js' directly if needed for testing
