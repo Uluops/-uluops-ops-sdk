@@ -47,6 +47,18 @@ export interface AgentPerformance {
 }
 
 /**
+ * Agent lifecycle entry — version trajectory across time
+ */
+export interface AgentLifecycleEntry {
+  name: string;
+  definitionVersion: string;
+  firstSeenAt: string;
+  runs: number;
+  avgScore: number;
+  passRate: number;
+}
+
+/**
  * Agent reliability stats
  */
 export interface AgentReliability {

@@ -71,7 +71,7 @@ const burndown = await client.analytics.getBurndown({
 });
 
 for (const [domain, trend] of Object.entries(burndown.trends)) {
-  console.log(`${domain}: ${trend.direction} (rate: ${trend.rate})`);
+  console.log(`${domain}: ${trend.trend} (avg daily change: ${trend.avgDailyChange})`);
 }
 ```
 
@@ -686,7 +686,7 @@ Save a new validation run.
 | `project` | `string` | Yes | Project name or ID |
 | `workflowType` | `string` | Yes | Workflow type (e.g., `'post-implementation'`) |
 | `agents` | `AgentInput[]` | Yes | Array of agent results |
-| `recommendations` | `Recommendation[]` | No | Array of issues/recommendations |
+| `recommendations` | `Recommendation[]` | Yes | Array of issues/recommendations (use `[]` for empty) |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
 | `idempotencyKey` | `string` | No | Key for duplicate prevention |
@@ -841,7 +841,7 @@ const result = await client.runs.archive({
   keepLast: 10,
   reason: 'Quarterly cleanup',
 });
-console.log(`Archived ${result.archivedCount} runs`);
+console.log(`Archived ${result.archived} runs`);
 ```
 
 #### `client.runs.update(input)`
@@ -970,11 +970,11 @@ Get analysis summaries with run context for a specific agent. Returns analysis d
 | `query.offset` | `number` | No | Pagination offset |
 
 ```typescript
-const { data, total } = await client.runs.getAgentRunsAnalysis('epictetus-validator', {
+const { items, total } = await client.runs.getAgentRunsAnalysis('epictetus-validator', {
   project: 'my-project',
   limit: 10,
 });
-// data[0]: { decision, score, categoryScores, runNumber, runTimestamp, workflowType, snapshotScore, ... }
+// items[0]: { decision, score, categoryScores, runNumber, runTimestamp, workflowType, snapshotScore, ... }
 ```
 
 ---
@@ -998,7 +998,7 @@ Create a user-submitted issue.
 | `lineNumber` | `number` | No | Line number |
 | `description` | `string` | No | Detailed description |
 | `failureCode` | `string` | No | Taxonomy code (e.g., `'SEM-VAL/H'`) |
-| `validator` | `string` | No | Validator name (defaults to `'user-submitted'`) |
+| `agent` | `string` | No | Agent name (defaults to `'user-submitted'`) |
 
 ```typescript
 const issue = await client.issues.create({
@@ -1053,7 +1053,7 @@ Get detailed issue information with occurrences and notes.
 const details = await client.issues.getDetails('issue-uuid-here');
 console.log('Occurrences:', details.occurrences);
 console.log('Notes:', details.notes);
-console.log('Related issues:', details.relatedIssues);
+console.log('History:', details.history);
 ```
 
 #### `client.issues.getByFingerprint(fingerprint, project)`
@@ -1088,7 +1088,7 @@ Get status change history for an issue.
 ```typescript
 const history = await client.issues.getHistory('issue-uuid');
 for (const entry of history) {
-  console.log(`${entry.fromStatus} -> ${entry.toStatus} at ${entry.changedAt}`);
+  console.log(`${entry.oldStatus} -> ${entry.newStatus} at ${entry.changedAt}`);
 }
 ```
 
@@ -1210,7 +1210,24 @@ Get performance metrics by agent.
 ```typescript
 const performance = await client.analytics.getAgentPerformance({ days: 30 });
 for (const agent of performance) {
-  console.log(`${agent.agent}: avg=${agent.avgScore}, pass=${agent.passRate}`);
+  console.log(`${agent.name}: avg=${agent.avgScore}, pass=${agent.passRate}`);
+}
+```
+
+#### `client.analytics.getAgentLifecycle(agentName, query)`
+
+Get version trajectory for a specific agent across time.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `agentName` | `string` | Yes | Agent name |
+| `query.project` | `string` | No | Filter by project |
+| `query.days` | `number` | No | Time window (default: 30) |
+
+```typescript
+const lifecycle = await client.analytics.getAgentLifecycle('code-validator', { days: 90 });
+for (const entry of lifecycle) {
+  console.log(`v${entry.definitionVersion}: avg=${entry.avgScore}, runs=${entry.runs}, pass=${entry.passRate}`);
 }
 ```
 
@@ -1237,7 +1254,7 @@ Get issue resolution rates by project.
 ```typescript
 const rates = await client.analytics.getResolutionRates();
 for (const rate of rates) {
-  console.log(`${rate.project}: ${rate.rate * 100}% resolved`);
+  console.log(`${rate.project}: ${rate.resolutionRate * 100}% resolved`);
 }
 ```
 
@@ -1254,7 +1271,7 @@ Get files with the most issues.
 ```typescript
 const hotspots = await client.analytics.getFileHotspots({ limit: 10 });
 for (const hotspot of hotspots) {
-  console.log(`${hotspot.filePath}: ${hotspot.issueCount} issues`);
+  console.log(`${hotspot.filePath}: ${hotspot.totalIssues} issues`);
 }
 ```
 
@@ -1275,10 +1292,10 @@ for (const d of distribution) {
 Get comprehensive taxonomy analytics.
 
 ```typescript
-const { data, computedAt } = await client.analytics.getFullTaxonomy();
-console.log('By domain:', data.byDomain);
-console.log('By mode:', data.byMode);
-console.log('By severity:', data.bySeverity);
+const taxonomy = await client.analytics.getFullTaxonomy();
+console.log('By domain:', taxonomy.byDomain);
+console.log('By mode:', taxonomy.byMode);
+console.log('By severity:', taxonomy.bySeverity);
 ```
 
 #### `client.analytics.getBurndown(query)`
@@ -1310,10 +1327,10 @@ Get velocity metrics per failure mode.
 
 ```typescript
 const velocity = await client.analytics.getVelocity({ alertThreshold: 10 });
-for (const mode of velocity.modes) {
-  console.log(`${mode.mode}: velocity=${mode.velocity}, trend=${mode.trend}`);
+for (const item of velocity.items) {
+  console.log(`${item.failureCode}: velocity=${item.velocityPercent}%, alert=${item.alert}`);
 }
-console.log('Alerts:', velocity.alerts);
+console.log('Summary:', velocity.summary);
 ```
 
 #### `client.analytics.getDiscovery(query)`
@@ -1346,9 +1363,9 @@ Get agent-taxonomy coverage matrix.
 ```typescript
 const matrix = await client.analytics.getAgentMatrix();
 console.log('Coverage matrix:', matrix.matrix);
-console.log('Blind spots:', matrix.blindSpots); // Domains not detected
-console.log('Single points:', matrix.singlePoints); // Only one agent detects
-console.log('High overlap:', matrix.highOverlap); // 3+ agents detect
+console.log('Blind spots:', matrix.analysis.blindSpots); // Domains not detected
+console.log('Single points:', matrix.analysis.singlePoints); // Only one agent detects
+console.log('High overlap:', matrix.analysis.highOverlap); // 3+ agents detect
 ```
 
 #### `client.analytics.getTrendSummary(query)`
@@ -1358,7 +1375,7 @@ Get general trend summary.
 ```typescript
 const trends = await client.analytics.getTrendSummary();
 for (const trend of trends) {
-  console.log(`${trend.metric}: ${trend.value} (${trend.change > 0 ? '+' : ''}${trend.change})`);
+  console.log(`${trend.period}: ${trend.newIssues} new, ${trend.resolvedIssues} resolved`);
 }
 ```
 

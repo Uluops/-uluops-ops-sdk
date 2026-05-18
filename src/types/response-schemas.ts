@@ -543,6 +543,15 @@ export const AgentPerformanceResponseSchema = z.object({
   totalIssuesFound: z.number().int().nonnegative(),
 });
 
+export const AgentLifecycleEntryResponseSchema = z.object({
+  name: z.string(),
+  definitionVersion: z.string(),
+  firstSeenAt: z.string(),
+  runs: z.number().int().nonnegative(),
+  avgScore: z.number(),
+  passRate: z.number(),
+});
+
 export const AgentReliabilityResponseSchema = z.object({
   name: z.string(),
   totalIssues: z.number().int().nonnegative(),

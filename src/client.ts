@@ -1,4 +1,4 @@
-import { OpsHttpClient } from './http/http-client.js';
+import { OpsHttpClient, type HttpClientConfig } from './http/http-client.js';
 import { JwtSessionAuth } from './http/auth-strategy.js';
 import * as authOps from './operations/auth.js';
 import * as projectOps from './operations/projects.js';
@@ -82,6 +82,7 @@ import type {
 import type {
   AnalyticsQuery,
   AgentInfo,
+  AgentLifecycleEntry,
   AgentReliabilityQuery,
   BurndownQuery,
   VelocityQuery,
@@ -107,30 +108,10 @@ import {
 import type { MessageResponse, DeleteResult } from './types/responses.js';
 
 /**
- * OpsClient configuration options
+ * OpsClient configuration options.
+ * Extends HttpClientConfig — all HTTP-level options are available here.
  */
-export interface OpsClientConfig {
-  /** API key for authentication (preferred) */
-  apiKey?: string;
-  /** Email for session-based auth */
-  email?: string;
-  /** Password for session-based auth */
-  password?: string;
-  /** Existing session token */
-  sessionToken?: string;
-  /** API base URL (defaults to https://api.uluops.ai/api/v1/ops; localhost:3100 when NODE_ENV=development) */
-  baseUrl?: string;
-  /** Request timeout in ms */
-  timeout?: number;
-  /** Number of retries for transient errors */
-  retries?: number;
-  /** Enable debug logging */
-  debug?: boolean;
-  /** Callback when session token is refreshed */
-  onTokenRefresh?: (token: string) => void;
-  /** Org slug for multi-tenancy — sets X-Org-Slug header on all requests */
-  orgSlug?: string;
-}
+export interface OpsClientConfig extends HttpClientConfig {}
 
 /**
  * Main SDK client for the UluOps validation tracker API.
@@ -431,7 +412,7 @@ export class OpsClient {
     getAgentReliability: (query?: AgentReliabilityQuery): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> =>
       analyticsOps.getAgentReliability(this.httpClient, query),
 
-    getAgentLifecycle: (agentName: string, query?: AnalyticsQuery): Promise<unknown> =>
+    getAgentLifecycle: (agentName: string, query?: AnalyticsQuery): Promise<AgentLifecycleEntry[]> =>
       analyticsOps.getAgentLifecycle(this.httpClient, agentName, query),
 
     getResolutionRates: (query?: AnalyticsQuery): Promise<z.infer<typeof ResolutionRateResponseSchema>[]> =>

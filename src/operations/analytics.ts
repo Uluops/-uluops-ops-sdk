@@ -4,6 +4,7 @@ import { toApiQuery } from '../http/http-client.js';
 import type {
   AnalyticsQuery,
   AgentInfo,
+  AgentLifecycleEntry,
   AgentReliabilityQuery,
   BurndownQuery,
   VelocityQuery,
@@ -12,6 +13,7 @@ import type {
 } from '../types/analytics.js';
 import {
   AgentPerformanceResponseSchema,
+  AgentLifecycleEntryResponseSchema,
   AgentReliabilityResultResponseSchema,
   ResolutionRateResponseSchema,
   FileHotspotResponseSchema,
@@ -59,10 +61,11 @@ export async function getAgentLifecycle(
   client: OpsHttpClient,
   agentName: string,
   query?: AnalyticsQuery,
-): Promise<unknown> {
+): Promise<AgentLifecycleEntry[]> {
   return client.get(
     `/agents/${encodeURIComponent(agentName)}/lifecycle`,
     toApiQuery(query),
+    { schema: z.array(AgentLifecycleEntryResponseSchema) }
   );
 }
 

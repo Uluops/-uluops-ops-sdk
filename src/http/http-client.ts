@@ -39,17 +39,27 @@ export function toApiQuery(query: object | undefined): _QP | undefined {
 }
 
 /**
- * HTTP client configuration
+ * HTTP client configuration — shared base for OpsClient and OpsHttpClient.
+ * OpsClientConfig extends this with higher-level options.
  */
 export interface HttpClientConfig {
+  /** API base URL (defaults to production; localhost:3100 when NODE_ENV=development) */
   baseUrl?: string;
+  /** Request timeout in ms */
   timeout?: number;
+  /** Number of retries for transient errors */
   retries?: number;
+  /** Enable debug logging */
   debug?: boolean;
+  /** API key for authentication (preferred) */
   apiKey?: string;
+  /** Email for session-based auth */
   email?: string;
+  /** Password for session-based auth */
   password?: string;
+  /** Existing session token */
   sessionToken?: string;
+  /** Callback when session token is refreshed */
   onTokenRefresh?: (token: string) => void;
   /** Org slug for multi-tenancy — sets X-Org-Slug header on all requests */
   orgSlug?: string;
