@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
@@ -63,6 +64,8 @@ export async function save(
   input: SaveRunInput
 ): Promise<SaveRunResponse> {
   validateSaveRunInput(input);
+  // Generate idempotency key if not provided — prevents duplicate runs on retry
+  const idempotencyKey = input.idempotencyKey ?? randomUUID();
   return client.post('/runs', {
     project: input.project,
     workflowType: input.workflowType,
@@ -71,7 +74,7 @@ export async function save(
     timestamp: input.timestamp,
     rawMarkdown: input.rawMarkdown,
     summary: input.summary,
-    idempotencyKey: input.idempotencyKey,
+    idempotencyKey,
     definitionType: input.definitionType,
     definitionName: input.definitionName,
     definitionVersion: input.definitionVersion,

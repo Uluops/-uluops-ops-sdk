@@ -125,6 +125,7 @@ export const AgentInputSchema = z.object({
   model: z.string().max(50).optional(),
   tokens: TokenUsageSchema.optional(),
   durationMs: z.number().int().nonnegative().optional(),
+  definitionVersion: z.string().max(50).optional(),
 });
 
 export const RecommendationInputSchema = z.object({
@@ -164,6 +165,7 @@ export const SaveRunInputSchema = z.object({
   definitionName: z.string().max(100).optional(),
   definitionVersion: z.string().max(50).optional(),
   definitionHash: z.string().max(64).optional(),
+  definitionId: z.string().uuid().optional(),
   definitionMinSubscription: z.enum(['free', 'hobbyist', 'plus', 'pro', 'enterprise']).optional(),
   analysisRecords: z.array(z.object({
     recordType: z.string().min(1),
