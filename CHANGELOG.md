@@ -4,6 +4,17 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.2] - 2026-05-18
+
+### Added
+- `client.auth.getAvatar()` — was implemented in `operations/auth.ts` but missing from the `OpsClient.auth` namespace
+
+### Fixed
+- `SDK_VERSION` constant synced to match `package.json` (was stuck at `1.4.0`)
+
+### Removed
+- Deprecated `validateSaveFeaturesListInput` alias — use `validateSaveRunInput` directly
+
 ## [1.8.1] - 2026-05-12
 
 ### Changed

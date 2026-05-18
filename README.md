@@ -410,6 +410,15 @@ await client.auth.resetPassword({
 });
 ```
 
+#### `client.auth.getAvatar()`
+
+Get the current user's avatar as binary data.
+
+```typescript
+const { data, contentType } = await client.auth.getAvatar();
+// data: ArrayBuffer, contentType: e.g. 'image/png'
+```
+
 #### `client.auth.deleteAvatar()`
 
 Delete the current user's avatar.
