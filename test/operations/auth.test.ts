@@ -307,4 +307,19 @@ describe('Auth Operations', () => {
       await expect(authOps.revokeSession(client, TEST_IDS.session1)).resolves.toBeUndefined();
     });
   });
+
+  describe('getAvatar', () => {
+    it('should fetch avatar as binary data', async () => {
+      const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+
+      nock(BASE_URL)
+        .get('/auth/avatar')
+        .reply(200, pngHeader, { 'content-type': 'image/png' });
+
+      const result = await authOps.getAvatar(client);
+
+      expect(result.contentType).toBe('image/png');
+      expect(result.data).toBeDefined();
+    });
+  });
 });

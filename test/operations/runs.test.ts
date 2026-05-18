@@ -718,6 +718,65 @@ describe('Run Operations', () => {
     });
   });
 
+  describe('getAgentRunsAnalysis', () => {
+    it('should get analysis summaries for a specific agent', async () => {
+      nock(BASE_URL)
+        .get('/agents/epictetus-validator/runs-analysis')
+        .query({ project: 'my-project' })
+        .reply(200, {
+          data: {
+            items: [
+              {
+                id: TEST_IDS.run1,
+                runId: TEST_IDS.run2,
+                agentName: 'epictetus-validator',
+                agentType: 'validator',
+                decision: 'FACTUAL',
+                score: 82,
+                decisionVocabulary: 'FACTUAL/INTERPRETED',
+                systemMetrics: null,
+                categoryScores: [{ name: 'Epistemic Hygiene', weight: 30, score: 25 }],
+                epistemicAssessment: null,
+                auditImplications: null,
+                explorationMaps: null,
+                createdAt: '2026-05-01T00:00:00Z',
+                runNumber: 5,
+                runTimestamp: '2026-05-01T00:00:00Z',
+                workflowType: 'post-implementation',
+                snapshotScore: 82,
+              },
+            ],
+            total: 1,
+          },
+        });
+
+      const result = await runOps.getAgentRunsAnalysis(client, 'epictetus-validator', {
+        project: 'my-project',
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].decision).toBe('FACTUAL');
+      expect(result.items[0].runNumber).toBe(5);
+      expect(result.items[0].workflowType).toBe('post-implementation');
+    });
+
+    it('should filter by decision', async () => {
+      nock(BASE_URL)
+        .get('/agents/code-validator/runs-analysis')
+        .query({ project: 'my-project', decision: 'PASS' })
+        .reply(200, { data: { items: [], total: 0 } });
+
+      const result = await runOps.getAgentRunsAnalysis(client, 'code-validator', {
+        project: 'my-project',
+        decision: 'PASS',
+      });
+
+      expect(result.total).toBe(0);
+      expect(result.items).toHaveLength(0);
+    });
+  });
+
   describe('archive invalid input', () => {
     it('should reject archive with missing project', async () => {
       await expect(

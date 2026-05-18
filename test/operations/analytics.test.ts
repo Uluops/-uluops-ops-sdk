@@ -17,6 +17,7 @@ import {
   DiscoveryResultResponseSchema,
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
+  AgentLifecycleEntryResponseSchema,
 } from '../contract-helpers.js';
 
 describe('Analytics Operations', () => {
@@ -477,6 +478,40 @@ describe('Analytics Operations', () => {
 
       expect(agents).toHaveLength(1);
       expect(agents[0].name).toBe('code-validator');
+    });
+  });
+
+  describe('getAgentLifecycle', () => {
+    it('should get lifecycle entries for an agent', async () => {
+      mockValidatedListEndpoint(
+        BASE_URL, 'get', '/agents/code-validator/lifecycle',
+        [
+          { name: 'code-validator', definitionVersion: '1.0.0', firstSeenAt: '2026-01-01T00:00:00Z', runs: 50, avgScore: 88.5, passRate: 95 },
+          { name: 'code-validator', definitionVersion: '1.1.0', firstSeenAt: '2026-03-01T00:00:00Z', runs: 30, avgScore: 91.2, passRate: 97 },
+        ],
+        AgentLifecycleEntryResponseSchema,
+      );
+
+      const lifecycle = await analyticsOps.getAgentLifecycle(client, 'code-validator');
+
+      expect(lifecycle).toHaveLength(2);
+      expect(lifecycle[0].definitionVersion).toBe('1.0.0');
+      expect(lifecycle[0].runs).toBe(50);
+      expect(lifecycle[1].avgScore).toBe(91.2);
+    });
+
+    it('should filter by project', async () => {
+      nock(BASE_URL)
+        .get('/agents/test-architect/lifecycle')
+        .query({ project: 'my-project' })
+        .reply(200, {
+          data: [{ name: 'test-architect', definitionVersion: '1.0.0', firstSeenAt: '2026-01-01T00:00:00Z', runs: 10, avgScore: 82, passRate: 90 }],
+        });
+
+      const lifecycle = await analyticsOps.getAgentLifecycle(client, 'test-architect', { project: 'my-project' });
+
+      expect(lifecycle).toHaveLength(1);
+      expect(lifecycle[0].name).toBe('test-architect');
     });
   });
 

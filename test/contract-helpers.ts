@@ -54,6 +54,8 @@ import {
   DiscoveryResultResponseSchema,
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
+  AgentLifecycleEntryResponseSchema,
+  AgentRunsAnalysisResponseSchema,
   createApiResponseSchema,
   createListResponseSchema,
 } from '../src/types/response-schemas.js';
@@ -1135,6 +1137,8 @@ export {
   DiscoveryResultResponseSchema,
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
+  AgentLifecycleEntryResponseSchema,
+  AgentRunsAnalysisResponseSchema,
   createApiResponseSchema,
   createListResponseSchema,
 };
