@@ -77,7 +77,7 @@ function validate<T>(schema: z.ZodType<T>, data: unknown, context: string): T {
  * @returns Validated `RegisterInput`
  * @throws {InputValidationError} If email is invalid or password doesn't meet requirements
  */
-export function validateRegisterInput(data: unknown) {
+export function validateRegisterInput(data: unknown): z.infer<typeof RegisterInputSchema> {
   return validate(RegisterInputSchema, data, 'register input');
 }
 
@@ -87,7 +87,7 @@ export function validateRegisterInput(data: unknown) {
  * @returns Validated `LoginInput`
  * @throws {InputValidationError} If email or password is missing
  */
-export function validateLoginInput(data: unknown) {
+export function validateLoginInput(data: unknown): z.infer<typeof LoginInputSchema> {
   return validate(LoginInputSchema, data, 'login input');
 }
 
@@ -97,7 +97,7 @@ export function validateLoginInput(data: unknown) {
  * @returns Validated `UpdateProfileInput`
  * @throws {InputValidationError} If no fields provided, or username doesn't match `^[a-z][a-z0-9_]{2,29}$`
  */
-export function validateUpdateProfileInput(data: unknown) {
+export function validateUpdateProfileInput(data: unknown): z.infer<typeof UpdateProfileInputSchema> {
   return validate(UpdateProfileInputSchema, data, 'profile update');
 }
 
@@ -107,7 +107,7 @@ export function validateUpdateProfileInput(data: unknown) {
  * @returns Validated `ChangePasswordInput`
  * @throws {InputValidationError} If current password missing or new password doesn't meet requirements
  */
-export function validateChangePasswordInput(data: unknown) {
+export function validateChangePasswordInput(data: unknown): z.infer<typeof ChangePasswordInputSchema> {
   return validate(ChangePasswordInputSchema, data, 'password change');
 }
 
@@ -117,7 +117,7 @@ export function validateChangePasswordInput(data: unknown) {
  * @returns Validated `ResetPasswordInput`
  * @throws {InputValidationError} If token missing or password doesn't meet requirements
  */
-export function validateResetPasswordInput(data: unknown) {
+export function validateResetPasswordInput(data: unknown): z.infer<typeof ResetPasswordInputSchema> {
   return validate(ResetPasswordInputSchema, data, 'password reset');
 }
 
@@ -127,7 +127,7 @@ export function validateResetPasswordInput(data: unknown) {
  * @returns Validated `CreateApiKeyInput`
  * @throws {InputValidationError} If name exceeds 100 chars or expiresAt is not valid ISO 8601
  */
-export function validateCreateApiKeyInput(data: unknown) {
+export function validateCreateApiKeyInput(data: unknown): z.infer<typeof CreateApiKeyInputSchema> {
   return validate(CreateApiKeyInputSchema, data, 'API key creation');
 }
 
@@ -141,7 +141,7 @@ export function validateCreateApiKeyInput(data: unknown) {
  * @returns Validated `CreateProjectInput`
  * @throws {InputValidationError} If name is empty or exceeds 200 chars
  */
-export function validateCreateProjectInput(data: unknown) {
+export function validateCreateProjectInput(data: unknown): z.infer<typeof CreateProjectInputSchema> {
   return validate(CreateProjectInputSchema, data, 'project creation');
 }
 
@@ -151,7 +151,7 @@ export function validateCreateProjectInput(data: unknown) {
  * @returns Validated `DeleteProjectInput`
  * @throws {InputValidationError} If confirm is not `true` or confirmationPhrase is missing
  */
-export function validateDeleteProjectInput(data: unknown) {
+export function validateDeleteProjectInput(data: unknown): z.infer<typeof DeleteProjectInputSchema> {
   return validate(DeleteProjectInputSchema, data, 'project deletion');
 }
 
@@ -161,7 +161,7 @@ export function validateDeleteProjectInput(data: unknown) {
  * @returns Validated `RenameProjectInput`
  * @throws {InputValidationError} If either name is empty or newName exceeds 200 chars
  */
-export function validateRenameProjectInput(data: unknown) {
+export function validateRenameProjectInput(data: unknown): z.infer<typeof RenameProjectInputSchema> {
   return validate(RenameProjectInputSchema, data, 'project rename');
 }
 
@@ -178,7 +178,7 @@ export function validateRenameProjectInput(data: unknown) {
  * @returns Validated `SaveRunInput`
  * @throws {InputValidationError} If required fields missing, agents empty, or field constraints violated
  */
-export function validateSaveRunInput(data: unknown) {
+export function validateSaveRunInput(data: unknown): z.infer<typeof SaveRunInputSchema> {
   return validate(SaveRunInputSchema, data, 'save run');
 }
 
@@ -189,7 +189,7 @@ export function validateSaveRunInput(data: unknown) {
  * @returns Validated `ArchiveRunsInput`
  * @throws {InputValidationError} If project missing or filter constraints violated
  */
-export function validateArchiveRunsInput(data: unknown) {
+export function validateArchiveRunsInput(data: unknown): z.infer<typeof ArchiveRunsInputSchema> {
   return validate(ArchiveRunsInputSchema, data, 'archive runs');
 }
 
@@ -206,7 +206,7 @@ export function validateArchiveRunsInput(data: unknown) {
  * @returns Validated `CreateUserIssueInput`
  * @throws {InputValidationError} If required fields missing or constraints violated
  */
-export function validateCreateUserIssueInput(data: unknown) {
+export function validateCreateUserIssueInput(data: unknown): z.infer<typeof CreateUserIssueInputSchema> {
   return validate(CreateUserIssueInputSchema, data, 'issue creation');
 }
 
@@ -216,7 +216,7 @@ export function validateCreateUserIssueInput(data: unknown) {
  * @returns Validated `UpdateIssueInput`
  * @throws {InputValidationError} If any provided field violates its constraints
  */
-export function validateUpdateIssueInput(data: unknown) {
+export function validateUpdateIssueInput(data: unknown): z.infer<typeof UpdateIssueInputSchema> {
   return validate(UpdateIssueInputSchema, data, 'issue update');
 }
 
@@ -226,7 +226,7 @@ export function validateUpdateIssueInput(data: unknown) {
  * @returns Validated `UpdateIssueStatusInput`
  * @throws {InputValidationError} If status is not a valid Status enum value
  */
-export function validateUpdateIssueStatusInput(data: unknown) {
+export function validateUpdateIssueStatusInput(data: unknown): z.infer<typeof UpdateIssueStatusInputSchema> {
   return validate(UpdateIssueStatusInputSchema, data, 'status update');
 }
 
@@ -236,7 +236,7 @@ export function validateUpdateIssueStatusInput(data: unknown) {
  * @returns Validated `CreateIssueNoteInput`
  * @throws {InputValidationError} If content is empty or exceeds 10000 chars
  */
-export function validateCreateIssueNoteInput(data: unknown) {
+export function validateCreateIssueNoteInput(data: unknown): z.infer<typeof CreateIssueNoteInputSchema> {
   return validate(CreateIssueNoteInputSchema, data, 'issue note');
 }
 
@@ -246,7 +246,7 @@ export function validateCreateIssueNoteInput(data: unknown) {
  * @returns Validated bulk update input
  * @throws {InputValidationError} If updates array is empty, exceeds 100 items, or any item has invalid status
  */
-export function validateBulkStatusUpdateInput(data: unknown) {
+export function validateBulkStatusUpdateInput(data: unknown): z.infer<typeof BulkStatusUpdateInputSchema> {
   return validate(BulkStatusUpdateInputSchema, data, 'bulk status update');
 }
 

@@ -26,6 +26,7 @@ import {
   IssueResponseSchema,
   BulkStatusUpdateResultResponseSchema,
   MergeIssuesResultResponseSchema,
+  DeleteResultResponseSchema,
 } from '../types/response-schemas.js';
 import {
   validateCreateProjectInput,
@@ -133,11 +134,10 @@ async function deleteWithConfirmation(
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  await client.delete(path, {
+  return client.delete(path, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
-  });
-  return { deleted: true };
+  }, { schema: DeleteResultResponseSchema });
 }
 
 /**

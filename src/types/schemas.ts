@@ -60,7 +60,7 @@ export const UpdateProfileInputSchema = z
     bio: z.string().max(500).nullish(),
     timezone: z.string().nullish(),
     websiteUrl: z.string().url().max(500).nullish(),
-    avatar: z.string().nullish(), // base64
+    avatar: z.string().max(2_000_000).nullish(), // base64
     avatarMimeType: AvatarMimeTypeSchema.nullish(),
   })
   .refine((data) => Object.values(data).some((v) => v !== undefined), {
@@ -153,7 +153,7 @@ export const SaveRunInputSchema = z.object({
   agents: z.array(AgentInputSchema).min(1),
   recommendations: z.array(RecommendationInputSchema),
   timestamp: z.string().datetime().optional(),
-  rawMarkdown: z.string().optional(),
+  rawMarkdown: z.string().max(500_000).optional(),
   summary: z
     .object({
       allGatesPassed: z.boolean().optional(),
@@ -264,7 +264,10 @@ export const BulkStatusUpdateItemSchema = z.object({
   id: UuidSchema.optional(),
   status: StatusSchema,
   reason: z.string().max(500).optional(),
-});
+}).refine(
+  (item) => item.issueId || item.id,
+  { message: 'Either issueId or id must be provided', path: ['issueId'] }
+);
 
 export const BulkStatusUpdateInputSchema = z.object({
   updates: z.array(BulkStatusUpdateItemSchema).min(1).max(100),
