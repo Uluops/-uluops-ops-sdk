@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
-**Current version: 1.8.6** | [Changelog](./CHANGELOG.md)
+**Current version: 1.8.9** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -682,9 +682,9 @@ const result = await client.projects.mergeIssues('my-project', {
 
 Save and manage validation runs.
 
-#### `client.runs.save(input)`
+#### `client.runs.save(input, options?)`
 
-Save a new validation run.
+Save a new validation run. Pass `{ skipValidation: true }` as the second argument to bypass client-side Zod validation (useful when input is already validated by an upstream layer like MCP).
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -748,9 +748,9 @@ console.log(`Run #${result.run.runNumber} saved`);
 console.log(`Issues: ${result.correlation.newIssues} new, ${result.correlation.recurringIssues} recurring`);
 ```
 
-#### `client.runs.validate(input)`
+#### `client.runs.validate(input, options?)`
 
-Preview what a save would do without persisting.
+Preview what a save would do without persisting. Accepts same `{ skipValidation: true }` option as `save()`.
 
 ```typescript
 const preview = await client.runs.validate({
@@ -852,9 +852,9 @@ const result = await client.runs.archive({
 console.log(`Archived ${result.archived} runs`);
 ```
 
-#### `client.runs.update(input)`
+#### `client.runs.update(input, options?)`
 
-Update run metadata (tokens, scores).
+Update run metadata (tokens, scores). Accepts `{ skipValidation: true }` option.
 
 ```typescript
 const run = await client.runs.update({
@@ -866,9 +866,9 @@ const run = await client.runs.update({
 });
 ```
 
-#### `client.runs.updateById(runId, input)`
+#### `client.runs.updateById(runId, input, options?)`
 
-Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0).
+Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0). Accepts `{ skipValidation: true }` option.
 
 ```typescript
 // Basic metadata update

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.9] - 2026-05-19
+
+### Added
+- `skipValidation` option on `runs.save()`, `runs.validate()`, `runs.update()`, and `runs.updateById()` — pass `{ skipValidation: true }` as the second (or third) argument to bypass client-side Zod validation. Designed for MCP and other pre-validated callers that already validate input before reaching the SDK, avoiding redundant double validation.
+
 ## [1.8.8] - 2026-05-19
 
 ### Fixed

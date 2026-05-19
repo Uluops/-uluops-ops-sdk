@@ -327,11 +327,11 @@ export class OpsClient {
 
   /** Validation run save, preview, diff, archive, and retrieval */
   readonly runs = {
-    save: (input: SaveRunInput): Promise<SaveRunResponse> =>
-      runOps.save(this.httpClient, input),
+    save: (input: SaveRunInput, options?: { skipValidation?: boolean }): Promise<SaveRunResponse> =>
+      runOps.save(this.httpClient, input, options),
 
-    validate: (input: SaveRunInput): Promise<ValidateRunResponse> =>
-      runOps.validate(this.httpClient, input),
+    validate: (input: SaveRunInput, options?: { skipValidation?: boolean }): Promise<ValidateRunResponse> =>
+      runOps.validate(this.httpClient, input, options),
 
     diff: (query: RunDiffQuery): Promise<RunDiffResult> =>
       runOps.diff(this.httpClient, query),
@@ -339,8 +339,8 @@ export class OpsClient {
     archive: (input: ArchiveRunsInput): Promise<ArchiveRunsResult> =>
       runOps.archive(this.httpClient, input),
 
-    update: (input: UpdateRunByNumberInput): Promise<Run> =>
-      runOps.update(this.httpClient, input),
+    update: (input: UpdateRunByNumberInput, options?: { skipValidation?: boolean }): Promise<Run> =>
+      runOps.update(this.httpClient, input, options),
 
     listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
       runOps.listByProject(this.httpClient, projectId, query),
@@ -354,8 +354,8 @@ export class OpsClient {
     get: (runId: string): Promise<Run> =>
       runOps.get(this.httpClient, runId),
 
-    updateById: (runId: string, input: UpdateRunInput): Promise<Run> =>
-      runOps.updateById(this.httpClient, runId, input),
+    updateById: (runId: string, input: UpdateRunInput, options?: { skipValidation?: boolean }): Promise<Run> =>
+      runOps.updateById(this.httpClient, runId, input, options),
 
     delete: (runId: string): Promise<DeleteResult> =>
       runOps.deleteRun(this.httpClient, runId),

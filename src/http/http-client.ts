@@ -70,11 +70,19 @@ export interface HttpClientConfig {
   orgSlug?: string;
 }
 
+/** Alphanumeric + hyphens/underscores, 1–100 chars */
+const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
+
 /**
  * HTTP client for ops-uluops-api using native fetch
  */
 export class OpsHttpClient extends HttpClient {
   constructor(config: HttpClientConfig = {}) {
+    if (config.orgSlug && !ORG_SLUG_PATTERN.test(config.orgSlug)) {
+      throw new Error(
+        'Invalid orgSlug: must be 1-100 alphanumeric characters, hyphens, or underscores'
+      );
+    }
     super({
       ...config,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
