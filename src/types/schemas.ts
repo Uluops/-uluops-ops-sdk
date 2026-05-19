@@ -151,6 +151,34 @@ export const RecommendationInputSchema = z.object({
   taxonomyVersion: z.string().max(50).optional(),
 });
 
+/** Single analysis summary entry — shared base for single-object and per-agent array variants */
+export const AnalysisSummaryEntrySchema = z.object({
+  agentName: z.string().max(100).optional(),
+  decision: z.string().min(1).max(50),
+  score: z.number().min(0).max(100),
+  decisionVocabulary: z.string().max(100).nullish(),
+  systemMetrics: z.record(z.string(), z.unknown()).nullish(),
+  categoryScores: z.array(z.object({
+    name: z.string().max(100),
+    weight: z.number().min(1),
+    score: z.number().min(0),
+  })).max(50).nullish(),
+  epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
+  auditImplications: z.array(z.string().max(500)).max(50).nullish(),
+  explorationMaps: z.array(z.object({
+    metadata: z.object({
+      explorerName: z.string().max(100),
+      framework: z.string().max(100),
+      artifactPath: z.string().max(500).optional(),
+    }),
+    sections: z.array(z.object({
+      type: z.string().max(50),
+      label: z.string().max(200),
+      summary: z.string().max(2000).optional(),
+    }).passthrough()).max(100),
+  })).max(50).optional(),
+});
+
 export const SaveRunInputSchema = z.object({
   project: z.string().min(1).max(200),
   workflowType: z.string().min(1).max(100),
@@ -180,58 +208,8 @@ export const SaveRunInputSchema = z.object({
     data: z.record(z.string(), z.unknown()),
   })).max(100).optional(),
   analysisSummary: z.union([
-    z.object({
-      agentName: z.string().max(100).optional(),
-      decision: z.string().min(1).max(50),
-      score: z.number().min(0).max(100),
-      decisionVocabulary: z.string().max(100).nullish(),
-      systemMetrics: z.record(z.string(), z.unknown()).nullish(),
-      categoryScores: z.array(z.object({
-        name: z.string().max(100),
-        weight: z.number().min(1),
-        score: z.number().min(0),
-      })).max(50).nullish(),
-      epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
-      auditImplications: z.array(z.string().max(500)).max(50).nullish(),
-      explorationMaps: z.array(z.object({
-        metadata: z.object({
-          explorerName: z.string().max(100),
-          framework: z.string().max(100),
-          artifactPath: z.string().max(500).optional(),
-        }),
-        sections: z.array(z.object({
-          type: z.string().max(50),
-          label: z.string().max(200),
-          summary: z.string().max(2000).optional(),
-        }).passthrough()).max(100),
-      })).max(50).optional(),
-    }),
-    z.array(z.object({
-      agentName: z.string().max(100).optional(),
-      decision: z.string().min(1).max(50),
-      score: z.number().min(0).max(100),
-      decisionVocabulary: z.string().max(100).nullish(),
-      systemMetrics: z.record(z.string(), z.unknown()).nullish(),
-      categoryScores: z.array(z.object({
-        name: z.string().max(100),
-        weight: z.number().min(1),
-        score: z.number().min(0),
-      })).max(50).nullish(),
-      epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
-      auditImplications: z.array(z.string().max(500)).max(50).nullish(),
-      explorationMaps: z.array(z.object({
-        metadata: z.object({
-          explorerName: z.string().max(100),
-          framework: z.string().max(100),
-          artifactPath: z.string().max(500).optional(),
-        }),
-        sections: z.array(z.object({
-          type: z.string().max(50),
-          label: z.string().max(200),
-          summary: z.string().max(2000).optional(),
-        }).passthrough()).max(100),
-      })).max(50).optional(),
-    })).max(20),
+    AnalysisSummaryEntrySchema,
+    z.array(AnalysisSummaryEntrySchema).max(20),
   ]).optional(),
 });
 

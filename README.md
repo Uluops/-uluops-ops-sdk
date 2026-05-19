@@ -103,11 +103,11 @@ The UluOps SDK provides programmatic access to the UluOps validation tracker API
 - **Analyze Trends**: Get burndown charts, velocity metrics, and taxonomy distribution analytics
 - **Automate Workflows**: Integrate validation tracking into CI/CD pipelines
 
-The SDK covers **83 API methods** across 7 operation domains with full TypeScript support.
+The SDK covers **75 methods** across 7 operation domains with full TypeScript support.
 
 ## Features
 
-- **Full API Coverage**: Access all 83 methods across auth, projects, runs, issues, analytics, and taxonomy domains
+- **Full API Coverage**: 75 methods across auth, projects, runs, issues, analytics, and taxonomy domains
 - **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429)
