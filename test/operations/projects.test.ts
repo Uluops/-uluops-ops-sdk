@@ -384,7 +384,7 @@ describe('Project Operations', () => {
 
       await expect(
         projectOps.listIssuesWithCount(client, TEST_IDS.proj1)
-      ).rejects.toThrow(/expected number, received undefined/);
+      ).rejects.toThrow(/validation failed/);
     });
   });
 

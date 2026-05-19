@@ -18,6 +18,9 @@ import {
 } from '../src/http/auth-strategy.js';
 import { BASE_URL, TEST_API_KEY, TEST_API_KEY_SHORT } from './setup.js';
 
+/** Fake JWT that passes structural validation (three dot-delimited segments) */
+const FAKE_JWT = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.fake-signature';
+
 describe('OpsHttpClient', () => {
   let client: OpsHttpClient;
 
@@ -601,13 +604,13 @@ describe('OpsHttpClient', () => {
       // because createAuthStrategy stores empty credentials
       const sessionClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        sessionToken: 'static-token',
+        sessionToken: FAKE_JWT,
       });
 
       // Request fails with 401
       nock(BASE_URL)
         .get('/protected')
-        .matchHeader('Authorization', 'Bearer static-token')
+        .matchHeader('Authorization', `Bearer ${FAKE_JWT}`)
         .reply(401, { error: { message: 'Token expired' } });
 
       // Refresh attempt goes through createFetchClient() which uses new URL(path, baseUrl),
@@ -620,7 +623,7 @@ describe('OpsHttpClient', () => {
     it('should report session type for session auth', () => {
       const sessionClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        sessionToken: 'some-token',
+        sessionToken: FAKE_JWT,
       });
 
       const strategy = sessionClient.getAuthStrategy();
@@ -632,7 +635,7 @@ describe('OpsHttpClient', () => {
     it('should be refreshable when session auth includes email/password', () => {
       const sessionClient = new OpsHttpClient({
         baseUrl: BASE_URL,
-        sessionToken: 'some-token',
+        sessionToken: FAKE_JWT,
         email: 'user@test.com',
         password: 'pass123',
       });
@@ -730,13 +733,13 @@ describe('JwtSessionAuth', () => {
       mockHttpClient,
       { email: 'test@example.com', password: 'pass' },
       undefined,
-      'initial-token'
+      FAKE_JWT
     );
-    expect(auth.getAuthorizationHeader()).toBe('Bearer initial-token');
+    expect(auth.getAuthorizationHeader()).toBe(`Bearer ${FAKE_JWT}`);
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.getType()).toBe('session');
     expect(auth.canRefresh()).toBe(true);
-    expect(auth.getSessionToken()).toBe('initial-token');
+    expect(auth.getSessionToken()).toBe(FAKE_JWT);
   });
 
   it('should create auth without initial token (not authenticated)', () => {
@@ -754,7 +757,7 @@ describe('JwtSessionAuth', () => {
     mockHttpClient.post.mockResolvedValue({
       data: {
         data: {
-          sessionToken: 'new-session-token',
+          sessionToken: FAKE_JWT,
           expiresAt: futureDate,
         },
       },
@@ -767,10 +770,10 @@ describe('JwtSessionAuth', () => {
 
     const token = await auth.login();
 
-    expect(token).toBe('new-session-token');
-    expect(auth.getSessionToken()).toBe('new-session-token');
+    expect(token).toBe(FAKE_JWT);
+    expect(auth.getSessionToken()).toBe(FAKE_JWT);
     expect(auth.isAuthenticated()).toBe(true);
-    expect(auth.getAuthorizationHeader()).toBe('Bearer new-session-token');
+    expect(auth.getAuthorizationHeader()).toBe(`Bearer ${FAKE_JWT}`);
     expect(mockHttpClient.post).toHaveBeenCalledWith('/auth/login', {
       email: 'test@example.com',
       password: 'pass',
@@ -782,7 +785,7 @@ describe('JwtSessionAuth', () => {
     mockHttpClient.post.mockResolvedValue({
       data: {
         data: {
-          sessionToken: 'refreshed-token',
+          sessionToken: FAKE_JWT,
           expiresAt: new Date(Date.now() + 3600000).toISOString(),
         },
       },
@@ -796,7 +799,7 @@ describe('JwtSessionAuth', () => {
 
     await auth.login();
 
-    expect(onRefresh).toHaveBeenCalledWith('refreshed-token');
+    expect(onRefresh).toHaveBeenCalledWith(FAKE_JWT);
   });
 
   it('should detect expired token in isAuthenticated', () => {
@@ -804,7 +807,7 @@ describe('JwtSessionAuth', () => {
       mockHttpClient,
       { email: 'test@example.com', password: 'pass' },
       undefined,
-      'expired-token'
+      FAKE_JWT
     );
 
     // Manually set expiration to the past
@@ -819,7 +822,7 @@ describe('JwtSessionAuth', () => {
       mockHttpClient,
       { email: 'test@example.com', password: 'pass' },
       undefined,
-      'active-token'
+      FAKE_JWT
     );
 
     expect(auth.isAuthenticated()).toBe(true);
@@ -835,7 +838,7 @@ describe('JwtSessionAuth', () => {
     mockHttpClient.post.mockResolvedValue({
       data: {
         data: {
-          sessionToken: 'refreshed-token',
+          sessionToken: FAKE_JWT,
           expiresAt: new Date(Date.now() + 3600000).toISOString(),
         },
       },
@@ -845,12 +848,12 @@ describe('JwtSessionAuth', () => {
       mockHttpClient,
       { email: 'test@example.com', password: 'pass' },
       undefined,
-      'old-token'
+      FAKE_JWT
     );
 
     await auth.refresh();
 
-    expect(auth.getSessionToken()).toBe('refreshed-token');
+    expect(auth.getSessionToken()).toBe(FAKE_JWT);
   });
 });
 
@@ -876,12 +879,12 @@ describe('createAuthStrategy', () => {
 
   it('should use session token when no API key', () => {
     const strategy = createAuthStrategy({
-      sessionToken: 'session-token',
+      sessionToken: FAKE_JWT,
       httpClient: mockHttpClient,
     });
 
     expect(strategy.getType()).toBe('session');
-    expect(strategy.getAuthorizationHeader()).toBe('Bearer session-token');
+    expect(strategy.getAuthorizationHeader()).toBe(`Bearer ${FAKE_JWT}`);
   });
 
   it('should use email/password when no API key or session', () => {

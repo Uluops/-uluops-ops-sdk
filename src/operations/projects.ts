@@ -245,7 +245,8 @@ const PaginatedIssuesEnvelopeSchema = z.object({
  * List issues in a project with count (preserves pagination count from API envelope).
  *
  * @remarks
- * Uses `requestRaw` to access the `count` field outside the `data` envelope.
+ * Uses `rawEnvelope` to access the `count` field outside the `data` envelope
+ * while retaining automatic retry and token refresh.
  * For access without count, use {@link listIssues}.
  *
  * @param client - HTTP client instance
@@ -258,11 +259,11 @@ export async function listIssuesWithCount(
   idOrName: string,
   query?: ListProjectIssuesQuery
 ): Promise<PaginatedIssues> {
-  const response = await client.requestRaw(
+  const response = await client.request<z.infer<typeof PaginatedIssuesEnvelopeSchema>>(
     'GET',
     `/projects/${encodeURIComponent(idOrName)}/issues`,
     buildIssueListParams(query),
-    { schema: PaginatedIssuesEnvelopeSchema }
+    { schema: PaginatedIssuesEnvelopeSchema, rawEnvelope: true }
   );
   return { issues: response.data, count: response.count };
 }

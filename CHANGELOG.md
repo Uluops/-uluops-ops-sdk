@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.8] - 2026-05-19
+
+### Fixed
+- `listIssuesWithCount` now uses `request()` with `rawEnvelope` instead of `requestRaw()` — gains automatic retry on transient errors (502/503/504) and token refresh on 401. Previously, paginating through issues would silently fail on token expiry while all other methods auto-refreshed.
+- Pinned `@uluops/sdk-core` to `^0.5.6` — picks up `rawEnvelope` option on `request()`
+- Test tokens updated to pass sdk-core 0.5.4+ JWT structural validation
+
 ## [1.8.7] - 2026-05-19
 
 ### Fixed
