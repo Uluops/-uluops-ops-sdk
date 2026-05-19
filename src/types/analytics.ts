@@ -1,5 +1,17 @@
 import type { z } from 'zod';
-import type { AgentPerformanceResponseSchema } from './response-schemas.js';
+import type {
+  AgentPerformanceResponseSchema,
+  AgentReliabilityResultResponseSchema,
+  ResolutionRateResponseSchema,
+  FileHotspotResponseSchema,
+  TaxonomyDistributionResponseSchema,
+  FullTaxonomyAnalyticsResponseSchema,
+  BurndownResultResponseSchema,
+  VelocityResultResponseSchema,
+  DiscoveryResultResponseSchema,
+  AgentMatrixResultResponseSchema,
+  TrendSummaryResponseSchema,
+} from './response-schemas.js';
 import type { FailureDomain, Trend, Granularity, DiscoveryGroupBy } from './enums.js';
 
 /**
@@ -481,6 +493,41 @@ export interface CategoryPerformanceEntry {
   resolutionRate: number;
   avgTimeToResolveDays: number | null;
 }
+
+// ============================================
+// RESPONSE TYPE ALIASES
+// Named aliases for z.infer<typeof Schema> — improves AI/IDE discoverability
+// ============================================
+
+/** Agent reliability result from `GET /analytics/agent-reliability` */
+export type AgentReliabilityResult = z.infer<typeof AgentReliabilityResultResponseSchema>;
+
+/** Resolution rate entry from `GET /analytics/resolution-rates` */
+export type ResolutionRateResult = z.infer<typeof ResolutionRateResponseSchema>;
+
+/** File hotspot entry from `GET /analytics/file-hotspots` */
+export type FileHotspotResult = z.infer<typeof FileHotspotResponseSchema>;
+
+/** Taxonomy distribution entry from `GET /analytics/taxonomy` */
+export type TaxonomyDistributionResult = z.infer<typeof TaxonomyDistributionResponseSchema>;
+
+/** Full taxonomy analytics from `GET /analytics/taxonomy/full` */
+export type FullTaxonomyAnalyticsResult = z.infer<typeof FullTaxonomyAnalyticsResponseSchema>;
+
+/** Burndown result from `GET /analytics/burndown` */
+export type BurndownResultResponse = z.infer<typeof BurndownResultResponseSchema>;
+
+/** Velocity result from `GET /analytics/velocity` */
+export type VelocityResultResponse = z.infer<typeof VelocityResultResponseSchema>;
+
+/** Discovery result from `GET /analytics/discovery` */
+export type DiscoveryResultResponse = z.infer<typeof DiscoveryResultResponseSchema>;
+
+/** Agent matrix result from `GET /analytics/agent-matrix` */
+export type AgentMatrixResultResponse = z.infer<typeof AgentMatrixResultResponseSchema>;
+
+/** Trend summary entry from `GET /analytics/trends` */
+export type TrendSummaryResult = z.infer<typeof TrendSummaryResponseSchema>;
 
 // ============================================
 // TAXONOMY

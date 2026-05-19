@@ -44,7 +44,13 @@ export type Severity = (typeof Severity)[keyof typeof Severity];
 export const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
 
 /**
- * Failure taxonomy domains
+ * Failure taxonomy domains.
+ *
+ * The canonical taxonomy is server-authoritative — use `client.taxonomy.get()`
+ * to fetch the full taxonomy with modes and descriptions. These client-side
+ * constants must stay in sync with the API's `GET /taxonomy` response.
+ *
+ * @see {@link https://docs.uluops.ai/specs/failure-taxonomy} for the taxonomy specification
  */
 export const FailureDomain = {
   STR: 'STR', // Structural

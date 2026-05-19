@@ -2,6 +2,7 @@ import { OpsHttpClient, type HttpClientConfig } from './http/http-client.js';
 import { createLogger } from '@uluops/sdk-core/utils';
 import { JwtSessionAuth } from './http/auth-strategy.js';
 import { loadCredentials } from './config/loaders.js';
+import { DEFAULT_BASE_URL, ENV_VARS } from './config/constants.js';
 import * as authOps from './operations/auth.js';
 import * as projectOps from './operations/projects.js';
 import * as runOps from './operations/runs.js';
@@ -81,6 +82,7 @@ import type {
 
 import type {
   AnalyticsQuery,
+  AgentPerformance,
   AgentInfo,
   AgentLifecycleEntry,
   AgentReliabilityQuery,
@@ -89,22 +91,17 @@ import type {
   DiscoveryQuery,
   AgentMatrixQuery,
   TaxonomyResponse,
+  AgentReliabilityResult,
+  ResolutionRateResult,
+  FileHotspotResult,
+  TaxonomyDistributionResult,
+  FullTaxonomyAnalyticsResult,
+  BurndownResultResponse,
+  VelocityResultResponse,
+  DiscoveryResultResponse,
+  AgentMatrixResultResponse,
+  TrendSummaryResult,
 } from './types/analytics.js';
-
-import { type z } from 'zod';
-import {
-  AgentPerformanceResponseSchema,
-  AgentReliabilityResultResponseSchema,
-  ResolutionRateResponseSchema,
-  FileHotspotResponseSchema,
-  TaxonomyDistributionResponseSchema,
-  FullTaxonomyAnalyticsResponseSchema,
-  BurndownResultResponseSchema,
-  VelocityResultResponseSchema,
-  DiscoveryResultResponseSchema,
-  AgentMatrixResultResponseSchema,
-  TrendSummaryResponseSchema,
-} from './types/response-schemas.js';
 
 import type { MessageResponse, DeleteResult } from './types/responses.js';
 
@@ -151,9 +148,14 @@ export class OpsClient {
       else if (creds.email && creds.password) config = { ...config, email: creds.email, password: creds.password };
     }
     this.httpClient = new OpsHttpClient(config);
+    const logger = createLogger('ops-sdk', config.debug ?? false);
+    const resolvedUrl = config.baseUrl ?? DEFAULT_BASE_URL;
+    logger.debug(`Initialized — baseUrl=${resolvedUrl}`);
     if (!this.isAuthenticated() && !(config.email && config.password)) {
-      const logger = createLogger('ops-sdk', config.debug ?? false);
-      logger.warn('No credentials found — call client.login() or set ULUOPS_API_KEY before making API requests.');
+      logger.warn(
+        `No credentials found (checked: constructor config, ${ENV_VARS.API_KEY} env, .env files, ~/.uluops/credentials.json). ` +
+        'Call client.login() or set ULUOPS_API_KEY before making API requests.'
+      );
     }
   }
 
@@ -429,40 +431,40 @@ export class OpsClient {
 
   /** Agent performance, taxonomy analytics, burndown, velocity, and discovery */
   readonly analytics = {
-    getAgentPerformance: (query?: AnalyticsQuery): Promise<z.infer<typeof AgentPerformanceResponseSchema>[]> =>
+    getAgentPerformance: (query?: AnalyticsQuery): Promise<AgentPerformance[]> =>
       analyticsOps.getAgentPerformance(this.httpClient, query),
 
-    getAgentReliability: (query?: AgentReliabilityQuery): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> =>
+    getAgentReliability: (query?: AgentReliabilityQuery): Promise<AgentReliabilityResult> =>
       analyticsOps.getAgentReliability(this.httpClient, query),
 
     getAgentLifecycle: (agentName: string, query?: AnalyticsQuery): Promise<AgentLifecycleEntry[]> =>
       analyticsOps.getAgentLifecycle(this.httpClient, agentName, query),
 
-    getResolutionRates: (query?: AnalyticsQuery): Promise<z.infer<typeof ResolutionRateResponseSchema>[]> =>
+    getResolutionRates: (query?: AnalyticsQuery): Promise<ResolutionRateResult[]> =>
       analyticsOps.getResolutionRates(this.httpClient, query),
 
-    getFileHotspots: (query?: AnalyticsQuery): Promise<z.infer<typeof FileHotspotResponseSchema>[]> =>
+    getFileHotspots: (query?: AnalyticsQuery): Promise<FileHotspotResult[]> =>
       analyticsOps.getFileHotspots(this.httpClient, query),
 
-    getTaxonomyDistribution: (query?: AnalyticsQuery): Promise<z.infer<typeof TaxonomyDistributionResponseSchema>[]> =>
+    getTaxonomyDistribution: (query?: AnalyticsQuery): Promise<TaxonomyDistributionResult[]> =>
       analyticsOps.getTaxonomyDistribution(this.httpClient, query),
 
-    getFullTaxonomy: (query?: AnalyticsQuery): Promise<z.infer<typeof FullTaxonomyAnalyticsResponseSchema>> =>
+    getFullTaxonomy: (query?: AnalyticsQuery): Promise<FullTaxonomyAnalyticsResult> =>
       analyticsOps.getFullTaxonomy(this.httpClient, query),
 
-    getBurndown: (query?: BurndownQuery): Promise<z.infer<typeof BurndownResultResponseSchema>> =>
+    getBurndown: (query?: BurndownQuery): Promise<BurndownResultResponse> =>
       analyticsOps.getBurndown(this.httpClient, query),
 
-    getVelocity: (query?: VelocityQuery): Promise<z.infer<typeof VelocityResultResponseSchema>> =>
+    getVelocity: (query?: VelocityQuery): Promise<VelocityResultResponse> =>
       analyticsOps.getVelocity(this.httpClient, query),
 
-    getDiscovery: (query?: DiscoveryQuery): Promise<z.infer<typeof DiscoveryResultResponseSchema>> =>
+    getDiscovery: (query?: DiscoveryQuery): Promise<DiscoveryResultResponse> =>
       analyticsOps.getDiscovery(this.httpClient, query),
 
-    getAgentMatrix: (query?: AgentMatrixQuery): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> =>
+    getAgentMatrix: (query?: AgentMatrixQuery): Promise<AgentMatrixResultResponse> =>
       analyticsOps.getAgentMatrix(this.httpClient, query),
 
-    getTrendSummary: (query?: AnalyticsQuery): Promise<z.infer<typeof TrendSummaryResponseSchema>[]> =>
+    getTrendSummary: (query?: AnalyticsQuery): Promise<TrendSummaryResult[]> =>
       analyticsOps.getTrendSummary(this.httpClient, query),
 
     /**
