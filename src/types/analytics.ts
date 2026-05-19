@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import type { AgentPerformanceResponseSchema } from './response-schemas.js';
 import type { FailureDomain, Trend, Granularity, DiscoveryGroupBy } from './enums.js';
 
 /**
@@ -33,18 +35,9 @@ export interface AgentInfo {
 }
 
 /**
- * Agent performance metrics
+ * Agent performance metrics — derived from AgentPerformanceResponseSchema
  */
-export interface AgentPerformance {
-  name: string;
-  totalRuns: number;
-  averageScore: number;
-  minScore: number;
-  maxScore: number;
-  passRate: number;
-  avgDurationMs: number | null;
-  totalIssuesFound: number;
-}
+export type AgentPerformance = z.infer<typeof AgentPerformanceResponseSchema>;
 
 /**
  * Agent lifecycle entry — version trajectory across time

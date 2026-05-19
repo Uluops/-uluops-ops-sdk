@@ -84,7 +84,12 @@ export async function logoutAll(
 }
 
 /**
- * Request a password reset email
+ * Request a password reset email. Does not require authentication.
+ * Always returns success (prevents email enumeration).
+ *
+ * @param client - HTTP client instance
+ * @param email - Email address of the account to reset
+ * @returns Success message
  */
 export async function forgotPassword(
   client: OpsHttpClient,
@@ -94,7 +99,12 @@ export async function forgotPassword(
 }
 
 /**
- * Reset password using a reset token
+ * Reset password using a token from the reset email. Does not require authentication.
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ token, password }` — password must meet complexity requirements
+ * @returns Success message
+ * @throws {InputValidationError} If password doesn't meet requirements
  */
 export async function resetPassword(
   client: OpsHttpClient,
@@ -136,14 +146,20 @@ export async function setPassword(
 }
 
 /**
- * Get current user info (minimal)
+ * Get current user info (minimal — id, email, role).
+ *
+ * @param client - HTTP client instance
+ * @returns `AuthUser` with id, email, role, createdAt
  */
 export async function getMe(client: OpsHttpClient): Promise<AuthUser> {
   return client.get('/auth/me', undefined, { schema: AuthUserResponseSchema });
 }
 
 /**
- * Get current user's full profile
+ * Get current user's full profile (username, bio, avatar, timezone, etc.).
+ *
+ * @param client - HTTP client instance
+ * @returns `{ user: PublicUser }` with all profile fields
  */
 export async function getProfile(client: OpsHttpClient): Promise<{ user: PublicUser }> {
   return client.get('/auth/profile', undefined, { schema: ProfileResponseSchema });
@@ -182,14 +198,19 @@ export async function getAvatar(
 }
 
 /**
- * Delete current user's avatar
+ * Delete the current user's avatar image.
+ *
+ * @param client - HTTP client instance
  */
 export async function deleteAvatar(client: OpsHttpClient): Promise<void> {
   await client.delete('/auth/avatar');
 }
 
 /**
- * List user's API keys
+ * List the current user's API keys (excludes the full key value — only id, name, prefix, createdAt).
+ *
+ * @param client - HTTP client instance
+ * @returns Array of `PublicApiKey` objects
  */
 export async function listApiKeys(
   client: OpsHttpClient
@@ -214,7 +235,10 @@ export async function createApiKey(
 }
 
 /**
- * Revoke an API key
+ * Revoke an API key by ID. Immediately invalidates the key.
+ *
+ * @param client - HTTP client instance
+ * @param keyId - API key UUID
  */
 export async function revokeApiKey(
   client: OpsHttpClient,
@@ -224,7 +248,10 @@ export async function revokeApiKey(
 }
 
 /**
- * List user's active sessions
+ * List the current user's active sessions (id, userAgent, ipAddress, createdAt, expiresAt).
+ *
+ * @param client - HTTP client instance
+ * @returns Array of `PublicSession` objects
  */
 export async function listSessions(
   client: OpsHttpClient
@@ -233,7 +260,10 @@ export async function listSessions(
 }
 
 /**
- * Revoke a session
+ * Revoke a session by ID. Immediately invalidates the session token.
+ *
+ * @param client - HTTP client instance
+ * @param sessionId - Session UUID
  */
 export async function revokeSession(
   client: OpsHttpClient,

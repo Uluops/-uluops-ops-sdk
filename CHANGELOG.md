@@ -233,6 +233,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - `ULUOPS_SESSION_TOKEN` environment variable support for session-based auth
 
+## [0.5.1] - 2026-04-01
+
+### Changed
+- Bumped `@uluops/sdk-core` dependency (patch fixes)
+
+## [0.5.0] - 2026-03-28
+
+### Changed
+- Bumped `@uluops/sdk-core` to ^0.5.0
+
 ## [0.4.0] - 2026-03-15
 
 ### Removed
@@ -240,6 +250,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - Bumped version to reflect breaking change
+
+## [0.3.2] - 2026-03-12
+
+### Changed
+- Bumped version for dependency update
+
+## [0.3.1] - 2026-03-10
+
+### Fixed
+- Analysis methods wired to `OpsClient.runs` facade — `getAnalysis`, `getProjectAnalysis`, `queryAnalysisRecords` were accessible via operations module but not from the client class
+
+## [0.3.0] - 2026-03-08
+
+### Added
+- Analysis storage support — `analysisRecords` and `analysisSummary` fields on `SaveRunInput`
 
 ## [0.2.0] - 2026-03-01
 

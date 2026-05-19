@@ -296,7 +296,9 @@ export function validateRequiredString(value: unknown, fieldName: string): strin
 export function validatePositiveInt(value: unknown, fieldName: string): number {
   const num = Number(value);
   if (!Number.isInteger(num) || num <= 0) {
-    throw new InputValidationError(`${fieldName} must be a positive integer`, []);
+    throw new InputValidationError(`${fieldName} must be a positive integer`, [
+      { code: 'custom', path: [fieldName], message: 'must be a positive integer' }
+    ]);
   }
   return num;
 }

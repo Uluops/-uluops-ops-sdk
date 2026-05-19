@@ -759,7 +759,7 @@ const preview = await client.runs.validate({
   project: 'my-project',
   workflowType: 'post-implementation',
   agents: [{ name: 'code-validator', score: 90, decision: 'PASS' }],
-  recommendations: [{ agent: 'code-validator', title: 'Unused import', priority: 'backlog', failure_code: 'STR-OMI/L' }],
+  recommendations: [{ agent: 'code-validator', title: 'Unused import', priority: 'backlog', failureCode: 'STR-OMI/L' }],
 });
 
 console.log('Would create:', preview.wouldCreate);
@@ -1222,7 +1222,7 @@ Get performance metrics by agent.
 ```typescript
 const performance = await client.analytics.getAgentPerformance({ days: 30 });
 for (const agent of performance) {
-  console.log(`${agent.name}: avg=${agent.avgScore}, pass=${agent.passRate}`);
+  console.log(`${agent.name}: avg=${agent.averageScore}, pass=${agent.passRate}`);
 }
 ```
 
@@ -1412,7 +1412,7 @@ List agents with summary info (derived from performance data).
 ```typescript
 const agents = await client.analytics.listAgents();
 for (const v of agents) {
-  console.log(`${v.name}: avg=${v.avgScore}, runs=${v.totalRuns}, pass=${v.passRate}`);
+  console.log(`${v.name}: avg=${v.averageScore}, runs=${v.totalRuns}, pass=${v.passRate}`);
 }
 ```
 

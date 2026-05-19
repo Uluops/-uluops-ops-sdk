@@ -54,7 +54,7 @@ import {
  *   project: 'my-project',
  *   workflowType: 'post-implementation',
  *   agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
- *   recommendations: [{ agent: 'code-validator', title: 'Missing null check', priority: 'suggested', failure_code: 'SEM-VAL/M' }],
+ *   recommendations: [{ agent: 'code-validator', title: 'Missing null check', priority: 'suggested', failureCode: 'SEM-VAL/M' }],
  * });
  * console.log(result.run.runNumber, result.correlation.newIssues);
  * ```
