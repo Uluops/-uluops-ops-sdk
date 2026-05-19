@@ -1,4 +1,5 @@
 import { OpsHttpClient, type HttpClientConfig } from './http/http-client.js';
+import { createLogger } from '@uluops/sdk-core/utils';
 import { JwtSessionAuth } from './http/auth-strategy.js';
 import { loadCredentials } from './config/loaders.js';
 import * as authOps from './operations/auth.js';
@@ -146,7 +147,8 @@ export class OpsClient {
     }
     this.httpClient = new OpsHttpClient(config);
     if (config.debug && !this.isAuthenticated() && !(config.email && config.password)) {
-      console.warn('[ops-sdk] No credentials found — call client.login() or set ULUOPS_API_KEY before making API requests.');
+      const logger = createLogger('ops-sdk', true);
+      logger.warn('No credentials found — call client.login() or set ULUOPS_API_KEY before making API requests.');
     }
   }
 

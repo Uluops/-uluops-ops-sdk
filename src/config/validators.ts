@@ -6,6 +6,7 @@ import {
   UpdateIssueStatusInputSchema,
   CreateIssueNoteInputSchema,
   ArchiveRunsInputSchema,
+  UpdateRunInputSchema,
   RegisterInputSchema,
   LoginInputSchema,
   UpdateProfileInputSchema,
@@ -191,6 +192,16 @@ export function validateSaveRunInput(data: unknown): z.infer<typeof SaveRunInput
  */
 export function validateArchiveRunsInput(data: unknown): z.infer<typeof ArchiveRunsInputSchema> {
   return validate(ArchiveRunsInputSchema, data, 'archive runs');
+}
+
+/**
+ * Validate update run input. All fields are optional but validated when present.
+ * @param data - Raw input with optional fields to update
+ * @returns Validated update run input
+ * @throws {InputValidationError} If field constraints are violated
+ */
+export function validateUpdateRunInput(data: unknown): z.infer<typeof UpdateRunInputSchema> {
+  return validate(UpdateRunInputSchema, data, 'update run');
 }
 
 // ============================================

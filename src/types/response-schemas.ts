@@ -619,21 +619,12 @@ export const DomainTrendResponseSchema = z.object({
 
 export const BurndownDataPointResponseSchema = z.object({
   date: z.string(),
-  STR: z.number().int().nonnegative(),
-  SEM: z.number().int().nonnegative(),
-  PRA: z.number().int().nonnegative(),
-  EPI: z.number().int().nonnegative(),
   total: z.number().int().nonnegative(),
-});
+}).catchall(z.number().int().nonnegative());
 
 export const BurndownResultResponseSchema = z.object({
   timeSeries: z.array(BurndownDataPointResponseSchema),
-  trends: z.object({
-    STR: DomainTrendResponseSchema,
-    SEM: DomainTrendResponseSchema,
-    PRA: DomainTrendResponseSchema,
-    EPI: DomainTrendResponseSchema,
-  }),
+  trends: z.record(z.string(), DomainTrendResponseSchema),
 });
 
 export const VelocityItemResponseSchema = z.object({

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import nock from 'nock';
 import { OpsClient } from '../src/client.js';
 import { BASE_URL, TEST_API_KEY } from './setup.js';

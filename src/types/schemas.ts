@@ -231,6 +231,18 @@ export const SaveRunInputSchema = z.object({
   ]).optional(),
 });
 
+export const UpdateRunInputSchema = SaveRunInputSchema.pick({
+  analysisRecords: true,
+  analysisSummary: true,
+}).extend({
+  workflowType: z.string().min(1).optional(),
+  allGatesPassed: z.boolean().optional(),
+  averageScore: z.number().min(0).max(100).nullish(),
+  rawMarkdown: z.string().nullish(),
+  archivedAt: z.string().datetime().nullish(),
+  archiveReason: z.string().max(500).nullish(),
+});
+
 export const ArchiveRunsInputSchema = z.object({
   project: z.string().min(1),
   beforeRunNumber: z.number().int().positive().optional(),

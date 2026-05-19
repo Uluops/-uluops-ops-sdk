@@ -127,6 +127,9 @@ yarn add @uluops/ops-sdk
 
 # pnpm
 pnpm add @uluops/ops-sdk
+
+# bun
+bun add @uluops/ops-sdk
 ```
 
 **Requirements:**

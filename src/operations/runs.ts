@@ -37,6 +37,7 @@ import {
 import {
   validateSaveRunInput,
   validateArchiveRunsInput,
+  validateUpdateRunInput,
 } from '../config/validators.js';
 
 /**
@@ -156,13 +157,9 @@ export async function archive(
  * @param input - Update payload with project + runNumber identifier
  * @returns Updated run
  */
-export async function update(
-  client: OpsHttpClient,
-  input: UpdateRunByNumberInput
-): Promise<Run> {
-  return client.patch('/runs/update', {
-    project: input.project,
-    runNumber: input.runNumber,
+/** Build the shared update payload from an UpdateRunInput */
+function buildUpdatePayload(input: UpdateRunInput) {
+  return {
     workflowType: input.workflowType,
     allGatesPassed: input.allGatesPassed,
     averageScore: input.averageScore,
@@ -173,6 +170,18 @@ export async function update(
     recommendations: input.recommendations,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
+  };
+}
+
+export async function update(
+  client: OpsHttpClient,
+  input: UpdateRunByNumberInput
+): Promise<Run> {
+  validateUpdateRunInput(input);
+  return client.patch('/runs/update', {
+    project: input.project,
+    runNumber: input.runNumber,
+    ...buildUpdatePayload(input),
   }, { schema: RunResponseSchema });
 }
 
@@ -263,18 +272,8 @@ export async function updateById(
   runId: string,
   input: UpdateRunInput
 ): Promise<Run> {
-  return client.patch(`/runs/${encodeURIComponent(runId)}`, {
-    workflowType: input.workflowType,
-    allGatesPassed: input.allGatesPassed,
-    averageScore: input.averageScore,
-    rawMarkdown: input.rawMarkdown,
-    archivedAt: input.archivedAt,
-    archiveReason: input.archiveReason,
-    agents: input.agents,
-    recommendations: input.recommendations,
-    analysisRecords: input.analysisRecords,
-    analysisSummary: input.analysisSummary,
-  }, { schema: RunResponseSchema });
+  validateUpdateRunInput(input);
+  return client.patch(`/runs/${encodeURIComponent(runId)}`, buildUpdatePayload(input), { schema: RunResponseSchema });
 }
 
 /**

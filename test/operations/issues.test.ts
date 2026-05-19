@@ -22,12 +22,14 @@ import {
   StatusHistoryResponseSchema,
   StatusUpdateResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
+  resetMockIds,
 } from '../contract-helpers.js';
 
 describe('Issue Operations', () => {
   let client: OpsHttpClient;
 
   beforeEach(() => {
+    resetMockIds();
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
       apiKey: TEST_API_KEY,

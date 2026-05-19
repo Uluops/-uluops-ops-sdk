@@ -53,7 +53,8 @@
     "./config": {
       "import": "./dist/config/index.js",
       "types": "./dist/config/index.d.ts"
-    }
+    },
+    "./types/response-schemas": null
   },
   "files": [
     "dist",

@@ -128,6 +128,13 @@ export async function softDelete(
   return deleteWithConfirmation(client, `/projects/${encodeURIComponent(idOrName)}/soft`, input);
 }
 
+/**
+ * Shared delete handler requiring confirmation phrase.
+ * @param client - HTTP client instance
+ * @param path - API endpoint path
+ * @param input - `{ confirm: true, confirmationPhrase: string }`
+ * @returns Delete result with count of affected records
+ */
 async function deleteWithConfirmation(
   client: OpsHttpClient,
   path: string,
@@ -141,7 +148,12 @@ async function deleteWithConfirmation(
 }
 
 /**
- * Restore a soft-deleted project
+ * Restore a soft-deleted project.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @returns Restored project
+ * @throws {NotFoundError} If project does not exist or is not soft-deleted
  */
 export async function restore(
   client: OpsHttpClient,
@@ -170,7 +182,11 @@ export async function rename(
 }
 
 /**
- * Get project summary statistics
+ * Get project summary statistics.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @returns Project with nested summary stats (totalRuns, totalIssues, openIssues, etc.)
  */
 export async function getSummary(
   client: OpsHttpClient,
@@ -180,7 +196,12 @@ export async function getSummary(
 }
 
 /**
- * Get project trend data over time
+ * Get project trend data over time.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param query - Optional `{ days?: number }` (1-365, default 30)
+ * @returns Daily issue counts with trend summary
  */
 export async function getTrends(
   client: OpsHttpClient,
@@ -195,7 +216,12 @@ export async function getTrends(
 }
 
 /**
- * List issues in a project with filtering
+ * List issues in a project with filtering.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project UUID or name
+ * @param query - Optional filters: status, priority, severity, agent, limit, offset
+ * @returns Array of issues
  */
 export async function listIssues(
   client: OpsHttpClient,

@@ -18,12 +18,14 @@ import {
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
   AgentLifecycleEntryResponseSchema,
+  resetMockIds,
 } from '../contract-helpers.js';
 
 describe('Analytics Operations', () => {
   let client: OpsHttpClient;
 
   beforeEach(() => {
+    resetMockIds();
     client = new OpsHttpClient({
       baseUrl: BASE_URL,
       apiKey: TEST_API_KEY,
@@ -396,9 +398,12 @@ describe('Analytics Operations', () => {
           data: [{ name: 'code-validator', totalRuns: 10, totalInputTokens: 5000, totalOutputTokens: 2000, totalEffectiveTokens: 7000, estimatedCost: 0.15 }],
         });
 
-      const result = await analyticsOps.getByMetric(client, 'cost_analysis');
+      const result = await analyticsOps.getByMetric(client, 'cost_analysis') as Array<Record<string, unknown>>;
 
       expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('code-validator');
+      expect(result[0].totalRuns).toBe(10);
     });
 
     it('should pass query parameters', async () => {
