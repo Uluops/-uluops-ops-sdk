@@ -12,6 +12,7 @@ import {
   UpdateProfileInputSchema,
   ChangePasswordInputSchema,
   ResetPasswordInputSchema,
+  SetPasswordInputSchema,
   CreateApiKeyInputSchema,
   BulkStatusUpdateInputSchema,
   DeleteProjectInputSchema,
@@ -120,6 +121,16 @@ export function validateChangePasswordInput(data: unknown): z.infer<typeof Chang
  */
 export function validateResetPasswordInput(data: unknown): z.infer<typeof ResetPasswordInputSchema> {
   return validate(ResetPasswordInputSchema, data, 'password reset');
+}
+
+/**
+ * Validate set-password input (first-time password for OAuth/admin-created accounts).
+ * @param data - Raw input: `{ password: string (8-128, upper+lower+digit) }`
+ * @returns Validated `SetPasswordInput`
+ * @throws {InputValidationError} If password doesn't meet complexity requirements
+ */
+export function validateSetPasswordInput(data: unknown): z.infer<typeof SetPasswordInputSchema> {
+  return validate(SetPasswordInputSchema, data, 'set password');
 }
 
 /**

@@ -47,7 +47,11 @@ export const RegisterInputSchema = z.object({
 
 export const LoginInputSchema = z.object({
   email: z.string().email(),
-  password: z.string(),
+  password: z.string().max(128),
+});
+
+export const SetPasswordInputSchema = z.object({
+  password: PasswordSchema,
 });
 
 export const UpdateProfileInputSchema = z
@@ -143,15 +147,15 @@ export const RecommendationInputSchema = z.object({
   description: z.string().max(10000).optional(),
   classificationConfidence: z.enum(['high', 'medium', 'low']).optional(),
   classifiedBy: z.enum(['agent', 'classifier', 'human']).optional(),
-  secondaryFailureCodes: z.array(z.string()).optional(),
+  secondaryFailureCodes: z.array(z.string().max(20)).max(20).optional(),
   taxonomyVersion: z.string().optional(),
 });
 
 export const SaveRunInputSchema = z.object({
   project: z.string().min(1).max(200),
   workflowType: z.string().min(1).max(100),
-  agents: z.array(AgentInputSchema).min(1),
-  recommendations: z.array(RecommendationInputSchema),
+  agents: z.array(AgentInputSchema).min(1).max(100),
+  recommendations: z.array(RecommendationInputSchema).max(500),
   timestamp: z.string().datetime().optional(),
   rawMarkdown: z.string().max(500_000).optional(),
   summary: z
@@ -188,7 +192,7 @@ export const SaveRunInputSchema = z.object({
         score: z.number().min(0),
       })).nullish(),
       epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
-      auditImplications: z.array(z.string()).nullish(),
+      auditImplications: z.array(z.string().max(500)).max(50).nullish(),
       explorationMaps: z.array(z.object({
         metadata: z.object({
           explorerName: z.string(),
@@ -196,10 +200,10 @@ export const SaveRunInputSchema = z.object({
           artifactPath: z.string().optional(),
         }),
         sections: z.array(z.object({
-          type: z.string(),
-          label: z.string(),
-          summary: z.string().optional(),
-        }).passthrough()),
+          type: z.string().max(50),
+          label: z.string().max(200),
+          summary: z.string().max(2000).optional(),
+        }).passthrough()).max(100),
       })).optional(),
     }),
     z.array(z.object({
@@ -214,7 +218,7 @@ export const SaveRunInputSchema = z.object({
         score: z.number().min(0),
       })).nullish(),
       epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
-      auditImplications: z.array(z.string()).nullish(),
+      auditImplications: z.array(z.string().max(500)).max(50).nullish(),
       explorationMaps: z.array(z.object({
         metadata: z.object({
           explorerName: z.string(),
@@ -222,10 +226,10 @@ export const SaveRunInputSchema = z.object({
           artifactPath: z.string().optional(),
         }),
         sections: z.array(z.object({
-          type: z.string(),
-          label: z.string(),
-          summary: z.string().optional(),
-        }).passthrough()),
+          type: z.string().max(50),
+          label: z.string().max(200),
+          summary: z.string().max(2000).optional(),
+        }).passthrough()).max(100),
       })).optional(),
     })).max(20),
   ]).optional(),

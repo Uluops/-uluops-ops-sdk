@@ -137,10 +137,16 @@ describe('Config Validators', () => {
       expect(result.password).toBe('a');
     });
 
-    it('should accept long password', () => {
-      const longPassword = 'x'.repeat(256);
-      const result = validateLoginInput({ email: 'test@example.com', password: longPassword });
-      expect(result.password).toBe(longPassword);
+    it('should accept max-length password', () => {
+      const maxPassword = 'x'.repeat(128);
+      const result = validateLoginInput({ email: 'test@example.com', password: maxPassword });
+      expect(result.password).toBe(maxPassword);
+    });
+
+    it('should reject password exceeding 128 chars', () => {
+      const longPassword = 'x'.repeat(129);
+      expect(() => validateLoginInput({ email: 'test@example.com', password: longPassword }))
+        .toThrow('Invalid login input');
     });
 
     it('should reject missing email with error path', () => {

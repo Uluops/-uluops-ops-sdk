@@ -32,6 +32,7 @@ import {
   validateUpdateProfileInput,
   validateChangePasswordInput,
   validateResetPasswordInput,
+  validateSetPasswordInput,
   validateCreateApiKeyInput,
 } from '../config/validators.js';
 
@@ -135,13 +136,15 @@ export async function changePassword(
  * Set password for the first time (accounts created without one, e.g. OAuth or admin-created).
  *
  * @param client - HTTP client instance
- * @param password - New password
+ * @param password - New password (8-128 chars, must contain upper+lower+digit)
  * @returns Success message
+ * @throws {InputValidationError} If password doesn't meet complexity requirements
  */
 export async function setPassword(
   client: OpsHttpClient,
   password: string
 ): Promise<MessageResponse> {
+  validateSetPasswordInput({ password });
   return client.post('/auth/password', { password }, { schema: MessageResponseSchema });
 }
 

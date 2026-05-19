@@ -144,15 +144,21 @@ describe('Auth Operations', () => {
 
   describe('setPassword', () => {
     it('should set initial password', async () => {
+      const validPassword = 'InitialPass1';
       const mockResponse = createMockMessage('Password set successfully');
 
       nock(BASE_URL)
-        .post('/auth/password', { password: 'initialPassword' })
+        .post('/auth/password', { password: validPassword })
         .reply(200, { data: mockResponse });
 
-      const result = await authOps.setPassword(client, 'initialPassword');
+      const result = await authOps.setPassword(client, validPassword);
 
       expect(result.message).toBe('Password set successfully');
+    });
+
+    it('should reject weak password', async () => {
+      await expect(authOps.setPassword(client, 'weak'))
+        .rejects.toThrow('Invalid set password');
     });
   });
 
