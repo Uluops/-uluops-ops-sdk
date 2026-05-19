@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.7] - 2026-05-19
+
+### Fixed
+- `explorationMaps` outer array now capped at 50 entries; metadata strings (`explorerName`, `framework`) capped at 100 chars, `artifactPath` at 500
+- `categoryScores` array capped at 50 entries with `name` capped at 100 chars (both single-object and array variants of `analysisSummary`)
+- `analysisRecords.recordType` capped at 50 chars, `taxonomyVersion` capped at 50 chars
+- `OpsHttpClient` now validates `orgSlug` against `/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/` — rejects CRLF, spaces, and non-slug characters to prevent header injection
+
 ## [1.8.6] - 2026-05-18
 
 ### Fixed
