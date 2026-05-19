@@ -6,11 +6,13 @@ import type {
   AnalyticsQuery,
   AgentInfo,
   AgentLifecycleEntry,
+  AgentPerformance,
   AgentReliabilityQuery,
-  BurndownQuery,
-  VelocityQuery,
-  DiscoveryQuery,
   AgentMatrixQuery,
+  BurndownQuery,
+  DiscoveryQuery,
+  TrendSummary,
+  VelocityQuery,
 } from '../types/analytics.js';
 import {
   AgentPerformanceResponseSchema,
@@ -37,7 +39,7 @@ import {
 export async function getAgentPerformance(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<z.infer<typeof AgentPerformanceResponseSchema>[]> {
+): Promise<AgentPerformance[]> {
   return client.get(
     '/analytics/agents/performance',
     toApiQuery(query),
@@ -238,7 +240,7 @@ export async function getAgentMatrix(
 export async function getTrendSummary(
   client: OpsHttpClient,
   query?: AnalyticsQuery
-): Promise<z.infer<typeof TrendSummaryResponseSchema>[]> {
+): Promise<TrendSummary[]> {
   return client.get(
     '/analytics/trends/summary',
     toApiQuery(query),
@@ -268,7 +270,17 @@ export async function listAgents(
 }
 
 /**
- * Valid metric names for getByMetric
+ * Valid metric names for {@link getByMetric}.
+ *
+ * @example
+ * ```typescript
+ * import { ANALYTICS_METRICS, isValidMetric } from '@uluops/ops-sdk';
+ *
+ * console.log(ANALYTICS_METRICS); // all valid metric names
+ * if (isValidMetric(userInput)) {
+ *   const data = await client.analytics.getByMetric(userInput);
+ * }
+ * ```
  */
 export const ANALYTICS_METRICS = [
   'agent_performance',

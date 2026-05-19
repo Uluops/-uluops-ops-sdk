@@ -135,6 +135,11 @@ export type OpsClientConfig = HttpClientConfig;
 export class OpsClient {
   private readonly httpClient: OpsHttpClient;
 
+  /**
+   * @param config - Client configuration. If no auth credentials are provided,
+   *   the constructor auto-loads from `ULUOPS_API_KEY` env var, `.env` files,
+   *   and `~/.uluops/credentials.json` (in that order).
+   */
   constructor(config: OpsClientConfig = {}) {
     // Auto-load credentials from env vars / .env / ~/.uluops/credentials.json
     // if no explicit auth was provided in config
@@ -179,14 +184,20 @@ export class OpsClient {
   }
 
   /**
-   * Logout current session (all sessions)
+   * Logout current session (revokes all sessions for this user).
+   *
+   * @returns Number of sessions revoked
+   * @throws {UnauthorizedError} If client is not authenticated
+   * @throws {OpsApiError} On network or server errors
    */
   async logout(): Promise<{ sessionsRevoked: number }> {
     return authOps.logoutAll(this.httpClient);
   }
 
   /**
-   * Check if client is authenticated
+   * Check if client has valid credentials installed (API key or session token).
+   *
+   * @returns `true` if an auth strategy is present and authenticated
    */
   isAuthenticated(): boolean {
     const authStrategy = this.httpClient.getAuthStrategy();
@@ -194,7 +205,9 @@ export class OpsClient {
   }
 
   /**
-   * Get authentication type
+   * Get the current authentication type.
+   *
+   * @returns `'api_key'`, `'session'`, or `null` if unauthenticated
    */
   getAuthType(): 'api_key' | 'session' | null {
     const authStrategy = this.httpClient.getAuthStrategy();

@@ -246,11 +246,10 @@ For minimal bundle size, import only the type modules you need:
 ```typescript
 import type { Project } from '@uluops/ops-sdk/types/projects';
 import type { Issue } from '@uluops/ops-sdk/types/issues';
-import type { Run } from '@uluops/ops-sdk/types/runs';
+import type { Run, SaveRunInput } from '@uluops/ops-sdk/types/runs';
 import type { BurndownResult } from '@uluops/ops-sdk/types/analytics';
 import type { Priority, Status, Severity } from '@uluops/ops-sdk/types/enums';
 import type { ApiResponse } from '@uluops/ops-sdk/types/responses';
-import type { SaveRunInput } from '@uluops/ops-sdk/types/runs';
 import type { Credentials } from '@uluops/ops-sdk/config';
 ```
 
@@ -1397,11 +1396,20 @@ Get analytics by specific metric name.
 Available metrics: `agent_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`.
 
 ```typescript
+import { isValidMetric, ANALYTICS_METRICS } from '@uluops/ops-sdk';
 import type { AnalyticsMetric } from '@uluops/ops-sdk';
 
-const metric: AnalyticsMetric = 'cost_analysis'; // IDE autocomplete for valid metrics
+// Guard user input before calling
+if (isValidMetric(userInput)) {
+  const data = await client.analytics.getByMetric(userInput, { days: 30 });
+}
+
+// Enumerate valid metrics
+console.log(ANALYTICS_METRICS); // ['agent_performance', 'resolution_rates', ...]
+
+// Or use typed literals directly — IDE autocomplete for valid metrics
+const metric: AnalyticsMetric = 'cost_analysis';
 const costData = await client.analytics.getByMetric(metric, { days: 30 });
-const regressions = await client.analytics.getByMetric('regression_analysis', { project: 'my-project' });
 ```
 
 #### `client.analytics.listAgents(query)`
@@ -1582,7 +1590,7 @@ try {
 }
 ```
 
-Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCreateProjectInput`, `validateSaveRunInput`, `validateCreateUserIssueInput`, `validateUpdateIssueStatusInput`, `validateBulkStatusUpdateInput`, and more. See [`src/config/validators.ts`](./src/config/validators.ts) for the full list.
+Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCreateProjectInput`, `validateSaveRunInput`, `validateCreateUserIssueInput`, `validateUpdateIssueStatusInput`, `validateBulkStatusUpdateInput`, and more.
 
 ## Advanced Usage
 

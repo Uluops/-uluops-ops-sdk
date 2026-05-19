@@ -95,6 +95,15 @@ export async function save(
  * @param input - Same shape as save() input
  * @returns Preview with projected new/recurring/regression counts
  * @throws {InputValidationError} If input fails client-side Zod validation
+ * @example
+ * ```typescript
+ * const preview = await client.runs.validate({
+ *   project: 'my-project',
+ *   workflowType: 'post-implementation',
+ *   agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
+ * });
+ * console.log(preview.correlation); // { newIssues: 3, recurringIssues: 1, regressions: 0 }
+ * ```
  */
 export async function validate(
   client: OpsHttpClient,
