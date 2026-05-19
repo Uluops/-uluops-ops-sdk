@@ -704,7 +704,8 @@ Save a new validation run.
 | `definitionHash` | `string` | No | SHA-256 content hash of the definition |
 | `definitionId` | `string` | No | Registry definition UUID for direct identity linkage |
 | `timestamp` | `string` | No | ISO 8601 timestamp override (defaults to server time) |
-| `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v0.2.0) |
+| `definitionMinSubscription` | `SubscriptionTier` | No | Minimum subscription tier required for this definition |
+| `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v1.4.0) |
 | `analysisSummary` | `AnalysisSummaryInput \| AnalysisSummaryInput[]` | No | Single or per-agent array of analysis summaries (v1.8.1) |
 | `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
 

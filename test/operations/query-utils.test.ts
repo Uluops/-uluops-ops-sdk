@@ -121,5 +121,10 @@ describe('query-utils', () => {
       const result = toApiQuery({ name: 'test', nested: { foo: 'bar' } });
       expect(result).toEqual({ name: 'test' });
     });
+
+    it('should strip "all" values to omit the filter parameter', () => {
+      expect(toApiQuery({ status: 'all' })).toBeUndefined();
+      expect(toApiQuery({ status: 'all', limit: 10 })).toEqual({ limit: 10 });
+    });
   });
 });

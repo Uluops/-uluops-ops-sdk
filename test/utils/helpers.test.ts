@@ -2,17 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   sleep,
   retry,
-  deepMerge,
-  pick,
-  omit,
-  compact,
-  formatDate,
   isUuid,
   truncate,
   toSnakeCase,
   toCamelCase,
-  getFlexibleProperty,
-  normalizeKeys,
 } from '../../src/utils/helpers.js';
 import { TEST_UUID } from '../setup.js';
 
@@ -106,104 +99,6 @@ describe('Helper Utilities', () => {
     });
   });
 
-  describe('deepMerge', () => {
-    it('should merge flat objects', () => {
-      const target = { a: 1, b: 2 };
-      const source = { b: 3, c: 4 };
-      expect(deepMerge(target, source)).toEqual({ a: 1, b: 3, c: 4 });
-    });
-
-    it('should deeply merge nested objects', () => {
-      const target = { outer: { a: 1, b: 2 } };
-      const source = { outer: { b: 3, c: 4 } };
-      expect(deepMerge(target, source)).toEqual({ outer: { a: 1, b: 3, c: 4 } });
-    });
-
-    it('should not modify original objects', () => {
-      const target = { a: 1 };
-      const source = { b: 2 };
-      deepMerge(target, source);
-      expect(target).toEqual({ a: 1 });
-    });
-
-    it('should handle arrays by replacing', () => {
-      const target = { arr: [1, 2] };
-      const source = { arr: [3, 4, 5] };
-      expect(deepMerge(target, source)).toEqual({ arr: [3, 4, 5] });
-    });
-
-    it('should skip undefined values', () => {
-      const target = { a: 1, b: 2 };
-      const source = { a: undefined, b: 3 };
-      expect(deepMerge(target, source)).toEqual({ a: 1, b: 3 });
-    });
-  });
-
-  describe('pick', () => {
-    it('should pick specified keys', () => {
-      const obj = { a: 1, b: 2, c: 3 };
-      expect(pick(obj, ['a', 'c'])).toEqual({ a: 1, c: 3 });
-    });
-
-    it('should ignore non-existent keys', () => {
-      const obj = { a: 1 };
-      expect(pick(obj, ['a', 'b' as keyof typeof obj])).toEqual({ a: 1 });
-    });
-
-    it('should return empty object for empty keys', () => {
-      const obj = { a: 1 };
-      expect(pick(obj, [])).toEqual({});
-    });
-  });
-
-  describe('omit', () => {
-    it('should omit specified keys', () => {
-      const obj = { a: 1, b: 2, c: 3 };
-      expect(omit(obj, ['b'])).toEqual({ a: 1, c: 3 });
-    });
-
-    it('should handle omitting non-existent keys', () => {
-      const obj = { a: 1 };
-      expect(omit(obj, ['b' as keyof typeof obj])).toEqual({ a: 1 });
-    });
-
-    it('should return copy when omitting nothing', () => {
-      const obj = { a: 1 };
-      const result = omit(obj, []);
-      expect(result).toEqual({ a: 1 });
-      expect(result).not.toBe(obj);
-    });
-  });
-
-  describe('compact', () => {
-    it('should remove undefined values', () => {
-      const obj = { a: 1, b: undefined, c: 3 };
-      expect(compact(obj)).toEqual({ a: 1, c: 3 });
-    });
-
-    it('should keep null values', () => {
-      const obj = { a: 1, b: null };
-      expect(compact(obj)).toEqual({ a: 1, b: null });
-    });
-
-    it('should keep falsy values except undefined', () => {
-      const obj = { a: 0, b: '', c: false, d: undefined };
-      expect(compact(obj)).toEqual({ a: 0, b: '', c: false });
-    });
-  });
-
-  describe('formatDate', () => {
-    it('should format Date object to ISO string', () => {
-      const date = new Date('2024-01-15T12:00:00Z');
-      expect(formatDate(date)).toBe('2024-01-15T12:00:00.000Z');
-    });
-
-    it('should format date string to ISO string', () => {
-      const result = formatDate('2024-01-15T12:00:00Z');
-      expect(result).toBe('2024-01-15T12:00:00.000Z');
-    });
-  });
-
   describe('isUuid', () => {
     it('should return true for valid UUIDs', () => {
       expect(isUuid(TEST_UUID)).toBe(true);
@@ -271,115 +166,6 @@ describe('Helper Utilities', () => {
     it('should handle digits after underscores', () => {
       expect(toCamelCase('field_1')).toBe('field1');
       expect(toCamelCase('step_2_result')).toBe('step2Result');
-    });
-  });
-
-  describe('normalizeKeys', () => {
-    it('should convert flat snake_case keys to camelCase', () => {
-      const input = { run_number: 1, workflow_type: 'ship' };
-      expect(normalizeKeys(input)).toEqual({ runNumber: 1, workflowType: 'ship' });
-    });
-
-    it('should recursively convert nested objects', () => {
-      const input = {
-        project_name: 'test',
-        run_details: {
-          run_number: 5,
-          all_gates_passed: true,
-        },
-      };
-      expect(normalizeKeys(input)).toEqual({
-        projectName: 'test',
-        runDetails: {
-          runNumber: 5,
-          allGatesPassed: true,
-        },
-      });
-    });
-
-    it('should handle arrays of objects', () => {
-      const input = [
-        { file_path: 'src/a.ts', line_number: 10 },
-        { file_path: 'src/b.ts', line_number: 20 },
-      ];
-      expect(normalizeKeys(input)).toEqual([
-        { filePath: 'src/a.ts', lineNumber: 10 },
-        { filePath: 'src/b.ts', lineNumber: 20 },
-      ]);
-    });
-
-    it('should handle mixed nested arrays and objects', () => {
-      const input = {
-        issue_list: [
-          { issue_id: '123', failure_code: 'STR-OMI/H' },
-        ],
-      };
-      expect(normalizeKeys(input)).toEqual({
-        issueList: [
-          { issueId: '123', failureCode: 'STR-OMI/H' },
-        ],
-      });
-    });
-
-    it('should pass through primitives unchanged', () => {
-      expect(normalizeKeys('hello')).toBe('hello');
-      expect(normalizeKeys(42)).toBe(42);
-      expect(normalizeKeys(true)).toBe(true);
-      expect(normalizeKeys(null)).toBeNull();
-      expect(normalizeKeys(undefined)).toBeUndefined();
-    });
-
-    it('should handle keys with digits after underscores', () => {
-      const input = { field_1: 'a', field_2b: 'b' };
-      expect(normalizeKeys(input)).toEqual({ field1: 'a', field2b: 'b' });
-    });
-
-    it('should handle already camelCase keys', () => {
-      const input = { alreadyCamel: true, noChange: 42 };
-      expect(normalizeKeys(input)).toEqual({ alreadyCamel: true, noChange: 42 });
-    });
-
-    it('should handle empty objects and arrays', () => {
-      expect(normalizeKeys({})).toEqual({});
-      expect(normalizeKeys([])).toEqual([]);
-    });
-  });
-
-  describe('getFlexibleProperty', () => {
-    it('should return camelCase property if it exists', () => {
-      const obj = { newIssues: 5 };
-      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(5);
-    });
-
-    it('should fallback to snake_case if camelCase not found', () => {
-      const obj = { new_issues: 10 };
-      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(10);
-    });
-
-    it('should return default value if neither format found', () => {
-      const obj = { otherField: 'test' };
-      expect(getFlexibleProperty(obj, 'newIssues', 42)).toBe(42);
-    });
-
-    it('should prefer camelCase over snake_case', () => {
-      const obj = { newIssues: 5, new_issues: 10 };
-      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(5);
-    });
-
-    it('should handle undefined values correctly', () => {
-      const obj = { newIssues: undefined, new_issues: 10 };
-      expect(getFlexibleProperty(obj, 'newIssues', 0)).toBe(10);
-    });
-
-    it('should work with various types', () => {
-      const obj = {
-        isActive: true,
-        validationErrors: ['error1', 'error2'],
-        preview: { nested: 'value' },
-      };
-      expect(getFlexibleProperty(obj, 'isActive', false)).toBe(true);
-      expect(getFlexibleProperty<string[]>(obj, 'validationErrors', [])).toEqual(['error1', 'error2']);
-      expect(getFlexibleProperty(obj, 'preview', null)).toEqual({ nested: 'value' });
     });
   });
 

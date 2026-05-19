@@ -5,20 +5,8 @@
  * SDK-specific constants are defined here.
  */
 
-// Re-export shared constants from sdk-core
-export {
-  DEFAULT_TIMEOUT,
-  DEFAULT_RETRY_COUNT,
-  BACKOFF_BASE_MS,
-  MAX_BACKOFF_MS,
-  JITTER_MIN,
-  JITTER_MAX,
-  API_KEY_PREFIX,
-  CONFIG_PATHS,
-  HTTP_STATUS,
-  ERROR_CODES,
-  RETRYABLE_STATUS_CODES,
-} from '@uluops/sdk-core/config';
+// Re-export public constants from sdk-core
+export { API_KEY_PREFIX } from '@uluops/sdk-core/config';
 
 // ---- SDK-specific constants ----
 

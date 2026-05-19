@@ -13,7 +13,7 @@ import {
   createErrorFromStatus,
   isOpsApiError,
 } from '../../src/errors/errors.js';
-import { HTTP_STATUS, ERROR_CODES } from '../../src/config/constants.js';
+import { HTTP_STATUS, ERROR_CODES } from '@uluops/sdk-core/config';
 
 describe('Error Classes', () => {
   describe('OpsApiError', () => {

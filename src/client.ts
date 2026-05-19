@@ -40,9 +40,13 @@ import type {
   MergeIssuesResult,
 } from './types/projects.js';
 
-import { type z } from 'zod';
 import type {
   Run,
+  RunSummary,
+  RunAnalysis,
+  ProjectAnalysisList,
+  AnalysisRecordsList,
+  AgentRunsAnalysis,
   SaveRunInput,
   SaveRunResponse,
   ValidateRunResponse,
@@ -58,13 +62,6 @@ import type {
   AnalysisRecordsQuery,
   AgentRunsAnalysisQuery,
 } from './types/runs.js';
-import type {
-  RunSummaryResponseSchema,
-  RunAnalysisResponseSchema,
-  ProjectAnalysisListResponseSchema,
-  AnalysisRecordsListResponseSchema,
-  AgentRunsAnalysisResponseSchema,
-} from './types/response-schemas.js';
 
 import type {
   Issue,
@@ -93,6 +90,7 @@ import type {
   TaxonomyResponse,
 } from './types/analytics.js';
 
+import { type z } from 'zod';
 import {
   AgentPerformanceResponseSchema,
   AgentReliabilityResultResponseSchema,
@@ -105,7 +103,6 @@ import {
   DiscoveryResultResponseSchema,
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
-  BulkStatusUpdateResultResponseSchema,
 } from './types/response-schemas.js';
 
 import type { MessageResponse, DeleteResult } from './types/responses.js';
@@ -330,7 +327,7 @@ export class OpsClient {
     update: (input: UpdateRunByNumberInput): Promise<Run> =>
       runOps.update(this.httpClient, input),
 
-    listByProject: (projectId: string, query?: ListRunsQuery): Promise<z.infer<typeof RunSummaryResponseSchema>[]> =>
+    listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
       runOps.listByProject(this.httpClient, projectId, query),
 
     getLatest: (projectId: string, workflowType?: string): Promise<Run> =>
@@ -349,16 +346,16 @@ export class OpsClient {
       runOps.deleteRun(this.httpClient, runId),
 
     // Analysis operations (v0.3.0)
-    getAnalysis: (runId: string): Promise<z.infer<typeof RunAnalysisResponseSchema>> =>
+    getAnalysis: (runId: string): Promise<RunAnalysis> =>
       runOps.getAnalysis(this.httpClient, runId),
 
-    getProjectAnalysis: (projectId: string, query?: ProjectAnalysisQuery): Promise<z.infer<typeof ProjectAnalysisListResponseSchema>> =>
+    getProjectAnalysis: (projectId: string, query?: ProjectAnalysisQuery): Promise<ProjectAnalysisList> =>
       runOps.getProjectAnalysis(this.httpClient, projectId, query),
 
-    queryAnalysisRecords: (query?: AnalysisRecordsQuery): Promise<z.infer<typeof AnalysisRecordsListResponseSchema>> =>
+    queryAnalysisRecords: (query?: AnalysisRecordsQuery): Promise<AnalysisRecordsList> =>
       runOps.queryAnalysisRecords(this.httpClient, query),
 
-    getAgentRunsAnalysis: (agentName: string, query: AgentRunsAnalysisQuery): Promise<z.infer<typeof AgentRunsAnalysisResponseSchema>> =>
+    getAgentRunsAnalysis: (agentName: string, query: AgentRunsAnalysisQuery): Promise<AgentRunsAnalysis> =>
       runOps.getAgentRunsAnalysis(this.httpClient, agentName, query),
   };
 
@@ -404,7 +401,7 @@ export class OpsClient {
     undoLastChange: (issueId: string): Promise<Issue> =>
       issueOps.undoLastChange(this.httpClient, issueId),
 
-    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>> =>
+    bulkUpdateStatus: (updates: BulkStatusUpdateItem[]): Promise<BulkIssueStatusResult> =>
       issueOps.bulkUpdateStatus(this.httpClient, updates),
 
     listByProject: (projectId: string, query?: ListIssuesQuery): Promise<Issue[]> =>

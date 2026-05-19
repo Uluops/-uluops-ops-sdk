@@ -25,6 +25,9 @@ import {
   AnalysisSummaryResponseSchema,
   RunAnalysisResponseSchema,
   AgentRunSummaryResponseSchema,
+  ProjectAnalysisListResponseSchema,
+  AnalysisRecordsListResponseSchema,
+  AgentRunsAnalysisResponseSchema,
 } from './response-schemas.js';
 
 // ─────────────────────────────────────────────────────────────────
@@ -78,6 +81,15 @@ export type RunAnalysis = z.infer<typeof RunAnalysisResponseSchema>;
 
 /** Analysis summary with run context */
 export type AgentRunSummary = z.infer<typeof AgentRunSummaryResponseSchema>;
+
+/** Paginated project analysis list */
+export type ProjectAnalysisList = z.infer<typeof ProjectAnalysisListResponseSchema>;
+
+/** Paginated analysis records list */
+export type AnalysisRecordsList = z.infer<typeof AnalysisRecordsListResponseSchema>;
+
+/** Agent runs analysis response */
+export type AgentRunsAnalysis = z.infer<typeof AgentRunsAnalysisResponseSchema>;
 
 // ─────────────────────────────────────────────────────────────────
 // Input types (hand-written — not API responses)
