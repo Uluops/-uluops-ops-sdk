@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.6] - 2026-05-18
+
+### Fixed
+- `AgentPerformance` type now derived from `z.infer<typeof AgentPerformanceResponseSchema>` — removes phantom `minScore`, `maxScore`, `avgDurationMs` fields that didn't exist at runtime
+- README examples: `avgScore` → `averageScore` in `getAgentPerformance` and `listAgents` examples, `failure_code` → `failureCode` in `validate` and `save` JSDoc examples
+- `validatePositiveInt` now populates `errors[]` with structured Zod-compatible issue (was empty `[]`)
+- Restored missing changelog entries for 0.3.0–0.3.2 and 0.5.0–0.5.1
+
+### Added
+- `isValidMetric()` and `ANALYTICS_METRICS` now exported from root `@uluops/ops-sdk` — previously only accessible via internal path
+- JSDoc enriched on 9 auth operations: `forgotPassword`, `resetPassword`, `getMe`, `getProfile`, `deleteAvatar`, `listApiKeys`, `revokeApiKey`, `listSessions`, `revokeSession`
+
 ## [1.8.5] - 2026-05-18
 
 ### Fixed
