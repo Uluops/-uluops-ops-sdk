@@ -177,6 +177,7 @@ export const SaveRunInputSchema = z.object({
   })).max(100).optional(),
   analysisSummary: z.union([
     z.object({
+      agentName: z.string().max(100).optional(),
       decision: z.string().min(1).max(50),
       score: z.number().min(0).max(100),
       decisionVocabulary: z.string().max(100).nullish(),
@@ -188,6 +189,18 @@ export const SaveRunInputSchema = z.object({
       })).nullish(),
       epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
       auditImplications: z.array(z.string()).nullish(),
+      explorationMaps: z.array(z.object({
+        metadata: z.object({
+          explorerName: z.string(),
+          framework: z.string(),
+          artifactPath: z.string().optional(),
+        }),
+        sections: z.array(z.object({
+          type: z.string(),
+          label: z.string(),
+          summary: z.string().optional(),
+        }).passthrough()),
+      })).optional(),
     }),
     z.array(z.object({
       agentName: z.string().max(100).optional(),
@@ -202,6 +215,18 @@ export const SaveRunInputSchema = z.object({
       })).nullish(),
       epistemicAssessment: z.record(z.string(), z.unknown()).nullish(),
       auditImplications: z.array(z.string()).nullish(),
+      explorationMaps: z.array(z.object({
+        metadata: z.object({
+          explorerName: z.string(),
+          framework: z.string(),
+          artifactPath: z.string().optional(),
+        }),
+        sections: z.array(z.object({
+          type: z.string(),
+          label: z.string(),
+          summary: z.string().optional(),
+        }).passthrough()),
+      })).optional(),
     })).max(20),
   ]).optional(),
 });

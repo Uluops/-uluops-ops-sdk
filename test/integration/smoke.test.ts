@@ -106,14 +106,10 @@ if (!INTEGRATION_TEST_CONFIG.enabled) {
 
         const summary = await projectOps.getSummary(client, testProjectId);
 
-        // API returns stats nested under a `stats` sub-object
-        // The SDK type (ProjectSummary) expects flat fields — this is a known contract mismatch.
-        // Test against the actual API shape:
-        const raw = summary as unknown as { project: unknown; stats: Record<string, unknown> };
-        expect(raw.stats).toBeDefined();
-        expect(typeof raw.stats.totalRuns).toBe('number');
-        expect(typeof raw.stats.totalIssues).toBe('number');
-        expect(typeof raw.stats.openIssues).toBe('number');
+        expect(summary.stats).toBeDefined();
+        expect(typeof summary.stats.totalRuns).toBe('number');
+        expect(typeof summary.stats.totalIssues).toBe('number');
+        expect(typeof summary.stats.openIssues).toBe('number');
       });
 
       it('should handle forbidden error for non-existent project', async () => {

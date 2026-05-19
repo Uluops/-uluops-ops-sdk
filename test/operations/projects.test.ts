@@ -370,7 +370,7 @@ describe('Project Operations', () => {
       expect(result.count).toBe(1);
     });
 
-    it('should default count to data length when not in response', async () => {
+    it('should reject response missing count field', async () => {
       const mockIssues = [
         createMockIssue({ title: 'Bug 1' }),
         createMockIssue({ title: 'Bug 2' }),
@@ -380,10 +380,9 @@ describe('Project Operations', () => {
         .get(`/projects/${TEST_IDS.proj1}/issues`)
         .reply(200, { data: mockIssues });
 
-      const result = await projectOps.listIssuesWithCount(client, TEST_IDS.proj1);
-
-      expect(result.issues).toHaveLength(2);
-      expect(result.count).toBe(2);
+      await expect(
+        projectOps.listIssuesWithCount(client, TEST_IDS.proj1)
+      ).rejects.toThrow(/expected number, received undefined/);
     });
   });
 
