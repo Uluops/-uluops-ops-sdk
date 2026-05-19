@@ -149,14 +149,6 @@ export async function archive(
   }, { schema: ArchiveRunsResultResponseSchema });
 }
 
-/**
- * Update run metadata by project and run number. Supports post-hoc
- * enrichment with analysis records and summaries.
- *
- * @param client - HTTP client instance
- * @param input - Update payload with project + runNumber identifier
- * @returns Updated run
- */
 /** Build the shared update payload from an UpdateRunInput */
 function buildUpdatePayload(input: UpdateRunInput) {
   return {
@@ -173,6 +165,14 @@ function buildUpdatePayload(input: UpdateRunInput) {
   };
 }
 
+/**
+ * Update run metadata by project and run number. Supports post-hoc
+ * enrichment with analysis records and summaries.
+ *
+ * @param client - HTTP client instance
+ * @param input - Update payload with project + runNumber identifier
+ * @returns Updated run
+ */
 export async function update(
   client: OpsHttpClient,
   input: UpdateRunByNumberInput

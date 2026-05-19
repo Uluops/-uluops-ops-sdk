@@ -20,10 +20,8 @@ Official TypeScript SDK with Zod runtime validation for the UluOps validation tr
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
 
-// Defaults to https://api.uluops.ai/api/v1/ops in production.
-// Set NODE_ENV=development for localhost:3100, or pass baseUrl explicitly.
 const client = new OpsClient({
-  apiKey: 'ulr_your-api-key-here', // Create via client.auth.createApiKey() or admin dashboard
+  apiKey: 'ulr_your-api-key-here', // Or set ULUOPS_API_KEY env var
 });
 
 // Save a validation run
@@ -167,9 +165,7 @@ For interactive applications, use `client.login()` which automatically configure
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
 
-const client = new OpsClient({
-  baseUrl: 'https://api.uluops.ai/api/v1/ops',
-});
+const client = new OpsClient();
 
 // Login — installs session auth with automatic token refresh
 const { sessionToken, user } = await client.login(
@@ -241,7 +237,7 @@ import { loadCredentials, DEFAULT_BASE_URL } from '@uluops/ops-sdk/config';
 | `@uluops/ops-sdk/types/schemas` | Zod input validation schemas |
 | `@uluops/ops-sdk/types/auth` | Auth/credential types |
 | `@uluops/ops-sdk/errors` | Error classes and utilities |
-| `@uluops/ops-sdk/config` | Configuration loaders and constants |
+| `@uluops/ops-sdk/config` | Configuration loaders, constants, and input validators |
 
 #### Granular Type Imports
 
@@ -270,8 +266,7 @@ const client = new OpsClient({
   email: 'user@example.com',   // Email for login
   password: 'password',        // Password for login
 
-  // Connection settings
-  baseUrl: 'https://api.uluops.ai/api/v1/ops',  // API base URL (localhost:3100 when NODE_ENV=development)
+  // Connection settings (baseUrl defaults to https://api.uluops.ai/api/v1/ops)
   timeout: 30000,              // Request timeout in ms (default: 30000)
   retries: 3,                  // Retry count for transient errors (default: 3)
   debug: false,                // Enable debug logging
@@ -1460,7 +1455,7 @@ Check API server status. This endpoint does not require authentication.
 import { OpsHttpClient } from '@uluops/ops-sdk';
 import type { HealthResponse } from '@uluops/ops-sdk/types';
 
-const http = new OpsHttpClient({ baseUrl: 'http://localhost:3100/api/v1' });
+const http = new OpsHttpClient({ apiKey: 'ulr_...' });
 const health = await http.get<HealthResponse>('/health');
 console.log(health.status);   // 'ok' | 'degraded' | 'unhealthy'
 console.log(health.version);  // API version
@@ -1488,12 +1483,9 @@ Create a `.env` file in your project:
 
 ```env
 ULUOPS_API_KEY=ulr_your-api-key-here
-ULUOPS_BASE_URL=https://api.uluops.ai/api/v1/ops
 ```
 
 Or configure globally in `~/.uluops/.env`.
-
-> **Note:** The SDK defaults to `https://api.uluops.ai/api/v1/ops` in production. Set `NODE_ENV=development` to default to `http://localhost:3100/api/v1`, or pass `baseUrl` explicitly.
 
 ## Error Handling
 
@@ -1585,7 +1577,7 @@ try {
 } catch (error) {
   if (error instanceof InputValidationError) {
     console.log('Validation errors:', error.errors);
-    // => [{ code: 'too_small', minimum: 1, path: ['name'], message: 'String must contain at least 1 character(s)' }]
+    // => [{ code: 'too_small', minimum: 1, path: ['name'], message: 'Too small: expected string to have >=1 characters' }]
   }
 }
 ```
@@ -1604,7 +1596,6 @@ For advanced use cases, you can use `OpsHttpClient` directly:
 import { OpsHttpClient } from '@uluops/ops-sdk';
 
 const http = new OpsHttpClient({
-  baseUrl: 'http://localhost:3100/api/v1',
   apiKey: 'ulr_...',
 });
 
@@ -1626,10 +1617,9 @@ const authStrategy = createAuthStrategy({
   sessionToken: 'jwt-token',
 });
 
-const http = new OpsHttpClient({
-  baseUrl: 'http://localhost:3100/api/v1',
-  // Auth strategy will be created from config
-});
+// Wire the strategy into the HTTP client
+const http = new OpsHttpClient();
+http.setAuthStrategy(authStrategy);
 ```
 
 ### Loading Credentials Programmatically
@@ -1676,27 +1666,6 @@ Check that:
 ```bash
 # Verify environment
 echo $ULUOPS_API_KEY
-```
-
-### Connection Errors
-
-```text
-NetworkError: connect ECONNREFUSED 127.0.0.1:3100
-```
-
-Verify the API server is running and accessible:
-
-```bash
-curl http://localhost:3100/api/v1/health
-```
-
-Or configure the correct base URL:
-
-```typescript
-const client = new OpsClient({
-  baseUrl: 'https://api.uluops.ai/api/v1/ops',
-  apiKey: 'ulr_...',
-});
 ```
 
 ### Rate Limiting
