@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.8.10] - 2026-05-19
+
+### Fixed
+- Pinned `@uluops/sdk-core` to `^0.5.8` — fixes `ValidationError` (400) on tracker dashboard login. The v0.5.4 JWT structural validation rejected the tracker API's opaque `base64url` session tokens. Now accepts any non-empty string as a session token.
+- SDK_VERSION constant synced to 1.8.10 (was 1.8.8 at time of 1.8.9 publish)
+- Constructor logs resolved `baseUrl` at debug level — aids diagnosing `NODE_ENV` misconfiguration
+- No-credential warning now lists all 4 credential sources checked (constructor, env var, .env, credentials.json)
+- `FailureDomain` JSDoc links to canonical taxonomy spec and `client.taxonomy.get()`
+- `auth-strategy.ts` JSDoc cross-references sdk-core key behaviors (retry, token refresh, credential lifecycle)
+- 10 named analytics type aliases (`AgentReliabilityResult`, `BurndownResultResponse`, etc.) replace `z.infer<>` in client.ts — improves AI/IDE discoverability
+
 ## [1.8.9] - 2026-05-19
 
 ### Added
