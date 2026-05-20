@@ -688,7 +688,7 @@ Save and manage validation runs.
 
 #### `client.runs.save(input, options?)`
 
-Save a new validation run. Pass `{ preValidated: true }` as the second argument to bypass client-side Zod validation (useful when input is already validated by an upstream layer like MCP).
+Save a new validation run. Pass `{ _skipClientValidation: true }` as the second argument to bypass client-side Zod validation (useful when input is already validated by an upstream layer like MCP).
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -754,7 +754,7 @@ console.log(`Issues: ${result.correlation.newIssues} new, ${result.correlation.r
 
 #### `client.runs.validate(input, options?)`
 
-Preview what a save would do without persisting. Accepts same `{ preValidated: true }` option as `save()`.
+Preview what a save would do without persisting. Accepts same `{ _skipClientValidation: true }` option as `save()`.
 
 ```typescript
 const preview = await client.runs.validate({
@@ -858,7 +858,7 @@ console.log(`Archived ${result.archived} runs`);
 
 #### `client.runs.update(input, options?)`
 
-Update run metadata (tokens, scores). Accepts `{ preValidated: true }` option.
+Update run metadata (tokens, scores). Accepts `{ _skipClientValidation: true }` option.
 
 ```typescript
 const run = await client.runs.update({
@@ -872,7 +872,7 @@ const run = await client.runs.update({
 
 #### `client.runs.updateById(runId, input, options?)`
 
-Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0). Accepts `{ preValidated: true }` option.
+Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0). Accepts `{ _skipClientValidation: true }` option.
 
 ```typescript
 // Basic metadata update

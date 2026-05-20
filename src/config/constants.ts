@@ -40,12 +40,9 @@ export const ENV_VARS = {
   DEBUG: 'ULUOPS_DEBUG',
 } as const;
 
-/**
- * SDK version — hardcoded instead of reading package.json via createRequire
- * (node:module) so this module can be imported in browser environments.
- * Keep in sync with package.json "version" field.
- */
-export const SDK_VERSION = '1.8.10';
+// Re-export version from build-generated file (no manual sync needed)
+import { SDK_VERSION } from './generated-version.js';
+export { SDK_VERSION };
 
 /**
  * User agent string for requests

@@ -63,9 +63,9 @@ import {
 export async function save(
   client: OpsHttpClient,
   input: SaveRunInput,
-  options?: { preValidated?: boolean }
+  options?: { _skipClientValidation?: boolean }
 ): Promise<SaveRunResponse> {
-  if (!options?.preValidated) validateSaveRunInput(input);
+  if (!options?._skipClientValidation) validateSaveRunInput(input);
   // Generate idempotency key if not provided — prevents duplicate runs on retry
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
   return client.post('/runs', {
@@ -109,9 +109,9 @@ export async function save(
 export async function validate(
   client: OpsHttpClient,
   input: SaveRunInput,
-  options?: { preValidated?: boolean }
+  options?: { _skipClientValidation?: boolean }
 ): Promise<ValidateRunResponse> {
-  if (!options?.preValidated) validateSaveRunInput(input);
+  if (!options?._skipClientValidation) validateSaveRunInput(input);
   return client.post('/runs/validate', {
     project: input.project,
     workflowType: input.workflowType,
@@ -187,9 +187,9 @@ function buildUpdatePayload(input: UpdateRunInput) {
 export async function update(
   client: OpsHttpClient,
   input: UpdateRunByNumberInput,
-  options?: { preValidated?: boolean }
+  options?: { _skipClientValidation?: boolean }
 ): Promise<Run> {
-  if (!options?.preValidated) validateUpdateRunInput(input);
+  if (!options?._skipClientValidation) validateUpdateRunInput(input);
   return client.patch('/runs/update', {
     project: input.project,
     runNumber: input.runNumber,
@@ -283,9 +283,9 @@ export async function updateById(
   client: OpsHttpClient,
   runId: string,
   input: UpdateRunInput,
-  options?: { preValidated?: boolean }
+  options?: { _skipClientValidation?: boolean }
 ): Promise<Run> {
-  if (!options?.preValidated) validateUpdateRunInput(input);
+  if (!options?._skipClientValidation) validateUpdateRunInput(input);
   return client.patch(`/runs/${encodeURIComponent(runId)}`, buildUpdatePayload(input), { schema: RunResponseSchema });
 }
 
