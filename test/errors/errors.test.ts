@@ -243,8 +243,8 @@ describe('Error Classes', () => {
       expect(error.name).toBe('NetworkError');
     });
 
-    it('should not be retryable', () => {
-      expect(new NetworkError('test').isRetryable()).toBe(false);
+    it('should be retryable (transient network failures)', () => {
+      expect(new NetworkError('test').isRetryable()).toBe(true);
     });
   });
 
@@ -253,7 +253,7 @@ describe('Error Classes', () => {
       const error = new TimeoutError(30000);
       expect(error.message).toContain('Request timed out after 30000ms');
       expect(error.message).toContain('Consider increasing timeout');
-      expect(error.statusCode).toBe(0);
+      expect(error.statusCode).toBe(-1);
       expect(error.code).toBe(ERROR_CODES.TIMEOUT);
       expect(error.details).toEqual({ timeoutMs: 30000 });
       expect(error.name).toBe('TimeoutError');
