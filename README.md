@@ -9,7 +9,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
-Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
+Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
 **Current version: 1.8.10** | [Changelog](./CHANGELOG.md)
 
@@ -26,7 +26,7 @@ const client = new OpsClient();
 // Or pass an API key explicitly
 // const client = new OpsClient({ apiKey: 'ulr_your-api-key-here' });
 
-// Save a validation run
+// Save an execution run
 const result = await client.runs.save({
   project: 'my-project',
   workflowType: 'post-implementation',
@@ -100,10 +100,10 @@ for (const [domain, trend] of Object.entries(burndown.trends)) {
 
 The UluOps SDK provides programmatic access to the UluOps platform API, enabling you to:
 
-- **Track Validation Runs**: Save validation pipeline results with agent scores and recommendations
+- **Track Execution Runs**: Save agent, workflow, and pipeline results with scores, recommendations, and analysis
 - **Manage Issues**: Create, search, update, and track issues across projects
 - **Analyze Trends**: Get burndown charts, velocity metrics, and taxonomy distribution analytics
-- **Automate Workflows**: Integrate validation tracking into CI/CD pipelines
+- **Automate Workflows**: Integrate execution tracking into CI/CD and agent pipelines
 
 The SDK covers **75 methods** across 7 operation domains with full TypeScript support.
 
@@ -690,11 +690,11 @@ const result = await client.projects.mergeIssues('my-project', {
 
 ### Run Operations
 
-Save and manage validation runs.
+Save and manage execution runs.
 
 #### `client.runs.save(input, options?)`
 
-Save a new validation run. Pass `{ _skipClientValidation: true }` as the second argument to bypass client-side Zod validation (useful when input is already validated by an upstream layer like MCP).
+Save a new execution run. Pass `{ _skipClientValidation: true }` as the second argument to bypass client-side Zod validation (useful when input is already validated by an upstream layer like MCP).
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|

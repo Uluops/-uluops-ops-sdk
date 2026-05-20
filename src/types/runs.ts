@@ -31,7 +31,7 @@ import {
 // Response types (derived from Zod schemas — single source of truth)
 // ─────────────────────────────────────────────────────────────────
 
-/** Validation run entity */
+/** Run entity — an execution record from any agent, workflow, or pipeline */
 export type Run = z.infer<typeof RunResponseSchema>;
 
 /** Enriched run for list endpoints (aggregate fields, no detail-only fields) */

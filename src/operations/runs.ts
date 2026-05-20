@@ -41,7 +41,7 @@ import {
 } from '../config/validators.js';
 
 /**
- * Save a validation run with agent scores and recommendations.
+ * Save an execution run with agent scores and recommendations.
  * Input is validated client-side via Zod before the network request.
  *
  * @param client - HTTP client instance

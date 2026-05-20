@@ -333,7 +333,7 @@ export class OpsClient {
   // RUN OPERATIONS
   // ============================================
 
-  /** Validation run save, preview, diff, archive, and retrieval */
+  /** Execution run save, preview, diff, archive, and retrieval */
   readonly runs = {
     save: (input: SaveRunInput, options?: { _skipClientValidation?: boolean }): Promise<SaveRunResponse> =>
       runOps.save(this.httpClient, input, options),
