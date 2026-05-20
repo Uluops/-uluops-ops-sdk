@@ -66,6 +66,12 @@ export interface HttpClientConfig {
   sessionToken?: string;
   /** Callback when session token is refreshed */
   onTokenRefresh?: (token: string) => void;
+  /** Called when rate limit remaining drops below threshold (default: 10%) */
+  onRateLimitApproaching?: (info: import('@uluops/sdk-core').RateLimitInfo) => void;
+  /** Ratio of remaining/limit that triggers the rate limit callback (default: 0.1) */
+  rateLimitThreshold?: number;
+  /** Called before each retry attempt with attempt info and backoff delay */
+  onRetry?: (info: { attempt: number; maxAttempts: number; error: Error; delayMs: number }) => void;
   /** Org slug for multi-tenancy — sets X-Org-Slug header on all requests */
   orgSlug?: string;
 }

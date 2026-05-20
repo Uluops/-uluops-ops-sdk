@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-05-20
+
+### Added
+- **`onRetry` callback** — new client config option fires before each retry attempt with `{ attempt, maxAttempts, error, delayMs }`. Eliminates silent retry windows — consumers can log progress, update UI, or implement custom throttling during backoff.
+- **`onRateLimitApproaching` callback** — fires when rate limit remaining drops below threshold (default: 10%). Includes `rateLimitThreshold` option.
+
+### Dependencies
+- `@uluops/sdk-core` bumped to `^0.9.0` (onRetry callback)
+
 ## [1.8.10] - 2026-05-19
 
 ### Fixed
