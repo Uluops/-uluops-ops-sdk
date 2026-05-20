@@ -1,9 +1,15 @@
 /**
- * Response Zod schemas for contract validation
+ * Response Zod schemas — runtime contract validation
  *
- * These schemas validate API response shapes to ensure mock data in tests
- * matches the actual API contract. This prevents false confidence from
- * tests that pass with incorrect mock shapes.
+ * These schemas serve two roles:
+ * 1. **Test contract**: ensure mock data matches the actual API shape
+ * 2. **Runtime parsing**: every API response is parsed via `schema.parse()`,
+ *    which strips unknown fields (Zod's default behavior). This means new
+ *    API fields are silently dropped until the schema is updated — the SDK
+ *    won't break, but consumers won't see new fields either.
+ *
+ * Schemas using `.passthrough()` (e.g., ExplorationSectionResponseSchema)
+ * preserve unknown fields for extensible data structures.
  */
 import { z } from 'zod';
 import {

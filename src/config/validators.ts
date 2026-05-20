@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   CreateProjectInputSchema,
+  UpdateProjectInputSchema,
   SaveRunInputSchema,
   CreateUserIssueInputSchema,
   UpdateIssueStatusInputSchema,
@@ -155,6 +156,16 @@ export function validateCreateApiKeyInput(data: unknown): z.infer<typeof CreateA
  */
 export function validateCreateProjectInput(data: unknown): z.infer<typeof CreateProjectInputSchema> {
   return validate(CreateProjectInputSchema, data, 'project creation');
+}
+
+/**
+ * Validate project update input.
+ * @param data - Raw input: `{ name?: string (1-200 chars) }`
+ * @returns Validated `UpdateProjectInput`
+ * @throws {InputValidationError} If name exceeds 200 chars
+ */
+export function validateUpdateProjectInput(data: unknown): z.infer<typeof UpdateProjectInputSchema> {
+  return validate(UpdateProjectInputSchema, data, 'project update');
 }
 
 /**

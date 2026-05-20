@@ -30,6 +30,7 @@ import {
 } from '../types/response-schemas.js';
 import {
   validateCreateProjectInput,
+  validateUpdateProjectInput,
   validateDeleteProjectInput,
   validateRenameProjectInput,
 } from '../config/validators.js';
@@ -79,7 +80,6 @@ export async function create(
 
 /**
  * Update a project's mutable fields (name, description).
- * Unlike create/delete, does not run client-side Zod validation — input is validated server-side only.
  *
  * @param client - HTTP client instance
  * @param idOrName - Project UUID or name
@@ -91,6 +91,7 @@ export async function update(
   idOrName: string,
   input: UpdateProjectInput
 ): Promise<Project> {
+  validateUpdateProjectInput(input);
   return client.patch(`/projects/${encodeURIComponent(idOrName)}`, input, { schema: ProjectResponseSchema });
 }
 

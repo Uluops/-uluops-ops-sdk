@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 1.8.10** | [Changelog](./CHANGELOG.md)
+**Current version: 1.9.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -495,7 +495,7 @@ await client.auth.revokeSession('session-id-123');
 
 ### Project Operations
 
-Manage validation projects.
+Manage projects.
 
 #### `client.projects.list()`
 

@@ -90,6 +90,11 @@ export type AgentRunsAnalysis = z.infer<typeof AgentRunsAnalysisResponseSchema>;
 
 // ─────────────────────────────────────────────────────────────────
 // Input types (hand-written — not API responses)
+//
+// These interfaces are the TypeScript source of truth for input shapes.
+// Corresponding Zod schemas in schemas.ts validate at runtime. The two
+// must be kept in sync manually — a trade-off for ergonomic interfaces
+// over Zod-inferred types. Tests verify alignment via contract helpers.
 // ─────────────────────────────────────────────────────────────────
 
 /**
@@ -114,7 +119,8 @@ export interface TokenUsage {
  * - **AgentMatrixRow**: a coverage vector across failure domains
  * - **AgentReliability**: a quality entity with false-positive and resolution rates
  *
- * All projections share `name` as the identity key.
+ * All projections share `name` as the identity key, except `AgentMatrixRow`
+ * which uses `agent` (mirroring the API's matrix endpoint field name).
  */
 export interface AgentInput {
   name: string;
@@ -125,6 +131,24 @@ export interface AgentInput {
   summary?: string;
   model?: string;
   tokens?: TokenUsage;
+  durationMs?: number;
+}
+
+/**
+ * Agent update input for update_run.
+ * Uses flat token fields (not nested TokenUsage) because the update API
+ * accepts individual token field patches rather than a complete snapshot.
+ */
+export interface UpdateAgentInput {
+  name: string;
+  score?: number;
+  decision?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  totalEffectiveTokens?: number;
   durationMs?: number;
 }
 
@@ -208,18 +232,7 @@ export interface UpdateRunInput {
   archivedAt?: string | null;
   archiveReason?: string | null;
   recommendations?: RecommendationInput[];
-  agents?: Array<{
-    name: string;
-    score?: number;
-    decision?: string;
-    model?: string;
-    inputTokens?: number;
-    outputTokens?: number;
-    cacheCreationTokens?: number;
-    cacheReadTokens?: number;
-    totalEffectiveTokens?: number;
-    durationMs?: number;
-  }>;
+  agents?: UpdateAgentInput[];
   /** Structured analysis records (v1.4.0) — replaces existing records if present */
   analysisRecords?: AnalysisRecordInput[];
   /** Analysis summary/summaries (v1.7.0) — single or per-agent array. Replaces existing. */
