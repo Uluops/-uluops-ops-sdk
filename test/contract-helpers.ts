@@ -232,7 +232,7 @@ export function createMockRun(overrides: Partial<z.infer<typeof RunResponseSchem
 }
 
 /**
- * Factory for creating valid ValidatorSnapshot response data
+ * Factory for creating valid AgentSnapshot response data
  */
 export function createMockAgentSnapshot(
   overrides: Partial<z.infer<typeof AgentSnapshotResponseSchema>> = {}

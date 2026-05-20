@@ -79,7 +79,11 @@ export interface CreateUserIssueInput extends IssueFieldsBase {
 }
 
 /**
- * Update issue input
+ * Update issue input.
+ *
+ * Server-managed fields (lastSeenRunId, timesSeen, resolvedAt, resolutionRunId)
+ * are intentionally excluded — they are computed by the server's correlation
+ * engine and should not be set by clients.
  */
 export interface UpdateIssueInput {
   title?: string;
@@ -93,10 +97,6 @@ export interface UpdateIssueInput {
   type?: IssueType | null;
   filePath?: string | null;
   lineNumber?: number | null;
-  lastSeenRunId?: string;
-  timesSeen?: number;
-  resolvedAt?: string | null;
-  resolutionRunId?: string | null;
 }
 
 /**

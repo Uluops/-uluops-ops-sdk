@@ -332,7 +332,12 @@ export interface AgendaSection extends SectionBase {
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Analysis record input for structured analytical output
+ * Analysis record input for structured analytical output.
+ *
+ * The `data` field is intentionally typed as `Record<string, unknown>` —
+ * analysis record types are unbounded (conventions, tensions, decay vectors,
+ * etc.) and their schemas are defined by individual agents, not the SDK.
+ * The SDK validates the container; the server validates domain-specific content.
  */
 export interface AnalysisRecordInput {
   /** Agent name — overrides run-level default when provided */
