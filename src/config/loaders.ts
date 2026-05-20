@@ -1,7 +1,7 @@
 /**
  * Config/credential loading for @uluops/ops-sdk
  *
- * Thin wrappers around @uluops/sdk-core that inject ops-sdk ENV_VARS.
+ * Wrappers around @uluops/sdk-core that inject ops-sdk ENV_VARS.
  */
 
 import {
