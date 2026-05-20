@@ -84,7 +84,7 @@
     "url": "git+https://github.com/Uluops/-uluops-ops-sdk.git"
   },
   "dependencies": {
-    "@uluops/sdk-core": "^0.5.8",
+    "@uluops/sdk-core": "^0.6.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

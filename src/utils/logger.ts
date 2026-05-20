@@ -6,5 +6,6 @@ export {
   redactSensitive,
   sanitizeForDisplay,
   sanitizeForLog,
+  sanitizeString,
   type Logger,
 } from '@uluops/sdk-core/utils';
