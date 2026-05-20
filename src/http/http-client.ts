@@ -1,8 +1,10 @@
 /**
- * OpsHttpClient — thin subclass of sdk-core's HttpClient
+ * OpsHttpClient — thin HTTP subclass of sdk-core's HttpClient.
  *
- * Passes ops-sdk defaults (baseUrl, sdkName, loggerPrefix).
- * Keeps the same public HttpClientConfig interface for consumers.
+ * The HTTP layer is deliberately thin: it passes ops-sdk defaults
+ * (baseUrl, sdkName, loggerPrefix) and adds multi-tenancy headers.
+ * The SDK's substantial surface (types, schemas, validators, analytics
+ * operations) lives above this layer, not within it.
  */
 
 import { HttpClient } from '@uluops/sdk-core/http';
