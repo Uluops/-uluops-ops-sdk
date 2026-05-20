@@ -47,10 +47,15 @@ export type PublicIssue = Issue;
 // ─────────────────────────────────────────────────────────────────
 
 /**
- * Create user-submitted issue input
+ * Shared fields between recommendations and user-created issues.
+ *
+ * A recommendation is an issue-in-transit: it enters via `runs.save()`,
+ * the server correlates it against the issue store, and it produces
+ * the same `Issue` entity as `issues.create()`. This base captures
+ * the shared identity; context-specific fields (project, agent
+ * optionality, classification metadata) live on the extending types.
  */
-export interface CreateUserIssueInput {
-  project: string;
+export interface IssueFieldsBase {
   title: string;
   priority: Priority;
   severity?: Severity;
@@ -61,8 +66,16 @@ export interface CreateUserIssueInput {
   failureCode?: string;
   failureDomain?: FailureDomain;
   failureMode?: string;
-  agent?: string;
   type?: IssueType;
+}
+
+/**
+ * Create user-submitted issue input.
+ * Standalone issue — project and agent are specified directly.
+ */
+export interface CreateUserIssueInput extends IssueFieldsBase {
+  project: string;
+  agent?: string;
 }
 
 /**

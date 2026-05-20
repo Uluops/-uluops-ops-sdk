@@ -1,13 +1,10 @@
 import { z } from 'zod';
 import type {
-  Priority,
-  Severity,
-  FailureDomain,
-  IssueType,
   ClassificationConfidence,
   ClassifiedBy,
   SubscriptionTier,
 } from './enums.js';
+import type { IssueFieldsBase } from './issues.js';
 import {
   RunResponseSchema,
   AgentSnapshotResponseSchema,
@@ -122,21 +119,14 @@ export interface AgentInput {
 }
 
 /**
- * Recommendation/issue input for save_run
+ * Recommendation input for save_run.
+ * A recommendation is an issue-in-transit — it shares the same core fields
+ * as {@link IssueFieldsBase} and adds classification metadata specific to
+ * agent-generated findings. The server correlates recommendations against
+ * the issue store, producing Issue entities.
  */
-export interface RecommendationInput {
+export interface RecommendationInput extends IssueFieldsBase {
   agent: string;
-  title: string;
-  priority: Priority;
-  type?: IssueType;
-  severity?: Severity;
-  failureCode?: string;
-  failureDomain?: FailureDomain;
-  failureMode?: string;
-  category?: string;
-  filePath?: string;
-  lineNumber?: number;
-  description?: string;
   classificationConfidence?: ClassificationConfidence;
   classifiedBy?: ClassifiedBy;
   secondaryFailureCodes?: string[];
