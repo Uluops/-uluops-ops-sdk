@@ -112,7 +112,7 @@ The SDK covers **75 methods** across 7 operation domains with full TypeScript su
 - **Full API Coverage**: 75 methods across auth, projects, runs, issues, analytics, and taxonomy domains
 - **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
 - **Dual Authentication**: API key (preferred) and JWT session support
-- **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429)
+- **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429, network failures)
 - **Error Hierarchy**: Typed errors for precise error handling
 - **Subpath Exports**: Import only what you need (`@uluops/ops-sdk/types`, `@uluops/ops-sdk/errors`)
 
@@ -277,6 +277,12 @@ const client = new OpsClient({
 
   // Callbacks
   onTokenRefresh: (token) => { /* handle token refresh */ },
+  onRateLimitApproaching: (info) => {
+    console.warn(`Rate limit: ${info.remaining}/${info.limit} remaining, resets ${info.reset}`);
+  },
+  onRetry: ({ attempt, maxAttempts, error, delayMs }) => {
+    console.warn(`Retry ${attempt}/${maxAttempts} after ${delayMs}ms: ${error.message}`);
+  },
 });
 ```
 
@@ -1549,13 +1555,13 @@ try {
 | `PayloadTooLargeError` | 413 | Request body too large |
 | `UnprocessableError` | 422 | Semantically invalid request |
 | `ServiceUnavailableError` | 503 | Server unavailable |
-| `NetworkError` | - | Connection error |
+| `NetworkError` | - | Connection error (auto-retried) |
 | `TimeoutError` | - | Request timeout |
 | `InputValidationError` | - | Client-side Zod validation failure |
 
 ### Automatic Retries
 
-The SDK automatically retries on transient errors (502, 503, 504, 429) with exponential backoff:
+The SDK automatically retries on transient errors (502, 503, 504, 429) and network failures (DNS, connection reset, ECONNREFUSED) with exponential backoff:
 
 ```typescript
 const client = new OpsClient({
