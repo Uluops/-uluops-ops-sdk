@@ -58,6 +58,10 @@ export async function register(
  * Login with email and password. Does not require authentication.
  * Returns a session token — use `OpsClient.login()` instead for auto-install.
  *
+ * @deprecated Use `OpsClient.login(email, password)` instead — it automatically
+ * installs session auth with token refresh. This function only returns the token
+ * without configuring the client, so subsequent requests will fail.
+ *
  * @param client - HTTP client instance
  * @param input - `{ email, password }`
  * @returns `{ user, sessionToken }` — token must be manually installed on the client

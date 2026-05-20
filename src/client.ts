@@ -151,6 +151,12 @@ export class OpsClient {
     const logger = createLogger('ops-sdk', config.debug ?? false);
     const resolvedUrl = config.baseUrl ?? DEFAULT_BASE_URL;
     logger.debug(`Initialized — baseUrl=${resolvedUrl}`);
+    if (!config.baseUrl && resolvedUrl.includes('localhost')) {
+      logger.warn(
+        `Resolved to localhost (${resolvedUrl}) because NODE_ENV=${process.env.NODE_ENV}. ` +
+        'Set ULUOPS_BASE_URL or pass baseUrl in config to override.'
+      );
+    }
     if (!this.isAuthenticated() && !(config.email && config.password)) {
       logger.warn(
         `No credentials found (checked: constructor config, ${ENV_VARS.API_KEY} env, .env files, ~/.uluops/credentials.json). ` +

@@ -20,9 +20,11 @@ Official TypeScript SDK with Zod runtime validation for the UluOps validation tr
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
 
-const client = new OpsClient({
-  apiKey: 'ulr_your-api-key-here', // Or set ULUOPS_API_KEY env var
-});
+// Auto-loads credentials from ULUOPS_API_KEY env var, .env file, or ~/.uluops/credentials.json
+const client = new OpsClient();
+
+// Or pass an API key explicitly
+// const client = new OpsClient({ apiKey: 'ulr_your-api-key-here' });
 
 // Save a validation run
 const result = await client.runs.save({
@@ -647,7 +649,7 @@ const { issues, count } = await client.projects.listIssuesWithCount('my-project'
 console.log(`Showing ${issues.length} of ${count} total issues`);
 ```
 
-> **Note:** Uses `requestRaw` internally to access the envelope `count` field, which does not include automatic retry or token refresh. Use `listIssues` for retry-safe access without count.
+> **Note:** Returns both the issues array and the total count for building paginated UIs.
 
 #### `client.projects.bulkUpdateIssueStatus(idOrName, updates)`
 

@@ -303,9 +303,12 @@ export const RunSummaryResponseSchema = z.object({
   timestamp: DateTimeStringSchema,
   allGatesPassed: z.boolean(),
   averageScore: z.number().nullable().optional(),
+  rawMarkdown: z.string().nullable().optional(),
   archivedAt: NullableDateTimeSchema.optional(),
   archiveReason: z.string().nullable().optional(),
+  idempotencyKey: z.string().nullable().optional(),
   createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema.optional(),
   // Aggregate fields computed by getRunsSummary query
   totalRecommendations: z.number().int().nonnegative(),
   criticalCount: z.number().int().nonnegative(),
