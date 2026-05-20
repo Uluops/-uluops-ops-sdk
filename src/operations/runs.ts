@@ -60,6 +60,10 @@ import {
  * console.log(result.run.runNumber, result.correlation.newIssues);
  * ```
  */
+// Client-side validation is a convenience guarantee, not a security boundary.
+// Pre-validated callers (MCP, autosave hooks) skip it to avoid redundant work —
+// the server always validates regardless. This is an intentional escape hatch,
+// not a contradiction of the validation commitment.
 export async function save(
   client: OpsHttpClient,
   input: SaveRunInput,

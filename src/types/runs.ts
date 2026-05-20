@@ -104,7 +104,17 @@ export interface TokenUsage {
 }
 
 /**
- * Agent input for save_run
+ * Agent execution snapshot — the results of a single agent within a run.
+ *
+ * "Agent" appears in five projections across the SDK, each viewing the
+ * same underlying entity from a different angle:
+ * - **AgentInput** (here): a scored executor that ran and produced findings
+ * - **AgentPerformance**: a statistical entity with pass rates across runs
+ * - **AgentLifecycleEntry**: a versioned entity with trajectory over time
+ * - **AgentMatrixRow**: a coverage vector across failure domains
+ * - **AgentReliability**: a quality entity with false-positive and resolution rates
+ *
+ * All projections share `name` as the identity key.
  */
 export interface AgentInput {
   name: string;

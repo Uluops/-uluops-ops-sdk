@@ -37,7 +37,8 @@ export interface Period {
 // ============================================
 
 /**
- * Simplified agent info (from performance data)
+ * Simplified agent info (from performance data).
+ * @see {@link AgentInput} in runs.ts for the full agent projection map.
  */
 export interface AgentInfo {
   name: string;
@@ -351,7 +352,8 @@ export interface DiscoveryQuery extends AnalyticsQuery {
 // ============================================
 
 /**
- * Agent matrix row
+ * Agent matrix row — coverage vector across failure domains.
+ * @see {@link AgentInput} in runs.ts for the full agent projection map.
  */
 export interface AgentMatrixRow {
   agent: string;
