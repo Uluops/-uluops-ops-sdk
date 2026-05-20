@@ -112,7 +112,7 @@ import type { MessageResponse, DeleteResult } from './types/responses.js';
 export type OpsClientConfig = HttpClientConfig;
 
 /**
- * Main SDK client for the UluOps validation tracker API.
+ * Main SDK client for the UluOps platform API.
  *
  * Supports two authentication modes:
  * - **API key**: Pass `apiKey` in config (stateless, recommended for CI/CD and scripts)

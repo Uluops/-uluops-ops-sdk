@@ -44,11 +44,12 @@ export type Severity = (typeof Severity)[keyof typeof Severity];
 export const SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
 
 /**
- * Failure taxonomy domains.
+ * Well-known failure taxonomy domains.
  *
  * The canonical taxonomy is server-authoritative — use `client.taxonomy.get()`
- * to fetch the full taxonomy with modes and descriptions. These client-side
- * constants must stay in sync with the API's `GET /taxonomy` response.
+ * to fetch the full taxonomy with modes and descriptions. These constants are
+ * convenience snapshots for autocomplete and type safety; validation accepts
+ * any well-formed domain, not just these four.
  *
  * @see {@link https://docs.uluops.ai/specs/failure-taxonomy} for the taxonomy specification
  */
@@ -216,14 +217,16 @@ export type BulkFailureReason = (typeof BulkFailureReason)[keyof typeof BulkFail
 /**
  * Failure code regex pattern
  * Format: DOMAIN-MODE/SEVERITY (e.g., SEM-VAL/H)
+ * Accepts any uppercase 3-letter domain — not restricted to well-known domains.
  */
-export const FAILURE_CODE_PATTERN = /^(STR|SEM|PRA|EPI)-[A-Z]{3}\/[CHMLI]$/;
+export const FAILURE_CODE_PATTERN = /^[A-Z]{3}-[A-Z]{3}\/[CHMLI]$/;
 
 /**
  * Failure mode pattern (without severity)
  * Format: DOMAIN-MODE (e.g., SEM-VAL)
+ * Accepts any uppercase 3-letter domain — not restricted to well-known domains.
  */
-export const FAILURE_MODE_PATTERN = /^(STR|SEM|PRA|EPI)-[A-Z]{3}$/;
+export const FAILURE_MODE_PATTERN = /^[A-Z]{3}-[A-Z]{3}$/;
 
 /**
  * Map severity codes to severity values
@@ -245,10 +248,11 @@ export function severityFromCode(code: string | null | undefined): Severity | nu
 }
 
 /**
- * Parse a failure code into its components
+ * Parse a failure code into its components.
+ * Accepts any well-formed domain, not just the four well-known ones.
  */
 export function parseFailureCode(code: string): {
-  domain: FailureDomain;
+  domain: string;
   mode: string;
   severityCode: FailureSeverityCode;
 } | null {
@@ -257,19 +261,16 @@ export function parseFailureCode(code: string): {
   const slashIndex = code.indexOf('/');
   const dashIndex = code.indexOf('-');
 
-  // These checks are technically redundant due to regex validation,
-  // but satisfy TypeScript and provide runtime safety
   if (slashIndex === -1 || dashIndex === -1) return null;
 
   const domain = code.slice(0, dashIndex);
   const mode = code.slice(dashIndex + 1, slashIndex);
   const severityCode = code.slice(slashIndex + 1);
 
-  if (!FAILURE_DOMAINS.includes(domain as FailureDomain)) return null;
   if (!FAILURE_SEVERITY_CODES.includes(severityCode as FailureSeverityCode)) return null;
 
   return {
-    domain: domain as FailureDomain,
+    domain,
     mode,
     severityCode: severityCode as FailureSeverityCode,
   };

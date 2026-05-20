@@ -3,7 +3,6 @@ import {
   PRIORITIES,
   STATUSES,
   SEVERITIES,
-  FAILURE_DOMAINS,
   ISSUE_TYPES,
   NOTE_TYPES,
   AVATAR_MIME_TYPES,
@@ -19,7 +18,9 @@ export const UuidSchema = z.string().uuid();
 export const PrioritySchema = z.enum(PRIORITIES);
 export const StatusSchema = z.enum(STATUSES);
 export const SeveritySchema = z.enum(SEVERITIES);
-export const FailureDomainSchema = z.enum(FAILURE_DOMAINS);
+export const FailureDomainSchema = z.string().regex(/^[A-Z]{3}$/, {
+  message: 'Failure domain must be a 3-letter uppercase code (e.g., STR, SEM, PRA, EPI)',
+});
 export const IssueTypeSchema = z.enum(ISSUE_TYPES);
 export const NoteTypeSchema = z.enum(NOTE_TYPES);
 export const AvatarMimeTypeSchema = z.enum(AVATAR_MIME_TYPES);

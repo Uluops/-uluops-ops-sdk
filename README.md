@@ -9,7 +9,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
-Official TypeScript SDK with Zod runtime validation for the UluOps validation tracker API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
+Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track validation runs, manage issues, analyze trends, and integrate AI validation pipelines into your workflow.
 
 **Current version: 1.8.10** | [Changelog](./CHANGELOG.md)
 
@@ -98,7 +98,7 @@ for (const [domain, trend] of Object.entries(burndown.trends)) {
 
 ## Overview
 
-The UluOps SDK provides programmatic access to the UluOps validation tracker API, enabling you to:
+The UluOps SDK provides programmatic access to the UluOps platform API, enabling you to:
 
 - **Track Validation Runs**: Save validation pipeline results with agent scores and recommendations
 - **Manage Issues**: Create, search, update, and track issues across projects

@@ -10,7 +10,7 @@ import {
   PRIORITIES,
   STATUSES,
   SEVERITIES,
-  FAILURE_DOMAINS,
+  // FAILURE_DOMAINS removed — response schemas use permissive string validation
   ISSUE_TYPES,
   NOTE_TYPES,
   USER_ROLES,
@@ -28,7 +28,7 @@ export const NullableDateTimeSchema = DateTimeStringSchema.nullable();
 export const PriorityResponseSchema = z.enum(PRIORITIES);
 export const StatusResponseSchema = z.enum(STATUSES);
 export const SeverityResponseSchema = z.enum(SEVERITIES);
-export const FailureDomainResponseSchema = z.enum(FAILURE_DOMAINS);
+export const FailureDomainResponseSchema = z.string().regex(/^[A-Z]{3}$/);
 export const IssueTypeResponseSchema = z.enum(ISSUE_TYPES);
 export const NoteTypeResponseSchema = z.enum(NOTE_TYPES);
 export const UserRoleResponseSchema = z.enum(USER_ROLES);

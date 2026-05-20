@@ -187,14 +187,13 @@ export interface FullTaxonomyAnalytics {
 // ============================================
 
 /**
- * Burndown time series data point
+ * Burndown time series data point.
+ * Domain fields are dynamic — includes well-known domains (STR, SEM, PRA, EPI)
+ * plus any server-defined domains.
  */
 export interface BurndownDataPoint {
   date: string;
-  STR: number;
-  SEM: number;
-  PRA: number;
-  EPI: number;
+  [domain: string]: string | number; // domain counts + date
   total: number;
 }
 
@@ -245,12 +244,7 @@ export interface DomainTrend {
  */
 export interface BurndownResult {
   timeSeries: BurndownDataPoint[];
-  trends: {
-    STR: DomainTrend;
-    SEM: DomainTrend;
-    PRA: DomainTrend;
-    EPI: DomainTrend;
-  };
+  trends: Record<string, DomainTrend>;
 }
 
 /**
