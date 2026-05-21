@@ -177,7 +177,7 @@ export const AnalysisSummaryEntrySchema = z.object({
       label: z.string().max(200),
       summary: z.string().max(2000).optional(),
     }).passthrough()).max(100),
-  })).max(50).optional(),
+  })).max(50).nullish(),
 });
 
 export const SaveRunInputSchema = z.object({
