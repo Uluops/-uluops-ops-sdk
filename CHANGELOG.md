@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-05-21
+
+### Breaking
+
+- **`score` is now `number | null` on response types** — `AgentSnapshotResponseSchema.score` and `AnalysisSummaryResponseSchema.score` accept `null`. Callers reading `agent.score` must now handle null (e.g., `if (agent.score != null)`). This affects any code that performs arithmetic on scores without a null check.
+
+### Changed
+
+- **`AgentInput.score` is now optional and nullable** — generator/executor agents that do not produce scores can omit the field entirely or pass `null`. Existing callers that always provide a numeric score are unaffected.
+- **`AnalysisSummaryInput.score` is now optional and nullable** — same semantics as AgentInput.
+- **`AgentInputSchema` and `AnalysisSummaryEntrySchema`** — Zod schemas updated to `.optional().nullable()` on score field.
+
+### Migration Guide
+
+- If you always provide a score: **no change needed**
+- If you read `agent.score`: add a null check (`if (agent.score != null)`)
+- Generator/executor agents: simply omit the `score` field
+
 ## [1.9.0] - 2026-05-20
 
 ### Added
