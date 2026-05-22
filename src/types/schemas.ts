@@ -123,7 +123,7 @@ export const TokenUsageSchema = z.object({
 
 export const AgentInputSchema = z.object({
   name: z.string().min(1).max(100),
-  score: z.number().min(0).max(100),
+  score: z.number().min(0).max(100).optional().nullable(),
   maxScore: z.number().min(0).max(100).optional(),
   decision: z.string().min(1).max(50),
   summary: z.string().max(2000).optional(),
@@ -156,7 +156,7 @@ export const RecommendationInputSchema = z.object({
 export const AnalysisSummaryEntrySchema = z.object({
   agentName: z.string().max(100).optional(),
   decision: z.string().min(1).max(50),
-  score: z.number().min(0).max(100),
+  score: z.number().min(0).max(100).optional().nullable(),
   decisionVocabulary: z.string().max(100).nullish(),
   systemMetrics: z.record(z.string(), z.unknown()).nullish(),
   categoryScores: z.array(z.object({

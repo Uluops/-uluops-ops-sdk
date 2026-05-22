@@ -329,7 +329,7 @@ export const AgentSnapshotResponseSchema = z.object({
   name: z.string(),
   definitionVersion: z.string().nullable().optional(),
   registryDefinitionId: z.string().uuid().nullable().optional(),
-  score: z.number().min(0).max(100),
+  score: z.number().min(0).max(100).nullable(),
   maxScore: z.number().min(0).max(100),
   decision: z.string(),
   summary: z.string().nullable().optional(),
@@ -469,7 +469,7 @@ export const AnalysisSummaryResponseSchema = z.object({
   agentName: z.string(),
   agentType: z.string(),
   decision: z.string(),
-  score: z.number().min(0).max(100),
+  score: z.number().min(0).max(100).nullable(),
   decisionVocabulary: z.string().nullable(),
   systemMetrics: z.record(z.string(), z.unknown()).nullable(),
   categoryScores: z.array(z.object({

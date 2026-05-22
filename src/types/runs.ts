@@ -125,7 +125,7 @@ export interface TokenUsage {
 export interface AgentInput {
   name: string;
   definitionVersion?: string;
-  score: number;
+  score?: number | null;
   maxScore?: number;
   decision: string;
   summary?: string;
@@ -379,7 +379,7 @@ export interface AnalysisSummaryInput {
   /** Agent name — overrides run-level default when provided */
   agentName?: string;
   decision: string;
-  score: number;
+  score?: number | null;
   decisionVocabulary?: string | null;
   systemMetrics?: Record<string, unknown> | null;
   categoryScores?: CategoryScore[] | null;
