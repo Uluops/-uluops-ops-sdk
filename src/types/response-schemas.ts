@@ -320,7 +320,7 @@ export const RunSummaryResponseSchema = z.object({
   criticalCount: z.number().int().nonnegative(),
   suggestedCount: z.number().int().nonnegative(),
   backlogCount: z.number().int().nonnegative(),
-  agentScores: z.record(z.string(), z.number()),
+  agentScores: z.record(z.string(), z.number().nullable()),
 });
 
 export const AgentSnapshotResponseSchema = z.object({
