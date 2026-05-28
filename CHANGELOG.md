@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-05-27
+
+### Fixed
+
+- **Production base URL corrected** — default URL changed from `https://api.uluops.ai/api/v1/ops` to `https://api.uluops.ai/api/v1`. The `/ops` path prefix did not exist in the API routing, causing 404 errors for all SDK calls using the production default.
+
 ## [2.0.0] - 2026-05-21
 
 ### Breaking

@@ -13,7 +13,7 @@ export { API_KEY_PREFIX } from '@uluops/sdk-core/config';
 /**
  * Production base URL for the ops-uluops-api
  */
-export const DEFAULT_PROD_URL = 'https://api.uluops.ai/api/v1/ops';
+export const DEFAULT_PROD_URL = 'https://api.uluops.ai/api/v1';
 
 /**
  * Development base URL for local ops-uluops-api

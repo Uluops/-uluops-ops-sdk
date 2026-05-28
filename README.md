@@ -267,7 +267,7 @@ const client = new OpsClient({
   email: 'user@example.com',   // Email for login
   password: 'password',        // Password for login
 
-  // Connection settings (baseUrl defaults to https://api.uluops.ai/api/v1/ops)
+  // Connection settings (baseUrl defaults to https://api.uluops.ai/api/v1)
   timeout: 30000,              // Request timeout in ms (default: 30000)
   retries: 3,                  // Retry count for transient errors (default: 3)
   debug: false,                // Enable debug logging
@@ -1494,7 +1494,7 @@ For command-line usage, see the dedicated CLI package: [`@uluops/cli`](https://w
 | `ULUOPS_EMAIL` | Email for session auth | - |
 | `ULUOPS_PASSWORD` | Password for session auth | - |
 | `ULUOPS_SESSION_TOKEN` | Session token for auth | - |
-| `ULUOPS_BASE_URL` | API base URL | `https://api.uluops.ai/api/v1/ops` (localhost:3100 when `NODE_ENV=development`) |
+| `ULUOPS_BASE_URL` | API base URL | `https://api.uluops.ai/api/v1` (localhost:3100 when `NODE_ENV=development`) |
 | `ULUOPS_DEBUG` | Enable debug logging | `false` |
 
 Create a `.env` file in your project:
