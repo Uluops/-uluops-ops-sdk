@@ -282,6 +282,7 @@ export const StatusUpdateResultResponseSchema = z.object({
 export const RunResponseSchema = z.object({
   id: z.string().uuid(),
   projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
+  authorId: z.string().uuid().nullable(),      // User who created the run; null for system/API-key runs
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -296,6 +297,7 @@ export const RunResponseSchema = z.object({
   definitionName: z.string().nullable(),       // Nullable in DB
   definitionVersion: z.string().nullable(),    // Nullable in DB
   definitionHash: z.string().nullable(),       // Nullable in DB
+  definitionId: z.string().uuid().nullable(),  // Registry definition UUID — direct identity linkage
   registrySyncedAt: NullableDateTimeSchema,    // Nullable in DB
   createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
   updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
@@ -413,12 +415,14 @@ export const ValidateRunPreviewSchema = z.object({
   newIssues: z.array(z.object({ title: z.string(), agent: z.string() })),
   recurringIssues: z.array(z.object({ id: z.string(), title: z.string(), timesSeen: z.number() })),
   regressions: z.array(z.object({ id: z.string(), title: z.string(), lastStatus: z.string() })),
+  observations: z.array(z.object({ id: z.string(), title: z.string() })).optional(),
 });
 
 export const ValidateRunResponseSchema = z.object({
   wouldCreate: z.number().int().nonnegative(),
   wouldUpdate: z.number().int().nonnegative(),
   wouldRegress: z.number().int().nonnegative(),
+  wouldObserve: z.number().int().nonnegative().optional(),
   validationErrors: z.array(z.string()),
   preview: ValidateRunPreviewSchema,
 });
