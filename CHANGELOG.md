@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-05-31
+
+### Fixed
+
+- **`Run` response schema now includes `authorId` and `definitionId`** — both fields are returned on every Run response by `ops-uluops-api` but were missing from `RunResponseSchema`. Because Zod strips unknown keys, consumers parsing through the SDK silently lost both fields. `Run.authorId` (UUID, nullable — null for system/API-key runs) and `Run.definitionId` (UUID, nullable — registry definition identity linkage) are now part of the parsed type. Additive; no consumer code changes required.
+- **`Run` response schema now includes `payloadHash`** — SHA-256 of the save_run payload, used server-side for idempotency deduplication. Previously stripped by the same Zod mechanism.
+- **`ValidateRunResponse` now includes `wouldObserve`** — count of recommendations matching issues with observation status. Optional on the schema to remain backward-compatible with API versions that did not yet emit it.
+- **`ValidateRunPreview` now includes `observations`** — array of `{ id, title }` for observed issues surfaced by the validate preview. Optional, same back-compat reasoning.
+
+### Internal
+
+- `createMockRun` contract fixture updated to include the new required keys. The previous fixture also lacked `payloadHash` (added in 2.0.1) — the gap was latent because contract validation only runs when `STRICT_CONTRACTS` is set.
+
 ## [2.0.1] - 2026-05-27
 
 ### Fixed

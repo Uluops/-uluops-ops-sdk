@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 1.9.0** | [Changelog](./CHANGELOG.md)
+**Current version: 2.0.2** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -773,6 +773,7 @@ const preview = await client.runs.validate({
 console.log('Would create:', preview.wouldCreate);
 console.log('Would update:', preview.wouldUpdate);
 console.log('Would regress:', preview.wouldRegress);
+console.log('Would observe:', preview.wouldObserve); // recommendations matching observation-status issues
 ```
 
 #### `client.runs.listByProject(projectId, query)`
