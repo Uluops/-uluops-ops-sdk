@@ -291,6 +291,7 @@ export const RunResponseSchema = z.object({
   archivedAt: NullableDateTimeSchema,
   archiveReason: z.string().nullable(),
   idempotencyKey: z.string().nullable(),
+  payloadHash: z.string().nullable(),          // SHA-256 of save_run payload, used for idempotency dedup
   definitionType: z.string().nullable(),       // Nullable in DB
   definitionName: z.string().nullable(),       // Nullable in DB
   definitionVersion: z.string().nullable(),    // Nullable in DB
