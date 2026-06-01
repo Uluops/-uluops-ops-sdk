@@ -385,9 +385,13 @@ export const DiffIssueRefResponseSchema = z.object({
 
 export const AgentChangeResponseSchema = z.object({
   name: z.string(),
-  baseScore: z.number(),
-  compareScore: z.number(),
-  change: z.number(),
+  // baseScore is null when the agent only exists in the compare run; compareScore
+  // is null when the agent only exists in the base run; change is null whenever
+  // either side is null (no meaningful delta). Cross-workflow diffs commonly
+  // produce these nulls because agent rosters differ between workflow types.
+  baseScore: z.number().nullable(),
+  compareScore: z.number().nullable(),
+  change: z.number().nullable(),
 });
 
 export const RunDiffResultResponseSchema = z.object({

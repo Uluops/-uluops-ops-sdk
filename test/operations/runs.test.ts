@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
+import { ZodError } from 'zod';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as runOps from '../../src/operations/runs.js';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
@@ -544,7 +545,7 @@ describe('Run Operations', () => {
   });
 
   describe('response validation', () => {
-    it('should throw ResponseValidationError on malformed response', async () => {
+    it('should throw ZodError on malformed response', async () => {
       const runId = TEST_IDS.run1;
       // Return a response missing required fields (no projectId, no runNumber, etc.)
       nock(BASE_URL)
@@ -555,10 +556,10 @@ describe('Run Operations', () => {
 
       await expect(
         runOps.get(client, runId)
-      ).rejects.toThrow(/API response validation failed/);
+      ).rejects.toThrow(ZodError);
     });
 
-    it('should throw ResponseValidationError on wrong field type', async () => {
+    it('should throw ZodError on wrong field type', async () => {
       const runId = TEST_IDS.run1;
       nock(BASE_URL)
         .get(`/runs/${runId}`)
@@ -571,10 +572,10 @@ describe('Run Operations', () => {
 
       await expect(
         runOps.get(client, runId)
-      ).rejects.toThrow(/API response validation failed/);
+      ).rejects.toThrow(ZodError);
     });
 
-    it('should throw ResponseValidationError on malformed listByProject response', async () => {
+    it('should throw ZodError on malformed listByProject response', async () => {
       nock(BASE_URL)
         .get('/runs/project/my-project')
         .reply(200, {
@@ -583,10 +584,10 @@ describe('Run Operations', () => {
 
       await expect(
         runOps.listByProject(client, 'my-project')
-      ).rejects.toThrow(/API response validation failed/);
+      ).rejects.toThrow(ZodError);
     });
 
-    it('should throw ResponseValidationError on malformed getLatest response', async () => {
+    it('should throw ZodError on malformed getLatest response', async () => {
       nock(BASE_URL)
         .get('/runs/project/my-project/latest')
         .query({ workflow_type: 'ship' })
@@ -596,7 +597,7 @@ describe('Run Operations', () => {
 
       await expect(
         runOps.getLatest(client, 'my-project', 'ship')
-      ).rejects.toThrow(/API response validation failed/);
+      ).rejects.toThrow(ZodError);
     });
   });
 
@@ -677,9 +678,9 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .get(`/projects/${projectId}/analysis`)
         .query({ limit: 10, definition_name: 'nietzsche-analyst' })
-        .reply(200, {
-          data: { data: [], total: 0 },
-        });
+        // API returns the pagination payload directly (no `{data: …}` envelope).
+        // The SDK uses `rawEnvelope: true` to preserve `{data, total, …}`.
+        .reply(200, { data: [], total: 0, limit: 10, offset: 0 });
 
       const result = await runOps.getProjectAnalysis(client, projectId, {
         limit: 10,
@@ -695,9 +696,8 @@ describe('Run Operations', () => {
       nock(BASE_URL)
         .get('/analysis/records')
         .query({ record_type: 'tension', limit: 5 })
-        .reply(200, {
-          data: { data: [mockRecord], total: 1 },
-        });
+        // See getProjectAnalysis above — pagination payload is unwrapped.
+        .reply(200, { data: [mockRecord], total: 1, limit: 5, offset: 0 });
 
       const result = await runOps.queryAnalysisRecords(client, {
         recordType: 'tension',

@@ -77,11 +77,11 @@ describe('Logger Utilities', () => {
         ],
       };
       const result = sanitizeForDisplay(input);
-      const creds = result.credentials as Record<string, unknown>[];
-      expect(creds[0].type).toBe('api');
-      expect(creds[0].apiKey).toBe('[REDACTED]');
-      expect(creds[1].type).toBe('session');
-      expect(creds[1].token).toBe('[REDACTED]');
+      // Since sdk-core 0.10.2, sanitizeForDisplay checks SENSITIVE_KEYS BEFORE
+      // recursing — so a top-level key named `credentials` is redacted as a whole
+      // rather than walking into its contents. This is the safer default; an
+      // attacker who can put anything under `credentials` gets nothing back.
+      expect(result.credentials).toBe('[REDACTED]');
     });
 
     it('should preserve non-sensitive fields', () => {

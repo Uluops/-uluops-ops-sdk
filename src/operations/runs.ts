@@ -72,7 +72,7 @@ export async function save(
   if (!options?._skipClientValidation) validateSaveRunInput(input);
   // Generate idempotency key if not provided — prevents duplicate runs on retry
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
-  return client.post('/runs', {
+  return SaveRunResponseSchema.parse(await client.post<unknown>('/runs', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
@@ -89,7 +89,7 @@ export async function save(
     definitionId: input.definitionId,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
-  }, { retryMutations: true, schema: SaveRunResponseSchema });
+  }, { retryMutations: true }));
 }
 
 /**
@@ -116,12 +116,12 @@ export async function validate(
   options?: { _skipClientValidation?: boolean }
 ): Promise<ValidateRunResponse> {
   if (!options?._skipClientValidation) validateSaveRunInput(input);
-  return client.post('/runs/validate', {
+  return ValidateRunResponseSchema.parse(await client.post<unknown>('/runs/validate', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
     recommendations: input.recommendations,
-  }, { schema: ValidateRunResponseSchema });
+  }));
 }
 
 /**
@@ -135,11 +135,11 @@ export async function diff(
   client: OpsHttpClient,
   query: RunDiffQuery
 ): Promise<RunDiffResult> {
-  return client.get('/runs/diff', toApiQuery({
+  return RunDiffResultResponseSchema.parse(await client.get<unknown>('/runs/diff', toApiQuery({
     project: query.project,
     baseRun: query.baseRun,
     compareRun: query.compareRun,
-  }), { schema: RunDiffResultResponseSchema });
+  })));
 }
 
 /**
@@ -155,13 +155,13 @@ export async function archive(
   input: ArchiveRunsInput
 ): Promise<ArchiveRunsResult> {
   validateArchiveRunsInput(input);
-  return client.post('/runs/archive', {
+  return ArchiveRunsResultResponseSchema.parse(await client.post<unknown>('/runs/archive', {
     project: input.project,
     beforeRunNumber: input.beforeRunNumber,
     beforeDate: input.beforeDate,
     keepLast: input.keepLast,
     reason: input.reason,
-  }, { schema: ArchiveRunsResultResponseSchema });
+  }));
 }
 
 /** Build the shared update payload from an UpdateRunInput */
@@ -194,11 +194,11 @@ export async function update(
   options?: { _skipClientValidation?: boolean }
 ): Promise<Run> {
   if (!options?._skipClientValidation) validateUpdateRunInput(input);
-  return client.patch('/runs/update', {
+  return RunResponseSchema.parse(await client.patch<unknown>('/runs/update', {
     project: input.project,
     runNumber: input.runNumber,
     ...buildUpdatePayload(input),
-  }, { schema: RunResponseSchema });
+  }));
 }
 
 /**
@@ -214,11 +214,10 @@ export async function listByProject(
   projectId: string,
   query?: ListRunsQuery
 ): Promise<z.infer<typeof RunSummaryResponseSchema>[]> {
-  return client.get(
+  return (z.array(RunSummaryResponseSchema)).parse(await client.get<unknown>(
     `/runs/project/${encodeURIComponent(projectId)}`,
-    toApiQuery(query),
-    { schema: z.array(RunSummaryResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -235,11 +234,10 @@ export async function getLatest(
   projectId: string,
   workflowType?: string
 ): Promise<Run> {
-  return client.get(
+  return RunResponseSchema.parse(await client.get<unknown>(
     `/runs/project/${encodeURIComponent(projectId)}/latest`,
-    workflowType ? toApiQuery({ workflowType }) : undefined,
-    { schema: RunResponseSchema }
-  );
+    workflowType ? toApiQuery({ workflowType }) : undefined
+  ));
 }
 
 /**
@@ -255,11 +253,10 @@ export async function getDetails(
   projectId: string,
   runNumber?: number
 ): Promise<RunDetails> {
-  return client.get(
+  return RunDetailsResponseSchema.parse(await client.get<unknown>(
     `/runs/project/${encodeURIComponent(projectId)}/details`,
-    runNumber !== undefined ? toApiQuery({ runNumber }) : undefined,
-    { schema: RunDetailsResponseSchema }
-  );
+    runNumber !== undefined ? toApiQuery({ runNumber }) : undefined
+  ));
 }
 
 /**
@@ -271,7 +268,7 @@ export async function getDetails(
  * @throws {NotFoundError} If run does not exist
  */
 export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
-  return client.get(`/runs/${encodeURIComponent(runId)}`, undefined, { schema: RunResponseSchema });
+  return RunResponseSchema.parse(await client.get<unknown>(`/runs/${encodeURIComponent(runId)}`, undefined));
 }
 
 /**
@@ -290,7 +287,7 @@ export async function updateById(
   options?: { _skipClientValidation?: boolean }
 ): Promise<Run> {
   if (!options?._skipClientValidation) validateUpdateRunInput(input);
-  return client.patch(`/runs/${encodeURIComponent(runId)}`, buildUpdatePayload(input), { schema: RunResponseSchema });
+  return RunResponseSchema.parse(await client.patch<unknown>(`/runs/${encodeURIComponent(runId)}`, buildUpdatePayload(input)));
 }
 
 /**
@@ -304,10 +301,7 @@ export async function deleteRun(
   client: OpsHttpClient,
   runId: string
 ): Promise<DeleteResult> {
-  return client.request('DELETE', `/runs/${encodeURIComponent(runId)}`, undefined, {
-    headers: { 'X-Confirm-Delete': runId },
-    schema: DeleteResultResponseSchema,
-  });
+  return DeleteResultResponseSchema.parse(await client.request<unknown>('DELETE', `/runs/${encodeURIComponent(runId)}`, undefined, { headers: { 'X-Confirm-Delete': runId }, }));
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -326,7 +320,7 @@ export async function getAnalysis(
   client: OpsHttpClient,
   runId: string
 ): Promise<z.infer<typeof RunAnalysisResponseSchema>> {
-  return client.get(`/runs/${encodeURIComponent(runId)}/analysis`, undefined, { schema: RunAnalysisResponseSchema });
+  return RunAnalysisResponseSchema.parse(await client.get<unknown>(`/runs/${encodeURIComponent(runId)}/analysis`, undefined));
 }
 
 /**
@@ -343,11 +337,15 @@ export async function getProjectAnalysis(
   projectId: string,
   query?: ProjectAnalysisQuery
 ): Promise<z.infer<typeof ProjectAnalysisListResponseSchema>> {
-  return client.get(
+  // Uses `rawEnvelope` because the response carries the pagination shape
+  // `{ data, total, limit, offset }` directly — the HttpClient's default
+  // envelope unwrap collides with the `data` field of the pagination payload.
+  return ProjectAnalysisListResponseSchema.parse(await client.request<unknown>(
+    'GET',
     `/projects/${encodeURIComponent(projectId)}/analysis`,
     toApiQuery(query),
-    { schema: ProjectAnalysisListResponseSchema }
-  );
+    { rawEnvelope: true }
+  ));
 }
 
 /**
@@ -362,11 +360,13 @@ export async function queryAnalysisRecords(
   client: OpsHttpClient,
   query?: AnalysisRecordsQuery
 ): Promise<z.infer<typeof AnalysisRecordsListResponseSchema>> {
-  return client.get(
+  // Uses `rawEnvelope` — see getProjectAnalysis above for the rationale.
+  return AnalysisRecordsListResponseSchema.parse(await client.request<unknown>(
+    'GET',
     '/analysis/records',
     toApiQuery(query),
-    { schema: AnalysisRecordsListResponseSchema }
-  );
+    { rawEnvelope: true }
+  ));
 }
 
 /**
@@ -384,9 +384,8 @@ export async function getAgentRunsAnalysis(
   agentName: string,
   query: AgentRunsAnalysisQuery
 ): Promise<z.infer<typeof AgentRunsAnalysisResponseSchema>> {
-  return client.get(
+  return AgentRunsAnalysisResponseSchema.parse(await client.get<unknown>(
     `/agents/${encodeURIComponent(agentName)}/runs-analysis`,
     toApiQuery(query),
-    { schema: AgentRunsAnalysisResponseSchema },
-  );
+  ));
 }

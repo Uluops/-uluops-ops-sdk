@@ -43,7 +43,7 @@ import { buildIssueListParams } from './query-utils.js';
  * @returns Array of projects with metadata (runCount, issueCount, etc.)
  */
 export async function list(client: OpsHttpClient): Promise<Project[]> {
-  return client.get('/projects', undefined, { schema: z.array(ProjectResponseSchema) });
+  return (z.array(ProjectResponseSchema)).parse(await client.get<unknown>('/projects', undefined));
 }
 
 /**
@@ -58,7 +58,7 @@ export async function get(
   client: OpsHttpClient,
   idOrName: string
 ): Promise<Project> {
-  return client.get(`/projects/${encodeURIComponent(idOrName)}`, undefined, { schema: ProjectResponseSchema });
+  return ProjectResponseSchema.parse(await client.get<unknown>(`/projects/${encodeURIComponent(idOrName)}`, undefined));
 }
 
 /**
@@ -75,7 +75,7 @@ export async function create(
   input: CreateProjectInput
 ): Promise<Project> {
   validateCreateProjectInput(input);
-  return client.post('/projects', input, { schema: ProjectResponseSchema });
+  return ProjectResponseSchema.parse(await client.post<unknown>('/projects', input));
 }
 
 /**
@@ -92,7 +92,7 @@ export async function update(
   input: UpdateProjectInput
 ): Promise<Project> {
   validateUpdateProjectInput(input);
-  return client.patch(`/projects/${encodeURIComponent(idOrName)}`, input, { schema: ProjectResponseSchema });
+  return ProjectResponseSchema.parse(await client.patch<unknown>(`/projects/${encodeURIComponent(idOrName)}`, input));
 }
 
 /**
@@ -142,10 +142,15 @@ async function deleteWithConfirmation(
   input: DeleteProjectInput
 ): Promise<DeleteResult> {
   validateDeleteProjectInput(input);
-  return client.delete(path, {
+  const response = await client.delete<unknown>(path, {
     confirm: input.confirm,
     confirmationPhrase: input.confirmationPhrase,
-  }, { schema: DeleteResultResponseSchema });
+  });
+  // The API returns 204 No Content on successful delete; sdk-core's HttpClient
+  // returns `undefined` for 204. Synthesize the documented `{deleted: true}`
+  // shape rather than parsing void. If the API later begins returning a body,
+  // it is still validated against the schema.
+  return response === undefined ? { deleted: true } : DeleteResultResponseSchema.parse(response);
 }
 
 /**
@@ -160,7 +165,7 @@ export async function restore(
   client: OpsHttpClient,
   idOrName: string
 ): Promise<Project> {
-  return client.post(`/projects/${encodeURIComponent(idOrName)}/restore`, undefined, { schema: ProjectResponseSchema });
+  return ProjectResponseSchema.parse(await client.post<unknown>(`/projects/${encodeURIComponent(idOrName)}/restore`, undefined));
 }
 
 /**
@@ -176,10 +181,10 @@ export async function rename(
   input: RenameProjectInput
 ): Promise<Project> {
   validateRenameProjectInput(input);
-  return client.post('/projects/rename', {
+  return ProjectResponseSchema.parse(await client.post<unknown>('/projects/rename', {
     oldName: input.oldName,
     newName: input.newName,
-  }, { schema: ProjectResponseSchema });
+  }));
 }
 
 /**
@@ -193,7 +198,7 @@ export async function getSummary(
   client: OpsHttpClient,
   idOrName: string
 ): Promise<ProjectSummaryResponse> {
-  return client.get(`/projects/${encodeURIComponent(idOrName)}/summary`, undefined, { schema: ProjectSummaryResponseSchema });
+  return ProjectSummaryResponseSchema.parse(await client.get<unknown>(`/projects/${encodeURIComponent(idOrName)}/summary`, undefined));
 }
 
 /**
@@ -209,11 +214,10 @@ export async function getTrends(
   idOrName: string,
   query?: ProjectTrendsQuery
 ): Promise<ProjectTrends> {
-  return client.get(
+  return ProjectTrendsResponseSchema.parse(await client.get<unknown>(
     `/projects/${encodeURIComponent(idOrName)}/trends`,
-    toApiQuery(query),
-    { schema: ProjectTrendsResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -229,11 +233,10 @@ export async function listIssues(
   idOrName: string,
   query?: ListProjectIssuesQuery
 ): Promise<Issue[]> {
-  return client.get(
+  return (z.array(IssueResponseSchema)).parse(await client.get<unknown>(
     `/projects/${encodeURIComponent(idOrName)}/issues`,
-    buildIssueListParams(query),
-    { schema: z.array(IssueResponseSchema) }
-  );
+    buildIssueListParams(query)
+  ));
 }
 
 /** Schema for the paginated issues envelope returned by the API */
@@ -260,12 +263,12 @@ export async function listIssuesWithCount(
   idOrName: string,
   query?: ListProjectIssuesQuery
 ): Promise<PaginatedIssues> {
-  const response = await client.request<z.infer<typeof PaginatedIssuesEnvelopeSchema>>(
+  const response = PaginatedIssuesEnvelopeSchema.parse(await client.request<unknown>(
     'GET',
     `/projects/${encodeURIComponent(idOrName)}/issues`,
     buildIssueListParams(query),
-    { schema: PaginatedIssuesEnvelopeSchema, rawEnvelope: true }
-  );
+    { rawEnvelope: true }
+  ));
   return { issues: response.data, count: response.count };
 }
 
@@ -282,11 +285,10 @@ export async function bulkUpdateIssueStatus(
   idOrName: string,
   updates: BulkIssueStatusUpdate[]
 ): Promise<BulkIssueStatusResult> {
-  return client.patch(
+  return BulkStatusUpdateResultResponseSchema.parse(await client.patch<unknown>(
     `/projects/${encodeURIComponent(idOrName)}/issues/status`,
-    { updates },
-    { schema: BulkStatusUpdateResultResponseSchema }
-  );
+    { updates }
+  ));
 }
 
 /**
@@ -302,13 +304,12 @@ export async function mergeIssues(
   idOrName: string,
   input: MergeIssuesInput
 ): Promise<MergeIssuesResult> {
-  return client.post(
+  return MergeIssuesResultResponseSchema.parse(await client.post<unknown>(
     `/projects/${encodeURIComponent(idOrName)}/issues/merge`,
     {
       targetIssueId: input.targetIssueId,
       sourceIssueIds: input.sourceIssueIds,
       strategy: input.strategy,
-    },
-    { schema: MergeIssuesResultResponseSchema }
-  );
+    }
+  ));
 }

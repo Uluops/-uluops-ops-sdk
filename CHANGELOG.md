@@ -6,6 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-06-01
+
+### Fixed
+
+- **`softDelete` and `deleteProject` now correctly handle the API's 204 No Content
+  response.** The API has always returned 204 (empty body) on successful delete, but the
+  SDK was calling `DeleteResultResponseSchema.parse(undefined)` and throwing
+  `ZodError: expected object, received undefined`. The shared `deleteWithConfirmation`
+  helper now synthesizes the documented `{deleted: true}` shape when the response is
+  `undefined`, while still validating any body the API may return in the future.
+
+  Surfaced by live MCP smoke (`soft_delete_project` via uluops-tracker).
+
+## [3.0.2] - 2026-06-01
+
+### Fixed
+
+- **`diffRuns` schema now permits `null` for `baseScore`, `compareScore`, and `change`.**
+  When an agent appears in only one of the two runs being diffed — common for cross-workflow
+  diffs where the agent roster differs — the API correctly returns `null` for the missing
+  side. The previous schema required `number` and threw `ZodError` on every cross-workflow
+  diff. Same-workflow diffs were unaffected by chance because rosters happened to align.
+
+  Surfaced by live MCP smoke (`diff_runs` between sdk-core run #15 security-cognitive-lens
+  and run #16 security-audit).
+
+## [3.0.1] - 2026-06-01
+
+### Fixed
+
+- **`getProjectAnalysis` and `queryAnalysisRecords` now use `rawEnvelope: true`.**
+  Both endpoints return a flat pagination payload `{data, total, limit, offset}` — the
+  HttpClient's default `{data: T}` envelope unwrap was collapsing that to just the inner
+  array, causing `Schema.parse(array)` to throw `ZodError` with "expected object, received
+  array". The fix preserves the full pagination wrapper.
+
+  This is a pre-existing bug surfaced by live MCP tool invocation (`get_project_analysis`
+  via uluops-tracker). Unit tests had been mocking a double-envelope `{data: {data, total}}`
+  that the API never actually returns; mocks corrected to single-envelope.
+
+## [3.0.0] - 2026-06-01
+
+### Breaking
+
+- **Requires `@uluops/sdk-core` 0.11.0.** sdk-core 0.11.0 removed the `options.schema` parameter
+  from `HttpClient.request`/`get`/`post`/etc. ops-sdk now compatible only with 0.11.x.
+- **No public API changes** — every exported operation still returns the same validated
+  type. The schema validation moved from inside `client.METHOD(..., { schema })` to an
+  external `Schema.parse(await client.METHOD(...))` wrapping the call. Consumers of ops-sdk
+  see no behavioral change except that validation errors now surface as `ZodError` directly
+  instead of `ResponseValidationError`.
+
+### Internal
+
+- 68 call sites across 8 operation files migrated to the external-parse pattern. Driven by
+  the sdk-core schema-removal migration script (`scripts/migrate-schema.mjs`).
+- `runs.test.ts` and `projects.test.ts` assertions updated from
+  `/API response validation failed/` regex match to `ZodError` class match.
+- Pre-existing test on `sanitizeForDisplay` array-of-objects updated to reflect sdk-core's
+  0.10.2 redaction-before-recursion behavior (was failing under sdk-core 0.10.2 too).
+
 ## [2.0.2] - 2026-05-31
 
 ### Fixed

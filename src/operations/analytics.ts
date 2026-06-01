@@ -40,11 +40,10 @@ export async function getAgentPerformance(
   client: OpsHttpClient,
   query?: AnalyticsQuery
 ): Promise<AgentPerformance[]> {
-  return client.get(
+  return (z.array(AgentPerformanceResponseSchema)).parse(await client.get<unknown>(
     '/analytics/agents/performance',
-    toApiQuery(query),
-    { schema: z.array(AgentPerformanceResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -58,11 +57,10 @@ export async function getAgentReliability(
   client: OpsHttpClient,
   query?: AgentReliabilityQuery
 ): Promise<z.infer<typeof AgentReliabilityResultResponseSchema>> {
-  return client.get(
+  return AgentReliabilityResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/agents/reliability',
-    toApiQuery(query),
-    { schema: AgentReliabilityResultResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -78,11 +76,10 @@ export async function getAgentLifecycle(
   agentName: string,
   query?: AnalyticsQuery,
 ): Promise<AgentLifecycleEntry[]> {
-  return client.get(
+  return (z.array(AgentLifecycleEntryResponseSchema)).parse(await client.get<unknown>(
     `/agents/${encodeURIComponent(agentName)}/lifecycle`,
-    toApiQuery(query),
-    { schema: z.array(AgentLifecycleEntryResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -96,11 +93,10 @@ export async function getResolutionRates(
   client: OpsHttpClient,
   query?: AnalyticsQuery
 ): Promise<z.infer<typeof ResolutionRateResponseSchema>[]> {
-  return client.get(
+  return (z.array(ResolutionRateResponseSchema)).parse(await client.get<unknown>(
     '/analytics/projects/resolution-rates',
-    toApiQuery(query),
-    { schema: z.array(ResolutionRateResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -114,11 +110,10 @@ export async function getFileHotspots(
   client: OpsHttpClient,
   query?: AnalyticsQuery
 ): Promise<z.infer<typeof FileHotspotResponseSchema>[]> {
-  return client.get(
+  return (z.array(FileHotspotResponseSchema)).parse(await client.get<unknown>(
     '/analytics/files/hotspots',
-    toApiQuery(query),
-    { schema: z.array(FileHotspotResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -132,11 +127,10 @@ export async function getTaxonomyDistribution(
   client: OpsHttpClient,
   query?: AnalyticsQuery
 ): Promise<z.infer<typeof TaxonomyDistributionResponseSchema>[]> {
-  return client.get(
+  return (z.array(TaxonomyDistributionResponseSchema)).parse(await client.get<unknown>(
     '/analytics/taxonomy/distribution',
-    toApiQuery(query),
-    { schema: z.array(TaxonomyDistributionResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -151,11 +145,10 @@ export async function getFullTaxonomy(
   client: OpsHttpClient,
   query?: AnalyticsQuery
 ): Promise<z.infer<typeof FullTaxonomyAnalyticsResponseSchema>> {
-  return client.get(
+  return FullTaxonomyAnalyticsResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/full',
-    toApiQuery(query),
-    { schema: FullTaxonomyAnalyticsResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -169,11 +162,10 @@ export async function getBurndown(
   client: OpsHttpClient,
   query?: BurndownQuery
 ): Promise<z.infer<typeof BurndownResultResponseSchema>> {
-  return client.get(
+  return BurndownResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/burndown',
-    toApiQuery(query),
-    { schema: BurndownResultResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -187,11 +179,10 @@ export async function getVelocity(
   client: OpsHttpClient,
   query?: VelocityQuery
 ): Promise<z.infer<typeof VelocityResultResponseSchema>> {
-  return client.get(
+  return VelocityResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/velocity',
-    toApiQuery(query),
-    { schema: VelocityResultResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -205,11 +196,10 @@ export async function getDiscovery(
   client: OpsHttpClient,
   query?: DiscoveryQuery
 ): Promise<z.infer<typeof DiscoveryResultResponseSchema>> {
-  return client.get(
+  return DiscoveryResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/discovery',
-    toApiQuery(query),
-    { schema: DiscoveryResultResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -223,11 +213,10 @@ export async function getAgentMatrix(
   client: OpsHttpClient,
   query?: AgentMatrixQuery
 ): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> {
-  return client.get(
+  return AgentMatrixResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/agent-matrix',
-    toApiQuery(query),
-    { schema: AgentMatrixResultResponseSchema }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**
@@ -241,11 +230,10 @@ export async function getTrendSummary(
   client: OpsHttpClient,
   query?: AnalyticsQuery
 ): Promise<TrendSummary[]> {
-  return client.get(
+  return (z.array(TrendSummaryResponseSchema)).parse(await client.get<unknown>(
     '/analytics/trends/summary',
-    toApiQuery(query),
-    { schema: z.array(TrendSummaryResponseSchema) }
-  );
+    toApiQuery(query)
+  ));
 }
 
 /**

@@ -10,5 +10,5 @@ import { TaxonomyResponseSchema } from '../types/response-schemas.js';
  * @throws {UnauthorizedError} If client is not authenticated
  */
 export async function get(client: OpsHttpClient): Promise<TaxonomyResponse> {
-  return client.get('/taxonomy', undefined, { schema: TaxonomyResponseSchema });
+  return TaxonomyResponseSchema.parse(await client.get<unknown>('/taxonomy', undefined));
 }

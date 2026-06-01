@@ -44,7 +44,7 @@ export async function create(
   input: CreateUserIssueInput
 ): Promise<Issue> {
   validateCreateUserIssueInput(input);
-  return client.post('/issues', {
+  return IssueResponseSchema.parse(await client.post<unknown>('/issues', {
     project: input.project,
     title: input.title,
     priority: input.priority,
@@ -58,7 +58,7 @@ export async function create(
     failureMode: input.failureMode,
     agent: input.agent,
     type: input.type,
-  }, { schema: IssueResponseSchema });
+  }));
 }
 
 /**
@@ -72,7 +72,7 @@ export async function search(
   client: OpsHttpClient,
   query: IssueSearchQuery
 ): Promise<Issue[]> {
-  return client.get('/issues/search', toApiQuery(query), { schema: z.array(IssueResponseSchema) });
+  return (z.array(IssueResponseSchema)).parse(await client.get<unknown>('/issues/search', toApiQuery(query)));
 }
 
 /**
@@ -89,7 +89,7 @@ export async function getByFingerprint(
   fingerprint: string,
   project: string
 ): Promise<Issue> {
-  return client.get(`/issues/by-fingerprint/${encodeURIComponent(fingerprint)}`, { project }, { schema: IssueResponseSchema });
+  return IssueResponseSchema.parse(await client.get<unknown>(`/issues/by-fingerprint/${encodeURIComponent(fingerprint)}`, { project }));
 }
 
 /**
@@ -107,11 +107,11 @@ export async function updateStatusByFingerprint(
   project: string,
   input: UpdateIssueStatusInput
 ): Promise<StatusUpdateResult> {
-  return client.patch(
+  return StatusUpdateResultResponseSchema.parse(await client.patch<unknown>(
     `/issues/by-fingerprint/${encodeURIComponent(fingerprint)}/status`,
     { status: input.status, reason: input.reason },
-    { params: { project }, schema: StatusUpdateResultResponseSchema }
-  );
+    { params: { project } }
+  ));
 }
 
 /**
@@ -123,7 +123,7 @@ export async function updateStatusByFingerprint(
  * @throws {NotFoundError} If issue does not exist
  */
 export async function get(client: OpsHttpClient, issueId: string): Promise<Issue> {
-  return client.get(`/issues/${encodeURIComponent(issueId)}`, undefined, { schema: IssueResponseSchema });
+  return IssueResponseSchema.parse(await client.get<unknown>(`/issues/${encodeURIComponent(issueId)}`, undefined));
 }
 
 /**
@@ -137,7 +137,7 @@ export async function getDetails(
   client: OpsHttpClient,
   issueId: string
 ): Promise<IssueDetails> {
-  return client.get(`/issues/${encodeURIComponent(issueId)}/details`, undefined, { schema: IssueDetailsResponseSchema });
+  return IssueDetailsResponseSchema.parse(await client.get<unknown>(`/issues/${encodeURIComponent(issueId)}/details`, undefined));
 }
 
 /**
@@ -152,7 +152,7 @@ export async function getHistory(
   client: OpsHttpClient,
   issueId: string
 ): Promise<z.infer<typeof StatusHistoryResponseSchema>[]> {
-  return client.get(`/issues/${encodeURIComponent(issueId)}/history`, undefined, { schema: z.array(StatusHistoryResponseSchema) });
+  return (z.array(StatusHistoryResponseSchema)).parse(await client.get<unknown>(`/issues/${encodeURIComponent(issueId)}/history`, undefined));
 }
 
 /**
@@ -170,10 +170,10 @@ export async function updateStatus(
   input: UpdateIssueStatusInput
 ): Promise<Issue> {
   validateUpdateIssueStatusInput(input);
-  return client.patch(`/issues/${encodeURIComponent(issueId)}/status`, {
+  return IssueResponseSchema.parse(await client.patch<unknown>(`/issues/${encodeURIComponent(issueId)}/status`, {
     status: input.status,
     reason: input.reason,
-  }, { schema: IssueResponseSchema });
+  }));
 }
 
 /**
@@ -191,7 +191,7 @@ export async function update(
   input: UpdateIssueInput
 ): Promise<Issue> {
   validateUpdateIssueInput(input);
-  return client.patch(`/issues/${encodeURIComponent(issueId)}`, {
+  return IssueResponseSchema.parse(await client.patch<unknown>(`/issues/${encodeURIComponent(issueId)}`, {
     title: input.title,
     status: input.status,
     priority: input.priority,
@@ -203,7 +203,7 @@ export async function update(
     type: input.type,
     filePath: input.filePath,
     lineNumber: input.lineNumber,
-  }, { schema: IssueResponseSchema });
+  }));
 }
 
 /**
@@ -221,11 +221,11 @@ export async function addNote(
   input: CreateIssueNoteInput
 ): Promise<IssueNote> {
   validateCreateIssueNoteInput(input);
-  return client.post(`/issues/${encodeURIComponent(issueId)}/notes`, {
+  return IssueNoteResponseSchema.parse(await client.post<unknown>(`/issues/${encodeURIComponent(issueId)}/notes`, {
     content: input.content,
     noteType: input.noteType,
     createdBy: input.createdBy,
-  }, { schema: IssueNoteResponseSchema });
+  }));
 }
 
 /**
@@ -239,7 +239,7 @@ export async function restore(
   client: OpsHttpClient,
   issueId: string
 ): Promise<Issue> {
-  return client.post(`/issues/${encodeURIComponent(issueId)}/restore`, undefined, { schema: IssueResponseSchema });
+  return IssueResponseSchema.parse(await client.post<unknown>(`/issues/${encodeURIComponent(issueId)}/restore`, undefined));
 }
 
 /**
@@ -253,7 +253,7 @@ export async function undoLastChange(
   client: OpsHttpClient,
   issueId: string
 ): Promise<Issue> {
-  return client.post(`/issues/${encodeURIComponent(issueId)}/undo`, undefined, { schema: IssueResponseSchema });
+  return IssueResponseSchema.parse(await client.post<unknown>(`/issues/${encodeURIComponent(issueId)}/undo`, undefined));
 }
 
 /**
@@ -270,14 +270,14 @@ export async function bulkUpdateStatus(
   updates: BulkStatusUpdateItem[]
 ): Promise<z.infer<typeof BulkStatusUpdateResultResponseSchema>> {
   validateBulkStatusUpdateInput({ updates });
-  return client.post('/issues/bulk-status', {
+  return BulkStatusUpdateResultResponseSchema.parse(await client.post<unknown>('/issues/bulk-status', {
     updates: updates.map((u) => ({
       issueId: u.issueId,
       id: u.id,
       status: u.status,
       reason: u.reason,
     })),
-  }, { schema: BulkStatusUpdateResultResponseSchema });
+  }));
 }
 
 /**
@@ -293,9 +293,8 @@ export async function listByProject(
   projectId: string,
   query?: ListIssuesQuery
 ): Promise<Issue[]> {
-  return client.get(
+  return (z.array(IssueResponseSchema)).parse(await client.get<unknown>(
     `/projects/${encodeURIComponent(projectId)}/issues`,
-    buildIssueListParams(query),
-    { schema: z.array(IssueResponseSchema) }
-  );
+    buildIssueListParams(query)
+  ));
 }

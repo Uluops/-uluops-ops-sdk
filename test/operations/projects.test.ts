@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
+import { ZodError } from 'zod';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as projectOps from '../../src/operations/projects.js';
 import {
@@ -148,7 +149,24 @@ describe('Project Operations', () => {
   });
 
   describe('deleteProject', () => {
-    it('should hard delete project with confirmation', async () => {
+    // API actually returns 204 No Content on successful delete; the SDK
+    // synthesizes `{deleted: true}` to preserve the documented return shape.
+    it('should hard delete project with confirmation (204 No Content)', async () => {
+      nock(BASE_URL)
+        .delete(`/projects/${TEST_IDS.proj1}`, {
+          confirm: true,
+          confirmationPhrase: TEST_IDS.proj1,
+        })
+        .reply(204);
+
+      const result = await projectOps.deleteProject(client, TEST_IDS.proj1, {
+        confirm: true,
+        confirmationPhrase: TEST_IDS.proj1,
+      });
+      expect(result).toEqual({ deleted: true });
+    });
+
+    it('should also accept legacy 200 + body shape if the API returns one', async () => {
       nock(BASE_URL)
         .delete(`/projects/${TEST_IDS.proj1}`, {
           confirm: true,
@@ -165,13 +183,13 @@ describe('Project Operations', () => {
   });
 
   describe('softDelete', () => {
-    it('should soft delete project', async () => {
+    it('should soft delete project (204 No Content)', async () => {
       nock(BASE_URL)
         .delete(`/projects/${TEST_IDS.proj1}/soft`, {
           confirm: true,
           confirmationPhrase: TEST_IDS.proj1,
         })
-        .reply(200, { data: { deleted: true } });
+        .reply(204);
 
       const result = await projectOps.softDelete(client, TEST_IDS.proj1, {
         confirm: true,
@@ -384,7 +402,7 @@ describe('Project Operations', () => {
 
       await expect(
         projectOps.listIssuesWithCount(client, TEST_IDS.proj1)
-      ).rejects.toThrow(/validation failed/);
+      ).rejects.toThrow(ZodError);
     });
   });
 
