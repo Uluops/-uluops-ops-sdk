@@ -411,6 +411,30 @@ describe('Issue Operations', () => {
     });
   });
 
+  describe('softDelete', () => {
+    it('should soft-delete issue (204 No Content)', async () => {
+      const issueId = '00000000-0000-4000-a000-0000000000a1';
+
+      nock(BASE_URL)
+        .delete(`/issues/${issueId}/soft`)
+        .reply(204);
+
+      const result = await issueOps.softDelete(client, issueId);
+      expect(result).toEqual({ deleted: true });
+    });
+
+    it('should encode issue ID in the path', async () => {
+      const issueId = 'id with space';
+
+      nock(BASE_URL)
+        .delete(`/issues/${encodeURIComponent(issueId)}/soft`)
+        .reply(204);
+
+      const result = await issueOps.softDelete(client, issueId);
+      expect(result).toEqual({ deleted: true });
+    });
+  });
+
   describe('undoLastChange', () => {
     it('should undo last status change', async () => {
       const issueId = '00000000-0000-4000-a000-000000000099';

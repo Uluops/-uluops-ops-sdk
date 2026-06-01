@@ -13,6 +13,7 @@ import type {
   BulkStatusUpdateItem,
   StatusUpdateResult,
 } from '../types/issues.js';
+import type { DeleteResult } from '../types/responses.js';
 import {
   IssueResponseSchema,
   IssueDetailsResponseSchema,
@@ -20,6 +21,7 @@ import {
   StatusHistoryResponseSchema,
   StatusUpdateResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
+  DeleteResultResponseSchema,
 } from '../types/response-schemas.js';
 import {
   validateCreateUserIssueInput,
@@ -240,6 +242,24 @@ export async function restore(
   issueId: string
 ): Promise<Issue> {
   return IssueResponseSchema.parse(await client.post<unknown>(`/issues/${encodeURIComponent(issueId)}/restore`, undefined));
+}
+
+/**
+ * Soft-delete an active issue. Reversible via `restore()`.
+ *
+ * @param client - HTTP client instance
+ * @param issueId - Issue UUID
+ * @returns `{ deleted: true }`
+ */
+export async function softDelete(
+  client: OpsHttpClient,
+  issueId: string
+): Promise<DeleteResult> {
+  // API returns 204 No Content on success; sdk-core's HttpClient returns
+  // undefined for 204. Synthesize the documented `{deleted: true}` shape.
+  // Mirrors the project softDelete handling.
+  const response = await client.delete<unknown>(`/issues/${encodeURIComponent(issueId)}/soft`);
+  return response === undefined ? { deleted: true } : DeleteResultResponseSchema.parse(response);
 }
 
 /**

@@ -421,6 +421,9 @@ export class OpsClient {
     restore: (issueId: string): Promise<Issue> =>
       issueOps.restore(this.httpClient, issueId),
 
+    softDelete: (issueId: string): Promise<DeleteResult> =>
+      issueOps.softDelete(this.httpClient, issueId),
+
     undoLastChange: (issueId: string): Promise<Issue> =>
       issueOps.undoLastChange(this.httpClient, issueId),
 

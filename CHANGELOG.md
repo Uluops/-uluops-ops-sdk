@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-06-01
+
+### Added
+
+- **`client.issues.softDelete(issueId)`** — soft-deletes an active issue via
+  `DELETE /issues/:id/soft`. Returns `{ deleted: true }` on success.
+  Companion to `client.issues.restore(issueId)`, which had no inverse exposed
+  through the SDK or MCP. Mirrors the project soft-delete shape — no body
+  required, 204 No Content on success.
+
+  Closes the restore-without-delete gap surfaced during the MCP smoke test
+  arc (tracker issue `c8a54ec1` on ops-uluops-api).
+
 ## [3.0.3] - 2026-06-01
 
 ### Fixed
