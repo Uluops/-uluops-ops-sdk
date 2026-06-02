@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-06-01
+
+### Security
+
+- **Bump `@uluops/sdk-core` from `0.11.0` to `0.11.1`.** Pulls in today's security hardening: `redirect: 'error'` on all fetch sites (CRLF/credential-replay on auth redirects), control-character stripping in error messages (`stripControlChars` + `SdkApiError` constructor), widened `SENSITIVE_KEYS` (x-api-key, set-cookie, proxy-authorization, x-auth-token), added `column` to `REDACTED_DETAIL_KEYS`, and `sanitizeString` coverage for URL userinfo + bare JWT shapes.
+
+### Supply chain
+
+- **Pin all dependencies and devDependencies to exact versions.** Per the new UluOps-wide exact-pinning policy adopted 2026-06-01 in response to the RedHat-class supply-chain attack pattern. `dependencies`: `zod` and `@uluops/sdk-core` pinned exact. `devDependencies`: typescript, eslint stack, nock, vitest, @types/node, typescript-eslint pinned exact. Lockfile re-aligned.
+
 ## [3.0.4] - 2026-06-01
 
 ### Added

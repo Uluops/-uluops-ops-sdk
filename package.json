@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "SDK for the UluOps platform API — execution tracking, analytics, and auth",
   "type": "module",
   "main": "dist/index.js",
@@ -84,18 +84,18 @@
     "url": "git+https://github.com/Uluops/-uluops-ops-sdk.git"
   },
   "dependencies": {
-    "@uluops/sdk-core": "0.11.0",
-    "zod": "^4.3.6"
+    "@uluops/sdk-core": "0.11.1",
+    "zod": "4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^22.12.0",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
-    "eslint": "^9.39.2",
-    "nock": "^14.0.1",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.54.0",
-    "vitest": "^4.1.8"
+    "@types/node": "22.12.0",
+    "@typescript-eslint/eslint-plugin": "8.54.0",
+    "@typescript-eslint/parser": "8.54.0",
+    "eslint": "9.39.2",
+    "nock": "14.0.1",
+    "typescript": "5.7.3",
+    "typescript-eslint": "8.54.0",
+    "vitest": "4.1.8"
   },
   "publishConfig": {
     "access": "public"
