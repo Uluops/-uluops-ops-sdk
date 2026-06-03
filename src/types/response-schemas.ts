@@ -301,6 +301,11 @@ export const RunResponseSchema = z.object({
   registrySyncedAt: NullableDateTimeSchema,    // Nullable in DB
   createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
   updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
+  // Dashboard URL slugs — included on save_run and get_run responses.
+  // Clients build /orgs/<orgSlug>/<projectSlug>/runs/<id>. Optional so older
+  // API responses that predate the field still parse cleanly.
+  projectSlug: z.string().optional(),
+  orgSlug: z.string().nullable().optional(),
 });
 
 /** Run summary schema for list endpoints — enriched with aggregate fields, omits detail-only fields */
