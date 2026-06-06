@@ -109,10 +109,8 @@ export interface ResolutionRate {
  */
 export interface FileHotspot {
   filePath: string;
-  totalIssues: number;
-  openIssues: number;
-  resolvedIssues: number;
-  topAgents: string[];
+  issueCount: number;
+  projects: string[];
 }
 
 // ============================================
@@ -425,7 +423,7 @@ export interface TrendSummary {
   newIssues: number;
   resolvedIssues: number;
   regressions: number;
-  averageScore: number;
+  averageScore: number | null;
 }
 
 // ============================================

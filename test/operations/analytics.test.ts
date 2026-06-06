@@ -141,8 +141,8 @@ describe('Analytics Operations', () => {
       mockValidatedListEndpoint(
         BASE_URL, 'get', '/analytics/files/hotspots',
         [
-          { filePath: 'src/auth.ts', totalIssues: 15, openIssues: 5, resolvedIssues: 10, topAgents: ['code-validator'] },
-          { filePath: 'src/api/client.ts', totalIssues: 10, openIssues: 3, resolvedIssues: 7, topAgents: ['test-architect'] },
+          { filePath: 'src/auth.ts', issueCount: 15, projects: ['ops-sdk', 'cli'] },
+          { filePath: 'src/api/client.ts', issueCount: 10, projects: ['ops-sdk'] },
         ],
         FileHotspotResponseSchema,
       );
@@ -151,7 +151,8 @@ describe('Analytics Operations', () => {
 
       expect(hotspots).toHaveLength(2);
       expect(hotspots[0].filePath).toBe('src/auth.ts');
-      expect(hotspots[0].totalIssues).toBe(15);
+      expect(hotspots[0].issueCount).toBe(15);
+      expect(hotspots[0].projects).toEqual(['ops-sdk', 'cli']);
     });
 
     it('should filter by days', async () => {
@@ -159,7 +160,7 @@ describe('Analytics Operations', () => {
         .get('/analytics/files/hotspots')
         .query({ days: 7 })
         .reply(200, {
-          data: [{ filePath: 'src/recent.ts', totalIssues: 5, openIssues: 2, resolvedIssues: 3, topAgents: [] }],
+          data: [{ filePath: 'src/recent.ts', issueCount: 5, projects: [] }],
         });
 
       const hotspots = await analyticsOps.getFileHotspots(client, { days: 7 });

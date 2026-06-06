@@ -595,10 +595,8 @@ export const ResolutionRateResponseSchema = z.object({
 
 export const FileHotspotResponseSchema = z.object({
   filePath: z.string(),
-  totalIssues: z.number().int().nonnegative(),
-  openIssues: z.number().int().nonnegative(),
-  resolvedIssues: z.number().int().nonnegative(),
-  topAgents: z.array(z.string()),
+  issueCount: z.number().int().nonnegative(),
+  projects: z.array(z.string()),
 });
 
 export const TaxonomyDistributionResponseSchema = z.object({
@@ -721,7 +719,7 @@ export const TrendSummaryResponseSchema = z.object({
   newIssues: z.number().int().nonnegative(),
   resolvedIssues: z.number().int().nonnegative(),
   regressions: z.number().int().nonnegative(),
-  averageScore: z.number(),
+  averageScore: z.number().nullable(),
 });
 
 export const CrossProjectPatternResponseSchema = z.object({
