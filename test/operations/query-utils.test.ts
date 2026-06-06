@@ -52,10 +52,11 @@ describe('query-utils', () => {
       expect(result).toBeUndefined();
     });
 
-    it('should strip "all" values instead of passing them through', () => {
+    it('should pass "all" through as a literal sentinel', () => {
       const result = buildIssueListParams({ status: 'all' });
-      // 'all' means no filter — param is omitted entirely
-      expect(result).toBeUndefined();
+      // API treats `status=all` as the explicit "include every status" sentinel;
+      // omitting the param falls through to the open-only repository default.
+      expect(result).toEqual({ status: 'all' });
     });
 
     it('should preserve boundary values for limit and offset', () => {
@@ -122,9 +123,12 @@ describe('query-utils', () => {
       expect(result).toEqual({ name: 'test' });
     });
 
-    it('should strip "all" values to omit the filter parameter', () => {
-      expect(toApiQuery({ status: 'all' })).toBeUndefined();
-      expect(toApiQuery({ status: 'all', limit: 10 })).toEqual({ limit: 10 });
+    it('should pass "all" through as a literal sentinel', () => {
+      expect(toApiQuery({ status: 'all' })).toEqual({ status: 'all' });
+      expect(toApiQuery({ status: 'all', limit: 10 })).toEqual({
+        status: 'all',
+        limit: 10,
+      });
     });
   });
 });

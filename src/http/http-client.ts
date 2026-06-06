@@ -24,13 +24,16 @@ import { toSnakeCase } from '../utils/helpers.js';
  * filter parameter as "return all", so `status: 'all'` and omitting `status`
  * produce the same result. This convention is used by `StatusFilter` and
  * `PriorityFilter` union types which include `'all'` for consumer ergonomics.
+ *
+ * `'all'` is passed through as a literal because the API's `/issues` endpoint
+ * defaults to open-only when status is absent. The repository layer treats
+ * `status=all` as the explicit "no status filter" sentinel.
  */
 export function toApiQuery(query: object | undefined): _QP | undefined {
   if (!query) return undefined;
   const params: _QP = {};
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined) continue;
-    if (value === 'all') continue; // 'all' means no filter — omit the param
     if (value === null || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
       params[toSnakeCase(key)] = value;
     } else if (Array.isArray(value)) {
