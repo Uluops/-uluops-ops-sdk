@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.2.1] - 2026-06-08
+
+Post-implementation hardening on the 3.2.0 envelope work. No breaking
+changes; all improvements are defensive, type-precision, or doc-fix.
+
+### Security
+
+- **Defensive string-length ceilings on history-event fields** (CWE-20). `agentName` (255), `description` (10k), `reason` (2k), `content` (10k), `createdBy` (200) on `HistoryOccurrenceEventSchema`, `HistoryStatusEventSchema`, and `HistoryNoteEventSchema` now have `.max()` bounds aligned with the server-side DB column sizes. A degenerate or malicious server returning oversized payloads (worst case at the 1000-event ceiling ≈ 1 GB allocation on the calling host) now throws ZodError at parse time instead of silently consuming memory. Compliant servers are unaffected.
+
+### Internal
+
+- Constituent event types in `src/types/issues.ts` derived via `z.infer<typeof HistoryXxxEventSchema>` instead of `Extract<HistoryEvent, { type: '...' }>`. Keeps the codebase's single-source-of-truth convention (every other type in the file uses `z.infer<>`) and removes a silent-`never` risk if the union discriminator string ever changes.
+
+### Docs
+
+- README `getHistory` example rewritten to the post-3.2.0 envelope shape (was still showing the legacy `StatusHistory[]` iteration); BREAKING callout above the example; version string corrected to 3.2.0+; `IssueHistoryEnvelope` / `HistoryEvent` / `HistoryOccurrenceEvent` / `HistoryStatusEvent` / `HistoryNoteEvent` / `TransitionType` added to the TypeScript Support import example.
+- 3.2.0 CHANGELOG entry corrected: schemas in `response-schemas.ts` are internal (not exported through the public barrel); type exports in `issues.ts` are the consumer-facing surface.
+
+### Tests
+
+- 1 new test asserting the `.max()` bound fires on a 20kB note content. Suite 475 → 476.
+
 ## [3.2.0] - 2026-06-08
 
 ### Changed
