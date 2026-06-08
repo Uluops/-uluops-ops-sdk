@@ -315,12 +315,12 @@ export const HistoryStatusEventSchema = z.object({
   newStatus: StatusResponseSchema,
   reason: z.string().nullable(),
   // Live-tests T2 §3.1 Bug B: tombstone fields are nullable AND optional to
-  // match StatusHistoryResponseSchema (lines 277-278) — some pre-migration
-  // server responses may omit the columns entirely rather than serializing
-  // explicit nulls. Today's live tracker emits explicit nulls (verified
-  // 2026-06-08), but `.optional()` defends against deployment-window cases
-  // where a non-current server (rollback, blue/green, MySQL driver quirk,
-  // upstream proxy stripping nulls) sends pre-migration shape.
+  // match StatusHistoryResponseSchema above — some pre-migration server
+  // responses may omit the columns entirely rather than serializing explicit
+  // nulls. Today's live tracker emits explicit nulls (verified 2026-06-08),
+  // but `.optional()` defends against deployment-window cases where a
+  // non-current server (rollback, blue/green, MySQL driver quirk, upstream
+  // proxy stripping nulls) sends pre-migration shape.
   transitionType: TransitionTypeResponseSchema.nullable().optional(),
   revertedChangeId: z.string().uuid().nullable().optional(),
 });

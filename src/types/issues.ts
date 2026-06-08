@@ -49,6 +49,15 @@ export type TransitionType = z.infer<typeof TransitionTypeResponseSchema>;
 export type HistoryEvent = z.infer<typeof HistoryEventSchema>;
 
 /**
+ * Named constituent event types — convenience exports so consumers writing
+ * handlers that accept a specific event branch don't need to inline
+ * `Extract<HistoryEvent, { type: 'occurrence' }>`. Post-impl r2.
+ */
+export type HistoryOccurrenceEvent = Extract<HistoryEvent, { type: 'occurrence' }>;
+export type HistoryStatusEvent = Extract<HistoryEvent, { type: 'status' }>;
+export type HistoryNoteEvent = Extract<HistoryEvent, { type: 'note' }>;
+
+/**
  * Envelope returned by GET /issues/:id/history. Events are sorted by timestamp
  * descending and capped at 1000 (truncated=true when the cap fires).
  *

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import nock from 'nock';
+import { ZodError } from 'zod';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as issueOps from '../../src/operations/issues.js';
 import {
@@ -368,6 +369,81 @@ describe('Issue Operations', () => {
         expect(status.transitionType).toBeUndefined();
         expect(status.revertedChangeId).toBeUndefined();
       }
+    });
+
+    it('should throw ZodError when server returns pre-F10 bare array (BREAKING-change defense)', async () => {
+      // Post-impl r2: the wave's primary BREAKING change is the envelope
+      // shape. A consumer hitting a server still on the legacy code path
+      // would receive the bare StatusHistory[] and our parser must reject
+      // it loudly rather than silently producing a degenerate envelope.
+      const issueId = '00000000-0000-4000-a000-000000000096';
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: [] }); // legacy shape: bare array, not envelope
+
+      await expect(issueOps.getHistory(client, issueId)).rejects.toThrow(
+        ZodError,
+      );
+    });
+
+    it('should throw ZodError on envelope with unknown event type (forward-compat strictness)', async () => {
+      // Post-impl r2: the discriminated union is intentionally strict. If
+      // the server adds an event type ('assignment', etc.) before the SDK is
+      // updated, the parse must throw rather than silently dropping the
+      // unknown event or coercing it into a known shape.
+      const issueId = '00000000-0000-4000-a000-000000000097';
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, {
+          data: {
+            issueId,
+            totalEvents: 1,
+            truncated: false,
+            events: [
+              {
+                type: 'assignment',
+                timestamp: '2026-06-08T01:00:00.000Z',
+              },
+            ],
+          },
+        });
+
+      await expect(issueOps.getHistory(client, issueId)).rejects.toThrow(
+        ZodError,
+      );
+    });
+
+    it('should surface truncated:false even when totalEvents > events.length (server assertion wins)', async () => {
+      // Post-impl r2: distinguish wire-surfaced `truncated` from a computed
+      // `events.length < totalEvents`. The server is authoritative — it may
+      // assert no truncation despite a count gap (e.g., during a server-side
+      // re-index window). A mutation that substitutes computation for wire
+      // surfacing would pass both prior truncation tests because their wire
+      // and computed values always agreed; this test catches it.
+      const issueId = '00000000-0000-4000-a000-000000000098';
+      const envelope = {
+        issueId,
+        totalEvents: 5,
+        truncated: false, // wire says NOT truncated despite count gap
+        events: [
+          {
+            type: 'occurrence' as const,
+            timestamp: '2026-06-08T04:00:00.000Z',
+            runId: '00000000-0000-4000-a000-000000000099',
+            agentName: 'a',
+            description: null,
+          },
+        ],
+      };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: envelope });
+
+      const result = await issueOps.getHistory(client, issueId);
+      expect(result.truncated).toBe(false);
+      expect(result.totalEvents).toBe(5);
+      expect(result.events).toHaveLength(1);
     });
 
     it('should surface truncated=true when totalEvents > events.length', async () => {
