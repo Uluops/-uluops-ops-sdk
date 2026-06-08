@@ -331,6 +331,75 @@ describe('Issue Operations', () => {
         expect(status.transitionType).toBeNull();
       }
     });
+
+    it('should accept absent transitionType/revertedChangeId fields (post-impl r1)', async () => {
+      // Stronger backward-compat: a server response that OMITS the tombstone
+      // fields entirely (not even sending null) — the case some upstream
+      // proxies or alternate serializers may produce. The schema is
+      // .nullable().optional() so absent ≡ null at parse time.
+      const issueId = '00000000-0000-4000-a000-000000000093';
+      const envelope = {
+        issueId,
+        totalEvents: 1,
+        truncated: false,
+        events: [
+          {
+            type: 'status',
+            timestamp: '2026-06-08T02:00:00.000Z',
+            oldStatus: 'open',
+            newStatus: 'completed',
+            reason: 'Fixed',
+            // transitionType + revertedChangeId omitted entirely
+          },
+        ],
+      };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: envelope });
+
+      const result = await issueOps.getHistory(client, issueId);
+      expect(result.events).toHaveLength(1);
+      const status = result.events[0];
+      if (status?.type === 'status') {
+        // Absent in the wire payload — `.optional()` makes the field undefined
+        // (not null) on the parsed result. Consumers using `?? null` or `==`
+        // null checks handle both states uniformly.
+        expect(status.transitionType).toBeUndefined();
+        expect(status.revertedChangeId).toBeUndefined();
+      }
+    });
+
+    it('should surface truncated=true when totalEvents > events.length', async () => {
+      // The server applies a 1000-event ceiling post-merge. Verify the SDK
+      // surfaces both fields cleanly so consumers can render a truncation
+      // warning. Only the truncation contract is tested here — the
+      // mathematics of which events are dropped is a server-side concern.
+      const issueId = '00000000-0000-4000-a000-000000000094';
+      const envelope = {
+        issueId,
+        totalEvents: 1500,
+        truncated: true,
+        events: [
+          {
+            type: 'occurrence' as const,
+            timestamp: '2026-06-08T03:00:00.000Z',
+            runId: '00000000-0000-4000-a000-000000000095',
+            agentName: 'a',
+            description: null,
+          },
+        ],
+      };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: envelope });
+
+      const result = await issueOps.getHistory(client, issueId);
+      expect(result.truncated).toBe(true);
+      expect(result.totalEvents).toBe(1500);
+      expect(result.events).toHaveLength(1);
+    });
   });
 
   describe('updateStatus', () => {

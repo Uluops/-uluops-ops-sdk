@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-06-08
+
+### Changed
+
+- **BREAKING: `issues.getHistory()` now returns `IssueHistoryEnvelope`** (live-tests T2 §3.1, F10). The endpoint behind it changed in `ops-uluops-api` from returning a bare `StatusHistory[]` (status transitions only, with the prior `undoLastChange` destroying the row it reverted) to a merged envelope:
+  ```ts
+  {
+    issueId: string,
+    events: HistoryEvent[],   // occurrence | status | note (discriminated on `type`)
+    totalEvents: number,
+    truncated: boolean        // true when totalEvents > 1000; oldest events dropped
+  }
+  ```
+  The SDK now parses with `IssueHistoryEnvelopeSchema` and returns the typed envelope. Consumers doing `result[0]` or `Array.isArray(result)` must update to `result.events[0]`. In practice most pre-fix consumers were getting `[]` from the lossy bare-array shape, so real-world breakage is small.
+
+### Added
+
+- New exported schemas in `src/types/response-schemas.ts`:
+  - `TransitionTypeResponseSchema` — `z.enum(['change', 'undo'])`.
+  - `HistoryOccurrenceEventSchema`, `HistoryStatusEventSchema`, `HistoryNoteEventSchema` — three legs of the discriminated union.
+  - `HistoryEventSchema` — `z.discriminatedUnion('type', [...])` with compile-time narrowing.
+  - `IssueHistoryEnvelopeSchema` — the envelope returned by `GET /issues/:id/history`.
+- New exported types in `src/types/issues.ts`: `TransitionType`, `HistoryEvent`, `IssueHistoryEnvelope`.
+- `StatusHistoryResponseSchema` extended with `transitionType: TransitionTypeResponseSchema.nullable().optional()` and `revertedChangeId: z.string().uuid().nullable().optional()`. Both are nullable AND optional so the schema parses cleanly against pre-migration server responses that don't carry the new columns. `HistoryStatusEventSchema` uses the same `.nullable().optional()` pattern (defensive — see post-impl r1 notes below).
+
+### Tests
+
+- 3 new tests for the envelope: full discriminated narrowing across all three event types (occurrence/status/note with undo tombstone); backward-compat parse with `transitionType: null`; backward-compat parse with `transitionType` **absent** entirely (post-impl r1 — guards against upstream proxies / alternate serializers that omit nulls); plus a `truncated: true` ceiling test. Legacy `StatusHistory[]` test assertions replaced. Suite 469 → 472.
+
 ## [3.0.5] - 2026-06-01
 
 ### Security
