@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 3.0.5** | [Changelog](./CHANGELOG.md)
+**Current version: 3.2.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -210,6 +210,13 @@ import type {
   Priority,
   Status,
   Severity,
+  // Issue history envelope (added in 3.2.0 — see CHANGELOG)
+  IssueHistoryEnvelope,
+  HistoryEvent,
+  HistoryOccurrenceEvent,
+  HistoryStatusEvent,
+  HistoryNoteEvent,
+  TransitionType,
 } from '@uluops/ops-sdk/types';
 
 // Errors only
@@ -1104,12 +1111,25 @@ const result = await client.issues.updateStatusByFingerprint(
 
 #### `client.issues.getHistory(issueId)`
 
-Get status change history for an issue.
+Get the merged audit history for an issue (occurrences, status transitions including undo tombstones, and notes) as a single timestamp-sorted event stream.
+
+> **BREAKING change in 3.2.0:** Return type changed from `StatusHistory[]` to `IssueHistoryEnvelope`. See the [CHANGELOG](./CHANGELOG.md#320---2026-06-08) for the migration path. Pre-3.2.0 code iterating `result` directly must now read `result.events` and narrow on each event's `type` discriminator (`'occurrence' | 'status' | 'note'`).
 
 ```typescript
-const history = await client.issues.getHistory('issue-uuid');
-for (const entry of history) {
-  console.log(`${entry.oldStatus} -> ${entry.newStatus} at ${entry.changedAt}`);
+const envelope = await client.issues.getHistory('issue-uuid');
+// envelope: { issueId, events, totalEvents, truncated }
+for (const event of envelope.events) {
+  if (event.type === 'status') {
+    const tag = event.transitionType === 'undo' ? '[undo] ' : '';
+    console.log(`${tag}${event.oldStatus} -> ${event.newStatus} at ${event.timestamp}`);
+  } else if (event.type === 'occurrence') {
+    console.log(`occurrence: ${event.agentName} in run ${event.runId} at ${event.timestamp}`);
+  } else if (event.type === 'note') {
+    console.log(`note (${event.noteType}): ${event.content} at ${event.timestamp}`);
+  }
+}
+if (envelope.truncated) {
+  console.warn(`Truncated to most recent ${envelope.events.length} of ${envelope.totalEvents} events`);
 }
 ```
 

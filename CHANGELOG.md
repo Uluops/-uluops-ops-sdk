@@ -23,17 +23,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- New exported schemas in `src/types/response-schemas.ts`:
+- New internal schemas in `src/types/response-schemas.ts` (not part of the package's public entry — `response-schemas.ts` is intentionally withheld from the barrel per `src/types/index.ts:19`):
   - `TransitionTypeResponseSchema` — `z.enum(['change', 'undo'])`.
   - `HistoryOccurrenceEventSchema`, `HistoryStatusEventSchema`, `HistoryNoteEventSchema` — three legs of the discriminated union.
   - `HistoryEventSchema` — `z.discriminatedUnion('type', [...])` with compile-time narrowing.
   - `IssueHistoryEnvelopeSchema` — the envelope returned by `GET /issues/:id/history`.
-- New exported types in `src/types/issues.ts`: `TransitionType`, `HistoryEvent`, `IssueHistoryEnvelope`.
+- **New exported types** in `src/types/issues.ts` (reachable from `@uluops/ops-sdk`): `TransitionType`, `HistoryEvent`, `IssueHistoryEnvelope`, plus three named constituent event types added in post-impl r2 — `HistoryOccurrenceEvent`, `HistoryStatusEvent`, `HistoryNoteEvent` (so consumers writing handlers that accept a specific event branch don't need `Extract<HistoryEvent, { type: '...' }>` inline).
 - `StatusHistoryResponseSchema` extended with `transitionType: TransitionTypeResponseSchema.nullable().optional()` and `revertedChangeId: z.string().uuid().nullable().optional()`. Both are nullable AND optional so the schema parses cleanly against pre-migration server responses that don't carry the new columns. `HistoryStatusEventSchema` uses the same `.nullable().optional()` pattern (defensive — see post-impl r1 notes below).
+
+### Security
+
+- **Defensive string-length ceilings on history-event fields** (post-impl r3, CWE-20). `agentName` (255), `description` (10k), `reason` (2k), `content` (10k), `createdBy` (200) on `HistoryOccurrenceEventSchema`, `HistoryStatusEventSchema`, and `HistoryNoteEventSchema` now have `.max()` bounds aligned with the server-side DB column sizes. A degenerate or malicious server returning oversized payloads (worst case at the 1000-event ceiling ≈ 1 GB allocation on the calling host) now throws ZodError at parse time instead of silently consuming memory. Compliant servers are unaffected.
+
+### Internal
+
+- Constituent event types in `src/types/issues.ts` derived via `z.infer<typeof HistoryXxxEventSchema>` instead of `Extract<HistoryEvent, { type: '...' }>` (post-impl r3). Keeps the codebase's single-source-of-truth convention (every other type in the file uses `z.infer<>`) and removes a silent-`never` risk if the union discriminator string ever changes.
 
 ### Tests
 
-- 3 new tests for the envelope: full discriminated narrowing across all three event types (occurrence/status/note with undo tombstone); backward-compat parse with `transitionType: null`; backward-compat parse with `transitionType` **absent** entirely (post-impl r1 — guards against upstream proxies / alternate serializers that omit nulls); plus a `truncated: true` ceiling test. Legacy `StatusHistory[]` test assertions replaced. Suite 469 → 472.
+- 5 new tests for the envelope (suite 469 → 476):
+  - Discriminated-union narrowing across all three event types (occurrence/status/note with undo tombstone)
+  - Backward-compat parse with `transitionType: null`
+  - Backward-compat parse with `transitionType` absent entirely (post-impl r1)
+  - `truncated: true` ceiling test
+  - Wire-vs-computed truncation distinguishing test (post-impl r2 — server assertion wins over `events.length < totalEvents`)
+  - ZodError on legacy bare-array response (post-impl r2 — BREAKING-change defense)
+  - ZodError on envelope with unknown event type (post-impl r2 — forward-compat strictness)
+  - ZodError on oversized string field (post-impl r3 — CWE-20 size guard)
+- Legacy `StatusHistory[]` test assertions replaced.
 
 ## [3.0.5] - 2026-06-01
 

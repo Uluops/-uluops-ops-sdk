@@ -16,6 +16,9 @@ import {
   OccurrenceResponseSchema,
   StatusUpdateResultResponseSchema,
   TransitionTypeResponseSchema,
+  HistoryOccurrenceEventSchema,
+  HistoryStatusEventSchema,
+  HistoryNoteEventSchema,
   HistoryEventSchema,
   IssueHistoryEnvelopeSchema,
 } from './response-schemas.js';
@@ -52,10 +55,16 @@ export type HistoryEvent = z.infer<typeof HistoryEventSchema>;
  * Named constituent event types — convenience exports so consumers writing
  * handlers that accept a specific event branch don't need to inline
  * `Extract<HistoryEvent, { type: 'occurrence' }>`. Post-impl r2.
+ *
+ * Derived via z.infer<typeof XxxSchema> rather than Extract<HistoryEvent,
+ * {...}> (post-impl r3) to keep the codebase's single-source-of-truth
+ * pattern consistent — every other type in this file is z.infer<>. If the
+ * union discriminator string ever changes, z.infer<> gives a compile error
+ * at the schema definition; Extract<> would silently resolve to `never`.
  */
-export type HistoryOccurrenceEvent = Extract<HistoryEvent, { type: 'occurrence' }>;
-export type HistoryStatusEvent = Extract<HistoryEvent, { type: 'status' }>;
-export type HistoryNoteEvent = Extract<HistoryEvent, { type: 'note' }>;
+export type HistoryOccurrenceEvent = z.infer<typeof HistoryOccurrenceEventSchema>;
+export type HistoryStatusEvent = z.infer<typeof HistoryStatusEventSchema>;
+export type HistoryNoteEvent = z.infer<typeof HistoryNoteEventSchema>;
 
 /**
  * Envelope returned by GET /issues/:id/history. Events are sorted by timestamp

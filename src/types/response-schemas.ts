@@ -298,13 +298,27 @@ export const IssueDetailsResponseSchema = z.object({
 // timeline reconstruction.
 // ─────────────────────────────────────────────────────────────────
 
+// Defensive string-length ceilings on envelope fields (post-impl r3, CWE-20).
+// Without these bounds, a degenerate or malicious server could return
+// extremely large payloads (e.g., 1000 events × 1 MB description ≈ 1 GB
+// allocation on the calling host) — the parser materializes the full
+// response before any consumer-side gate can apply. Ceilings are aligned
+// with the server-side DB column sizes (tracker schema) so a compliant
+// server is never affected; only oversized payloads convert from silent
+// memory exhaustion into a loud ZodError.
+const MAX_AGENT_NAME = 255;
+const MAX_DESCRIPTION = 10_000;
+const MAX_NOTE_CONTENT = 10_000;
+const MAX_REASON = 2_000;
+const MAX_CREATED_BY = 200;
+
 /** Per-run sighting of an issue, projected as a history event. */
 export const HistoryOccurrenceEventSchema = z.object({
   type: z.literal('occurrence'),
   timestamp: DateTimeStringSchema,
   runId: z.string().uuid(),
-  agentName: z.string(),
-  description: z.string().nullable(),
+  agentName: z.string().max(MAX_AGENT_NAME),
+  description: z.string().max(MAX_DESCRIPTION).nullable(),
 });
 
 /** Deliberate status transition or undo tombstone, projected as a history event. */
@@ -313,7 +327,7 @@ export const HistoryStatusEventSchema = z.object({
   timestamp: DateTimeStringSchema,
   oldStatus: StatusResponseSchema.nullable(),
   newStatus: StatusResponseSchema,
-  reason: z.string().nullable(),
+  reason: z.string().max(MAX_REASON).nullable(),
   // Live-tests T2 §3.1 Bug B: tombstone fields are nullable AND optional to
   // match StatusHistoryResponseSchema above — some pre-migration server
   // responses may omit the columns entirely rather than serializing explicit
@@ -330,9 +344,9 @@ export const HistoryNoteEventSchema = z.object({
   type: z.literal('note'),
   timestamp: DateTimeStringSchema,
   noteId: z.string().uuid(),
-  content: z.string(),
+  content: z.string().max(MAX_NOTE_CONTENT),
   noteType: NoteTypeResponseSchema,
-  createdBy: z.string().nullable(),
+  createdBy: z.string().max(MAX_CREATED_BY).nullable(),
 });
 
 /** Discriminated union of the three history-event shapes. */

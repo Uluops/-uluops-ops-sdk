@@ -446,6 +446,37 @@ describe('Issue Operations', () => {
       expect(result.events).toHaveLength(1);
     });
 
+    it('should throw ZodError when an event field exceeds its size ceiling (post-impl r3, CWE-20)', async () => {
+      // Post-impl r3: defensive string-length ceilings on envelope fields.
+      // A degenerate or malicious server returning an oversized string
+      // (here a 20kB note content, 2× the 10k ceiling) must produce a loud
+      // ZodError, not a silent memory-exhaustion allocation.
+      const issueId = '00000000-0000-4000-a000-00000000009a';
+      const envelope = {
+        issueId,
+        totalEvents: 1,
+        truncated: false,
+        events: [
+          {
+            type: 'note',
+            timestamp: '2026-06-08T05:00:00.000Z',
+            noteId: '00000000-0000-4000-a000-00000000009b',
+            content: 'x'.repeat(20_000),
+            noteType: 'context',
+            createdBy: 'alex',
+          },
+        ],
+      };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: envelope });
+
+      await expect(issueOps.getHistory(client, issueId)).rejects.toThrow(
+        ZodError,
+      );
+    });
+
     it('should surface truncated=true when totalEvents > events.length', async () => {
       // The server applies a 1000-event ceiling post-merge. Verify the SDK
       // surfaces both fields cleanly so consumers can render a truncation
