@@ -15,6 +15,9 @@ import {
   StatusHistoryResponseSchema,
   OccurrenceResponseSchema,
   StatusUpdateResultResponseSchema,
+  TransitionTypeResponseSchema,
+  HistoryEventSchema,
+  IssueHistoryEnvelopeSchema,
 } from './response-schemas.js';
 
 // ───────────────────────────────────────────────��─────────────────
@@ -32,6 +35,27 @@ export type IssueNote = z.infer<typeof IssueNoteResponseSchema>;
 
 /** Status history entry */
 export type StatusHistory = z.infer<typeof StatusHistoryResponseSchema>;
+
+/** Tombstone discriminator on status_history rows ('change' | 'undo'). Live-tests T2 §3.1 Bug B. */
+export type TransitionType = z.infer<typeof TransitionTypeResponseSchema>;
+
+/**
+ * Discriminated union of history-event shapes returned by `issues.getHistory`.
+ * Three types: 'occurrence' (per-run sighting), 'status' (deliberate change or
+ * undo tombstone), 'note' (manually added). Discriminate on `type`.
+ *
+ * Live-tests T2 §3.1 (F10).
+ */
+export type HistoryEvent = z.infer<typeof HistoryEventSchema>;
+
+/**
+ * Envelope returned by GET /issues/:id/history. Events are sorted by timestamp
+ * descending and capped at 1000 (truncated=true when the cap fires).
+ *
+ * BREAKING change in ops-sdk 3.2.0: previously this endpoint returned
+ * `StatusHistory[]`. See release notes for the migration path.
+ */
+export type IssueHistoryEnvelope = z.infer<typeof IssueHistoryEnvelopeSchema>;
 
 /** Full issue details (with related data) */
 export type IssueDetails = z.infer<typeof IssueDetailsResponseSchema>;

@@ -232,36 +232,104 @@ describe('Issue Operations', () => {
     });
   });
 
-  describe('getHistory', () => {
-    it('should get issue status history', async () => {
+  describe('getHistory (T2 §3.1 F10 — merged envelope)', () => {
+    it('should parse the merged history envelope with discriminated events', async () => {
+      // BREAKING change in 3.2.0: this previously returned StatusHistory[].
+      // The new shape is { issueId, events, totalEvents, truncated } with a
+      // discriminated `type` field on each event.
       const issueId = '00000000-0000-4000-a000-000000000091';
-      const mockHistory = [
-        createMockStatusHistory({ from: null, to: 'open', reason: null }),
-        createMockStatusHistory({
-          from: 'open',
-          to: 'completed',
-          oldStatus: 'open',
-          newStatus: 'completed',
-          reason: 'Fixed',
-        }),
-      ];
+      const tombstoneId = '00000000-0000-4000-a000-000000000fff';
+      const envelope = {
+        issueId,
+        totalEvents: 3,
+        truncated: false,
+        events: [
+          {
+            type: 'note',
+            timestamp: '2026-06-08T03:00:00.000Z',
+            noteId: '00000000-0000-4000-a000-000000000aaa',
+            content: 'Investigating',
+            noteType: 'context',
+            createdBy: 'alex',
+          },
+          {
+            type: 'status',
+            timestamp: '2026-06-08T02:00:00.000Z',
+            oldStatus: 'completed',
+            newStatus: 'open',
+            reason: 'Undo of fix',
+            transitionType: 'undo',
+            revertedChangeId: tombstoneId,
+          },
+          {
+            type: 'occurrence',
+            timestamp: '2026-06-08T01:00:00.000Z',
+            runId: '00000000-0000-4000-a000-000000000bbb',
+            agentName: 'test-architect',
+            description: 'First sighting',
+          },
+        ],
+      };
 
-      mockValidatedListEndpoint(
-        BASE_URL,
-        'get',
-        `/issues/${issueId}/history`,
-        mockHistory,
-        StatusHistoryResponseSchema
-      );
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: envelope });
 
-      const history = await issueOps.getHistory(client, issueId);
+      const result = await issueOps.getHistory(client, issueId);
 
-      expect(history).toHaveLength(2);
-      expect(history[0].from).toBeNull();
-      expect(history[0].to).toBe('open');
-      expect(history[1].from).toBe('open');
-      expect(history[1].to).toBe('completed');
-      expect(history[1].reason).toBe('Fixed');
+      expect(result.issueId).toBe(issueId);
+      expect(result.totalEvents).toBe(3);
+      expect(result.truncated).toBe(false);
+      expect(result.events).toHaveLength(3);
+
+      // Discriminated-union narrowing works
+      const note = result.events[0];
+      expect(note?.type).toBe('note');
+      if (note?.type === 'note') {
+        expect(note.content).toBe('Investigating');
+      }
+
+      // Status event surfaces tombstone fields for Bug B audit reconstruction
+      const status = result.events[1];
+      expect(status?.type).toBe('status');
+      if (status?.type === 'status') {
+        expect(status.transitionType).toBe('undo');
+        expect(status.revertedChangeId).toBe(tombstoneId);
+      }
+    });
+
+    it('should accept transitionType=null for pre-migration server responses', async () => {
+      // Backward-compat: a server still on the legacy schema returns rows
+      // without transitionType/revertedChangeId. The SDK schema marks both as
+      // nullable+optional so the envelope still parses cleanly.
+      const issueId = '00000000-0000-4000-a000-000000000092';
+      const envelope = {
+        issueId,
+        totalEvents: 1,
+        truncated: false,
+        events: [
+          {
+            type: 'status',
+            timestamp: '2026-06-08T02:00:00.000Z',
+            oldStatus: 'open',
+            newStatus: 'completed',
+            reason: 'Fixed',
+            transitionType: null,
+            revertedChangeId: null,
+          },
+        ],
+      };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}/history`)
+        .reply(200, { data: envelope });
+
+      const result = await issueOps.getHistory(client, issueId);
+      expect(result.events).toHaveLength(1);
+      const status = result.events[0];
+      if (status?.type === 'status') {
+        expect(status.transitionType).toBeNull();
+      }
     });
   });
 

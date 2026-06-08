@@ -72,8 +72,8 @@ import type {
   UpdateIssueStatusInput,
   CreateIssueNoteInput,
   IssueNote,
-  StatusHistory,
   IssueDetails,
+  IssueHistoryEnvelope,
   IssueSearchQuery,
   ListIssuesQuery,
   BulkStatusUpdateItem,
@@ -406,7 +406,7 @@ export class OpsClient {
     getDetails: (issueId: string): Promise<IssueDetails> =>
       issueOps.getDetails(this.httpClient, issueId),
 
-    getHistory: (issueId: string): Promise<StatusHistory[]> =>
+    getHistory: (issueId: string): Promise<IssueHistoryEnvelope> =>
       issueOps.getHistory(this.httpClient, issueId),
 
     updateStatus: (issueId: string, input: UpdateIssueStatusInput): Promise<Issue> =>

@@ -246,6 +246,21 @@ export const IssueNoteResponseSchema = z.object({
   createdAt: DateTimeStringSchema,
 });
 
+/**
+ * Tombstone discriminator on status_history rows.
+ *
+ * - `'change'`: deliberate status transition (default for new rows).
+ * - `'undo'`: tombstone marking that a prior change was reverted via
+ *   undoLastChange. Paired with `revertedChangeId` pointing at the row
+ *   being tombstoned. The original change row is preserved (no destructive
+ *   delete) so the audit trail is monotonic.
+ * - `null`: pre-migration rows. Consumers MUST treat null ≡ 'change' (legacy
+ *   rows are functionally deliberate transitions).
+ *
+ * See live-tests T2 spec §3.1 Bug B for the design rationale.
+ */
+export const TransitionTypeResponseSchema = z.enum(['change', 'undo']);
+
 export const StatusHistoryResponseSchema = z.object({
   id: z.string().uuid(),
   issueId: z.string().uuid(),
@@ -256,6 +271,11 @@ export const StatusHistoryResponseSchema = z.object({
   reason: z.string().nullable(),
   changedAt: DateTimeStringSchema,
   timestamp: DateTimeStringSchema.optional(),       // Alternative field name
+  // Live-tests T2 §3.1 Bug B (migration 055 in ops-uluops-api):
+  // Nullable + optional so the schema parses cleanly against pre-migration
+  // server responses that don't carry these fields.
+  transitionType: TransitionTypeResponseSchema.nullable().optional(),
+  revertedChangeId: z.string().uuid().nullable().optional(),
 });
 
 export const IssueDetailsResponseSchema = z.object({
@@ -263,6 +283,65 @@ export const IssueDetailsResponseSchema = z.object({
   occurrences: z.array(OccurrenceResponseSchema),
   notes: z.array(IssueNoteResponseSchema),
   history: z.array(StatusHistoryResponseSchema),
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Issue history envelope (live-tests T2 §3.1 — F10)
+//
+// Before F10: GET /issues/:id/history returned a bare `StatusHistory[]`
+// (status transitions only) and undoLastChange destroyed the row it reverted.
+// The audit trail was both incomplete and non-monotonic.
+//
+// After F10: the endpoint returns an envelope that merges three sources
+// (occurrences | status | notes) into a single timestamp-sorted stream.
+// Status events carry transitionType/revertedChangeId for tombstone-aware
+// timeline reconstruction.
+// ─────────────────────────────────────────────────────────────────
+
+/** Per-run sighting of an issue, projected as a history event. */
+export const HistoryOccurrenceEventSchema = z.object({
+  type: z.literal('occurrence'),
+  timestamp: DateTimeStringSchema,
+  runId: z.string().uuid(),
+  agentName: z.string(),
+  description: z.string().nullable(),
+});
+
+/** Deliberate status transition or undo tombstone, projected as a history event. */
+export const HistoryStatusEventSchema = z.object({
+  type: z.literal('status'),
+  timestamp: DateTimeStringSchema,
+  oldStatus: StatusResponseSchema.nullable(),
+  newStatus: StatusResponseSchema,
+  reason: z.string().nullable(),
+  transitionType: TransitionTypeResponseSchema.nullable(),
+  revertedChangeId: z.string().uuid().nullable(),
+});
+
+/** User-added note, projected as a history event. */
+export const HistoryNoteEventSchema = z.object({
+  type: z.literal('note'),
+  timestamp: DateTimeStringSchema,
+  noteId: z.string().uuid(),
+  content: z.string(),
+  noteType: NoteTypeResponseSchema,
+  createdBy: z.string().nullable(),
+});
+
+/** Discriminated union of the three history-event shapes. */
+export const HistoryEventSchema = z.discriminatedUnion('type', [
+  HistoryOccurrenceEventSchema,
+  HistoryStatusEventSchema,
+  HistoryNoteEventSchema,
+]);
+
+/** Envelope returned by GET /issues/:id/history. */
+export const IssueHistoryEnvelopeSchema = z.object({
+  issueId: z.string().uuid(),
+  events: z.array(HistoryEventSchema),
+  totalEvents: z.number().int().nonnegative(),
+  /** True when totalEvents > 1000 (the post-merge ceiling); oldest events were dropped. */
+  truncated: z.boolean(),
 });
 
 export const StatusUpdateResultResponseSchema = z.object({

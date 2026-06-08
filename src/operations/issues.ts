@@ -8,6 +8,7 @@ import type {
   CreateIssueNoteInput,
   IssueNote,
   IssueDetails,
+  IssueHistoryEnvelope,
   IssueSearchQuery,
   ListIssuesQuery,
   BulkStatusUpdateItem,
@@ -18,7 +19,7 @@ import {
   IssueResponseSchema,
   IssueDetailsResponseSchema,
   IssueNoteResponseSchema,
-  StatusHistoryResponseSchema,
+  IssueHistoryEnvelopeSchema,
   StatusUpdateResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
   DeleteResultResponseSchema,
@@ -143,18 +144,31 @@ export async function getDetails(
 }
 
 /**
- * Get status change history for an issue. Each entry has oldStatus, newStatus,
- * reason, and changedAt timestamp.
+ * Get the merged audit history for an issue.
+ *
+ * Returns an envelope of timestamp-sorted events drawn from three sources:
+ * occurrences (per-run sightings), status (deliberate transitions + undo
+ * tombstones), and notes. Each event is discriminated by `type`. Events are
+ * sorted newest-first and capped at 1000 (truncated=true when the cap fires).
+ *
+ * BREAKING change in ops-sdk 3.2.0: this previously returned
+ * `StatusHistory[]`. The new envelope is required to surface the full audit
+ * trail — see live-tests T2 spec §3.1 (F10) for the rationale and consumer
+ * migration matrix. Consumers that need the legacy status-only slice can
+ * filter the returned events to `type === 'status'` and project them back to
+ * the old shape.
  *
  * @param client - HTTP client instance
  * @param issueId - Issue UUID
- * @returns Array of status history entries (newest first)
+ * @returns Issue history envelope (events sorted newest-first)
  */
 export async function getHistory(
   client: OpsHttpClient,
   issueId: string
-): Promise<z.infer<typeof StatusHistoryResponseSchema>[]> {
-  return (z.array(StatusHistoryResponseSchema)).parse(await client.get<unknown>(`/issues/${encodeURIComponent(issueId)}/history`, undefined));
+): Promise<IssueHistoryEnvelope> {
+  return IssueHistoryEnvelopeSchema.parse(
+    await client.get<unknown>(`/issues/${encodeURIComponent(issueId)}/history`, undefined),
+  );
 }
 
 /**
