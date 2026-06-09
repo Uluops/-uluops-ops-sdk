@@ -116,11 +116,16 @@ export async function validate(
   options?: { _skipClientValidation?: boolean }
 ): Promise<ValidateRunResponse> {
   if (!options?._skipClientValidation) validateSaveRunInput(input);
+  // Forward analysis_* so dry-run reflects the full set of side effects
+  // `saveRun` would produce (API v1.4.1+ supports this; older versions
+  // safely ignore the extra fields via Zod .strip()).
   return ValidateRunResponseSchema.parse(await client.post<unknown>('/runs/validate', {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
     recommendations: input.recommendations,
+    ...(input.analysisRecords && { analysisRecords: input.analysisRecords }),
+    ...(input.analysisSummary && { analysisSummary: input.analysisSummary }),
   }));
 }
 

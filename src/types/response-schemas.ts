@@ -525,6 +525,16 @@ export const ValidateRunPreviewSchema = z.object({
   recurringIssues: z.array(z.object({ id: z.string(), title: z.string(), timesSeen: z.number() })),
   regressions: z.array(z.object({ id: z.string(), title: z.string(), lastStatus: z.string() })),
   observations: z.array(z.object({ id: z.string(), title: z.string() })).optional(),
+  // Analysis-record / analysis-summary echoes (API v1.4.1+).
+  analysisRecords: z.array(z.object({
+    recordId: z.string(),
+    recordType: z.string(),
+    title: z.string(),
+  })).optional(),
+  analysisSummaries: z.array(z.object({
+    agentName: z.string().optional(),
+    decision: z.string(),
+  })).optional(),
 });
 
 export const ValidateRunResponseSchema = z.object({
@@ -532,6 +542,11 @@ export const ValidateRunResponseSchema = z.object({
   wouldUpdate: z.number().int().nonnegative(),
   wouldRegress: z.number().int().nonnegative(),
   wouldObserve: z.number().int().nonnegative().optional(),
+  // Counts of analysis records / summaries that saveRun would persist
+  // (API v1.4.1+). Optional for backwards compatibility with older API
+  // versions that do not return these fields.
+  wouldCreateAnalysisRecords: z.number().int().nonnegative().optional(),
+  wouldCreateAnalysisSummaries: z.number().int().nonnegative().optional(),
   validationErrors: z.array(z.string()),
   preview: ValidateRunPreviewSchema,
 });

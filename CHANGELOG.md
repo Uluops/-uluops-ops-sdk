@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.2.2] - 2026-06-08
+
+Companion to API v1.58.1 (dry-run completeness + Zod error envelope).
+No breaking changes; all additions optional and additive.
+
+### Added
+
+- **`validate()` forwards `analysisRecords` and `analysisSummary` to the API.** Prior versions only sent `project`, `workflowType`, `agents`, `recommendations` — even when callers supplied analysis fields on `SaveRunInput`, those fields were silently stripped on the wire. Now passed through so the dry-run reflects the full set of side effects `save()` would produce.
+- **`ValidateRunResponseSchema` accepts new optional fields** matching API v1.58.1+:
+  - `wouldCreateAnalysisRecords` — count of analysis records the save would persist.
+  - `wouldCreateAnalysisSummaries` — count of analysis summaries (single object → 1, array → length).
+  - `preview.analysisRecords` — short echo `Array<{recordId, recordType, title}>` of records that would be created.
+  - `preview.analysisSummaries` — short echo `Array<{agentName?, decision}>` of summaries.
+- All four response fields are `.optional()` so callers against older API versions continue to parse cleanly.
+
+### Why
+
+Discovered during a Codex foundations skill run on 2026-06-08: `validate()` returned green for payloads that `save()` then rejected on analysis-record shape, because the SDK stripped analysis fields from the dry-run request and the API's preview never validated them. Two repos shipped together — API v1.58.1 makes the preview faithful; this SDK release makes the SDK request and response shapes match. Tracker: `ops-uluops-api` `c29dd21e` (PRA-DRI/H).
+
 ## [3.2.1] - 2026-06-08
 
 Post-implementation hardening on the 3.2.0 envelope work. No breaking

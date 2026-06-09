@@ -767,7 +767,7 @@ console.log(`Issues: ${result.correlation.newIssues} new, ${result.correlation.r
 
 #### `client.runs.validate(input, options?)`
 
-Preview what a save would do without persisting. Accepts same `{ _skipClientValidation: true }` option as `save()`.
+Preview what a save would do without persisting. Accepts same `{ _skipClientValidation: true }` option as `save()`. Since v3.2.2, also previews `analysisRecords` and `analysisSummary` persistence so the dry-run reflects the full set of side effects `save()` would produce (requires API v1.58.1+).
 
 ```typescript
 const preview = await client.runs.validate({
@@ -775,12 +775,22 @@ const preview = await client.runs.validate({
   workflowType: 'post-implementation',
   agents: [{ name: 'code-validator', score: 90, decision: 'PASS' }],
   recommendations: [{ agent: 'code-validator', title: 'Unused import', priority: 'backlog', failureCode: 'STR-OMI/L' }],
+  // Optional — same shape save() accepts
+  analysisRecords: [
+    { recordId: 'C-1', recordType: 'convergence', title: 'Lens convergence', data: { evidence: ['src/foo.ts:42'] } },
+  ],
+  analysisSummary: { decision: 'PASS', score: 88 },
 });
 
-console.log('Would create:', preview.wouldCreate);
-console.log('Would update:', preview.wouldUpdate);
-console.log('Would regress:', preview.wouldRegress);
-console.log('Would observe:', preview.wouldObserve); // recommendations matching observation-status issues
+console.log('Would create issues:', preview.wouldCreate);
+console.log('Would update issues:', preview.wouldUpdate);
+console.log('Would regress issues:', preview.wouldRegress);
+console.log('Would observe issues:', preview.wouldObserve);
+
+// v3.2.2+: optional analysis previews (present when API >= v1.58.1)
+console.log('Would create analysis records:', preview.wouldCreateAnalysisRecords);
+console.log('Would create analysis summaries:', preview.wouldCreateAnalysisSummaries);
+console.log('Analysis records to be created:', preview.preview.analysisRecords);
 ```
 
 #### `client.runs.listByProject(projectId, query)`
