@@ -9,6 +9,7 @@
 
 import { HttpClient } from '@uluops/sdk-core/http';
 import { DEFAULT_BASE_URL, SDK_VERSION } from '../config/constants.js';
+import { InputValidationError } from '../config/validators.js';
 
 // Re-export query utilities so operations can continue to import from here
 export { toQuery, type QueryParams, type QueryParamValue } from '@uluops/sdk-core/utils';
@@ -88,10 +89,21 @@ const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
  * HTTP client for ops-uluops-api using native fetch
  */
 export class OpsHttpClient extends HttpClient {
+  /**
+   * Construct a low-level HTTP client for ops-uluops-api.
+   *
+   * @param config - {@link HttpClientConfig}. When `orgSlug` is provided it is
+   *   validated against `^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$` and set as the
+   *   `X-Org-Slug` header on every request; the strict pattern prevents header
+   *   injection via CRLF or whitespace.
+   * @throws {InputValidationError} If `orgSlug` is present but not 1–100
+   *   alphanumeric characters, hyphens, or underscores.
+   */
   constructor(config: HttpClientConfig = {}) {
     if (config.orgSlug && !ORG_SLUG_PATTERN.test(config.orgSlug)) {
-      throw new Error(
-        'Invalid orgSlug: must be 1-100 alphanumeric characters, hyphens, or underscores'
+      throw new InputValidationError(
+        'Invalid orgSlug: must be 1-100 alphanumeric characters, hyphens, or underscores',
+        [{ code: 'custom', path: ['orgSlug'], message: 'must be 1-100 alphanumeric characters, hyphens, or underscores' }]
       );
     }
     super({

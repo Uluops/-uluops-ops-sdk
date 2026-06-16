@@ -199,6 +199,39 @@ describe('Issue Operations', () => {
       expect(issue.id).toBe(issueId);
       expect(issue.status).toBe('open');
     });
+
+    it('should throw ZodError when title exceeds its size ceiling (CWE-20)', async () => {
+      // A degenerate or malicious server returning an oversized title (here 600
+      // chars, over the 500 ceiling = issues.title varchar(500)) must produce a
+      // loud ZodError, not a silent large allocation on the calling host. The CLI
+      // consumes IssueResponseSchema in picker mode + formatIssue. Build a valid
+      // mock then override post-construction — createMockIssue itself now eagerly
+      // enforces the bound and would throw at construction otherwise.
+      const issueId = TEST_IDS.issue1;
+      const oversized = { ...createMockIssue({ id: issueId }), title: 'x'.repeat(600) };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}`)
+        .reply(200, { data: oversized });
+
+      await expect(issueOps.get(client, issueId)).rejects.toThrow(ZodError);
+    });
+
+    it('should throw ZodError when fingerprint exceeds its size ceiling (CWE-20)', async () => {
+      // issues.fingerprint is varchar(64) (sha256 hex); the 128 ceiling has
+      // margin but still rejects a pathological 200-char value.
+      const issueId = TEST_IDS.issue1;
+      const oversized = {
+        ...createMockIssue({ id: issueId }),
+        fingerprint: 'a'.repeat(200),
+      };
+
+      nock(BASE_URL)
+        .get(`/issues/${issueId}`)
+        .reply(200, { data: oversized });
+
+      await expect(issueOps.get(client, issueId)).rejects.toThrow(ZodError);
+    });
   });
 
   describe('getDetails', () => {

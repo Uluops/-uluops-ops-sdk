@@ -16,7 +16,6 @@ export {
   ServiceUnavailableError,
   NetworkError,
   TimeoutError,
-  createErrorFromStatus,
   isSdkApiError as isOpsApiError,
   isValidationError,
   isNotFoundError,
@@ -30,6 +29,13 @@ export {
   isNetworkError,
   isTimeoutError,
 } from '@uluops/sdk-core/errors';
+
+/**
+ * @internal Not part of the public API. Internal factory that maps an HTTP
+ * status code to the matching typed error; used by the request layer. Consumers
+ * should catch the typed error classes (e.g. {@link NotFoundError}) instead.
+ */
+export { createErrorFromStatus } from '@uluops/sdk-core/errors';
 
 // SDK-specific errors
 export { InputValidationError } from '../config/validators.js';

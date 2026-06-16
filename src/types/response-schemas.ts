@@ -197,22 +197,43 @@ export const ProjectTrendsResponseSchema = z.object({
 // ISSUE RESPONSE SCHEMAS
 // ============================================
 
+// Defensive string-length ceilings on issue-domain response fields (CWE-20).
+// Untrusted server responses are materialized by Zod before any consumer-side
+// gate can run, so an unbounded z.string() lets a degenerate or malicious server
+// force a large heap allocation on the calling host (worst case: a list endpoint
+// returning many rows of oversized strings). Each ceiling is set at-or-above the
+// server-side DB column size (tracker schema, verified against prod 2026-06-16)
+// so a compliant server is never rejected; only oversized payloads convert from
+// silent memory pressure into a loud ZodError at parse time. Margins guard
+// against future column widenings (cf. failure_mode varchar(10) -> varchar(50)
+// in ops-uluops-api migration 040). Reused by the history-event schemas below.
+const MAX_TITLE = 500; // issues.title varchar(500)
+const MAX_FINGERPRINT = 128; // issues.fingerprint varchar(64) — sha256 hex is 64; margin for re-encoding
+const MAX_FAILURE_MODE = 50; // issues.failure_mode varchar(50)
+const MAX_CATEGORY = 200; // issues.category varchar(100)
+const MAX_FILE_PATH = 1_000; // issues/occurrences.file_path varchar(1000)
+const MAX_AGENT_NAME = 255; // issues.agent / occurrences agent_name varchar(100)
+const MAX_DESCRIPTION = 10_000; // occurrences.description text
+const MAX_NOTE_CONTENT = 10_000; // issue_notes.content text
+const MAX_REASON = 2_000; // status_history.reason varchar(500)
+const MAX_CREATED_BY = 200; // issue_notes.created_by varchar(200)
+
 export const IssueResponseSchema = z.object({
   id: z.string().uuid(),
   projectId: z.string().uuid(),
-  fingerprint: z.string(),
-  title: z.string(),
+  fingerprint: z.string().max(MAX_FINGERPRINT),
+  title: z.string().max(MAX_TITLE),
   status: StatusResponseSchema,
   priority: PriorityResponseSchema,
   severity: SeverityResponseSchema.nullable(),
   failureCode: FailureCodeResponseSchema,
   failureDomain: FailureDomainResponseSchema.nullable(),
-  failureMode: z.string().nullable(),
+  failureMode: z.string().max(MAX_FAILURE_MODE).nullable(),
   failureSeverityCode: FailureSeverityCodeResponseSchema,
-  category: z.string().nullable(),
-  agent: z.string().nullable(),
+  category: z.string().max(MAX_CATEGORY).nullable(),
+  agent: z.string().max(MAX_AGENT_NAME).nullable(),
   type: IssueTypeResponseSchema.nullable(),
-  filePath: z.string().nullable(),
+  filePath: z.string().max(MAX_FILE_PATH).nullable(),
   lineNumber: z.number().int().nonnegative().nullable(),
   timesSeen: z.number().int().positive(),
   firstSeenRunId: z.string().uuid(),
@@ -228,9 +249,9 @@ export const OccurrenceResponseSchema = z.object({
   id: z.string().uuid(),
   issueId: z.string().uuid(),
   runId: z.string().uuid(),
-  agentName: z.string(),
-  description: z.string().nullable(),
-  filePath: z.string().nullable(),
+  agentName: z.string().max(MAX_AGENT_NAME),
+  description: z.string().max(MAX_DESCRIPTION).nullable(),
+  filePath: z.string().max(MAX_FILE_PATH).nullable(),
   lineNumber: z.number().int().nonnegative().nullable(),
   classificationConfidence: z.enum(['high', 'medium', 'low']).nullable(),
   classifiedBy: z.enum(['agent', 'classifier', 'human']).nullable(),
@@ -240,9 +261,9 @@ export const OccurrenceResponseSchema = z.object({
 export const IssueNoteResponseSchema = z.object({
   id: z.string().uuid(),
   issueId: z.string().uuid(),
-  content: z.string(),
+  content: z.string().max(MAX_NOTE_CONTENT),
   noteType: NoteTypeResponseSchema,
-  createdBy: z.string().nullable(),
+  createdBy: z.string().max(MAX_CREATED_BY).nullable(),
   createdAt: DateTimeStringSchema,
 });
 
@@ -268,7 +289,7 @@ export const StatusHistoryResponseSchema = z.object({
   from: StatusResponseSchema.nullable().optional(), // Alternative field name
   newStatus: StatusResponseSchema,
   to: StatusResponseSchema.optional(),              // Alternative field name
-  reason: z.string().nullable(),
+  reason: z.string().max(MAX_REASON).nullable(),
   changedAt: DateTimeStringSchema,
   timestamp: DateTimeStringSchema.optional(),       // Alternative field name
   // Live-tests T2 §3.1 Bug B (migration 055 in ops-uluops-api):
@@ -298,19 +319,10 @@ export const IssueDetailsResponseSchema = z.object({
 // timeline reconstruction.
 // ─────────────────────────────────────────────────────────────────
 
-// Defensive string-length ceilings on envelope fields (post-impl r3, CWE-20).
-// Without these bounds, a degenerate or malicious server could return
-// extremely large payloads (e.g., 1000 events × 1 MB description ≈ 1 GB
-// allocation on the calling host) — the parser materializes the full
-// response before any consumer-side gate can apply. Ceilings are aligned
-// with the server-side DB column sizes (tracker schema) so a compliant
-// server is never affected; only oversized payloads convert from silent
-// memory exhaustion into a loud ZodError.
-const MAX_AGENT_NAME = 255;
-const MAX_DESCRIPTION = 10_000;
-const MAX_NOTE_CONTENT = 10_000;
-const MAX_REASON = 2_000;
-const MAX_CREATED_BY = 200;
+// The history-event field ceilings reuse the MAX_* constants defined above the
+// issue-domain schemas (CWE-20 defensive bounds). At the 1000-event ceiling an
+// unbounded description/content would otherwise allow a ~1 GB allocation on the
+// calling host; the bounds convert that into a loud ZodError instead.
 
 /** Per-run sighting of an issue, projected as a history event. */
 export const HistoryOccurrenceEventSchema = z.object({

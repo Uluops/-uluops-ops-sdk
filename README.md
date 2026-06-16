@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 3.2.1** | [Changelog](./CHANGELOG.md)
+**Current version: 3.4.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -227,8 +227,15 @@ import {
   RateLimitError,
 } from '@uluops/ops-sdk/errors';
 
-// Config utilities
-import { loadCredentials, DEFAULT_BASE_URL } from '@uluops/ops-sdk/config';
+// Config utilities (also re-exported from the package root)
+import {
+  loadCredentials,   // resolve credentials from options > env > credentials.json
+  loadConfig,        // resolve full config (credentials + connection settings)
+  loadEnvFiles,      // load .env files into process.env before reading config
+  DEFAULT_BASE_URL,  // default API base URL
+  ENV_VARS,          // map of the env var names the SDK reads
+  API_KEY_PREFIX,    // expected API key prefix ('ulr_')
+} from '@uluops/ops-sdk/config';
 ```
 
 ### Package Exports
@@ -1058,7 +1065,7 @@ Search issues across projects.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `query` | `string` | Yes | Search query |
+| `query` | `string` | No | Search query (omit for filter-only searches) |
 | `projects` | `string[]` | No | Filter by projects |
 | `agents` | `string[]` | No | Filter by agents |
 | `status` | `Status` | No | Filter by status |
@@ -1203,6 +1210,14 @@ Restore a soft-deleted issue.
 const issue = await client.issues.restore('issue-uuid');
 ```
 
+#### `client.issues.softDelete(issueId)`
+
+Soft-delete an active issue. Reversible via `restore()`. Returns `{ deleted: true }`.
+
+```typescript
+await client.issues.softDelete('issue-uuid');
+```
+
 #### `client.issues.undoLastChange(issueId)`
 
 Undo the last status change on an issue.
@@ -1221,12 +1236,12 @@ const results = await client.issues.bulkUpdateStatus([
   { issueId: 'issue-2', status: 'deferred', reason: 'Not a priority' },
 ]);
 
-// Each result includes per-item success/failure — some items may fail
-// while others succeed (e.g., issue not found, invalid status transition)
-for (const result of results) {
-  if (!result.success) {
-    console.warn(`Failed to update ${result.issueId}: ${result.error}`);
-  }
+// The result is an aggregate object — `updated` counts the successes and
+// `failed` lists the issue IDs that could not be updated (e.g., not found
+// or an invalid status transition).
+console.log(`Updated ${results.updated} issue(s)`);
+if (results.failed.length > 0) {
+  console.warn('Failed issue IDs:', results.failed);
 }
 ```
 
@@ -1560,7 +1575,7 @@ try {
 } catch (error) {
   if (error instanceof NotFoundError) {
     console.log(error.message); // "Project 'non-existent' not found"
-    console.log(error.details); // { id: 'non-existent' }
+    console.log(error.details); // { resource: "Project 'non-existent' not found" }
   } else if (error instanceof UnauthorizedError) {
     console.log('Please authenticate');
   } else if (error instanceof RateLimitError) {
@@ -1589,6 +1604,41 @@ try {
 | `NetworkError` | - | Connection error (auto-retried) |
 | `TimeoutError` | - | Request timeout |
 | `InputValidationError` | - | Client-side Zod validation failure |
+
+### Type Guards
+
+Every error class also ships a type guard. These are an alternative to `instanceof`
+that narrows the error type without importing the class — useful in `switch`-style
+handling or when you only need a subset of the hierarchy:
+
+```typescript
+import {
+  isOpsApiError,        // any server-returned API error
+  isNotFoundError,      // 404
+  isUnauthorizedError,  // 401
+  isForbiddenError,     // 403
+  isValidationError,    // 400
+  isConflictError,      // 409
+  isUnprocessableError, // 422
+  isRateLimitError,     // 429
+  isPayloadTooLargeError, // 413
+  isServiceUnavailableError, // 503
+  isNetworkError,       // connection failure
+  isTimeoutError,       // request timeout
+} from '@uluops/ops-sdk/errors';
+
+try {
+  await client.runs.save(input);
+} catch (error) {
+  if (isNotFoundError(error)) {
+    // handle missing resource
+  } else if (isRateLimitError(error)) {
+    console.log(`Retry after ${error.details?.retryAfter}s`);
+  } else if (isOpsApiError(error)) {
+    console.log(`API error: ${error.code} - ${error.message}`);
+  }
+}
+```
 
 ### Automatic Retries
 

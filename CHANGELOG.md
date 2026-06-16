@@ -6,6 +6,76 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-06-16
+
+Consumer-experience polish from a `consumer-validate` pipeline run (docs 93 /
+public-interface 91 / dx 88, all gates passed). No runtime behavior changes to
+existing successful calls; one error type is now more specific (see Changed).
+
+### Security
+
+- **Defensive string-length ceilings on issue-domain response fields (CWE-20).**
+  Completes the bounding started in 3.2.1, which covered only the history-event
+  schemas: `IssueResponseSchema` (fingerprint, title, failureMode, category,
+  agent, filePath), `OccurrenceResponseSchema` (agentName, description, filePath),
+  `IssueNoteResponseSchema` (content, createdBy), and `StatusHistoryResponseSchema`
+  (reason) now carry `.max()` bounds set at-or-above the tracker DB column sizes
+  (verified against prod 2026-06-16, with margin against future widenings). An
+  unbounded `z.string()` let a degenerate or malicious server force a large heap
+  allocation on the calling host before any consumer-side gate could run (the CLI
+  consumes these schemas in issue-picker mode and `formatIssue`); oversized
+  payloads now throw `ZodError` at parse time instead. Compliant servers are
+  unaffected. The reusable `MAX_*` ceiling constants are consolidated above the
+  schemas, and `createMockIssue` now eagerly validates against the schema so a
+  malformed/oversized test fixture fails at construction. Two tests assert the
+  bound fires on an oversized title (600 chars) and fingerprint (200 chars).
+
+### Fixed
+
+- **`bulkUpdateStatus` README example corrected.** The example iterated the result
+  in a `for…of` loop and read `result.success` / `result.issueId` / `result.error` —
+  but the method returns an aggregate object `{ updated: number, failed: string[] }`,
+  so the documented code threw `TypeError: results is not iterable` at runtime. The
+  API and TypeScript types were always correct; only the example was wrong.
+- **`NotFoundError.details` README comment corrected** to the real shape
+  (`{ resource: "Project '…' not found" }`, not `{ id: '…' }`).
+- **`client.issues.search()` `query` parameter documented as optional** (it is
+  `query?: string`; filter-only searches are valid) — the parameter table previously
+  marked it required.
+- **Stale README version header** (was `3.2.1`) updated.
+
+### Changed
+
+- **`OpsHttpClient` now throws `InputValidationError` (not a base `Error`) for an
+  invalid `orgSlug`.** Aligns with every other constructor-time validation so callers
+  branching on `instanceof InputValidationError` catch it. `InputValidationError`
+  extends `Error`, so existing `instanceof Error` / catch-all handlers are unaffected.
+
+### Docs
+
+- **`client.issues.softDelete(issueId)` is now documented** in the README Issue
+  Operations section (previously the only public method with no README entry).
+- **Error type guards documented.** Added a "Type Guards" section covering all twelve
+  guards (`isNotFoundError`, `isRateLimitError`, …) exported from `@uluops/ops-sdk/errors`.
+- **Every `OpsClient` namespace delegate now carries inline JSDoc**, so IDE hover over
+  `client.runs.save`, `client.issues.search`, etc. surfaces a summary and an
+  `@see` link to the underlying operation instead of a bare signature.
+- **`loadCredentials` / `loadConfig` gained full `@param`/`@returns` JSDoc** documenting
+  the `options > env > file` priority chain, plus a JSDoc block on the `OpsHttpClient`
+  constructor, `buildIssueListParams`, and the config import example at the package root
+  (now showing `loadConfig`, `loadEnvFiles`, `ENV_VARS`, `API_KEY_PREFIX`).
+- **TypeDoc API-reference generation added** (`npm run docs:api` → `docs/api`,
+  `@internal` excluded). `typedoc` added as a dev dependency.
+
+### Internal
+
+- **Leaked internal helpers tagged `@internal`** (no longer surfaced in generated docs;
+  still exported to avoid a breaking change): `createErrorFromStatus`
+  (`@uluops/ops-sdk/errors`); `getGlobalConfigDir`, `getCredentialsPath`,
+  `loadStoredCredentials`, `isApiKey`, `validateCredentials`, `validateUuid`,
+  `validateRequiredString`, `validatePositiveInt` (`@uluops/ops-sdk/config`). These are
+  plumbing re-exported for advanced/tooling consumers and are not covered by semver.
+
 ## [3.3.0] - 2026-06-16
 
 ### Changed

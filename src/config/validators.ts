@@ -287,8 +287,14 @@ export function validateBulkStatusUpdateInput(data: unknown): z.infer<typeof Bul
 // ============================================
 // SIMPLE VALIDATORS
 // ============================================
+//
+// @internal — the three helpers below are generic argument guards used
+// internally before API calls. They are exported only via the
+// `@uluops/ops-sdk/config` subpath and are not part of the documented public
+// surface; prefer the domain validators above. May change without a major bump.
 
 /**
+ * @internal Not part of the public API.
  * Validate that a string is a valid UUID v1-5.
  * @param value - The string to validate
  * @param fieldName - Field name for error messages (e.g. 'projectId', 'issueId')
@@ -304,6 +310,7 @@ export function validateUuid(value: string, fieldName: string): void {
 }
 
 /**
+ * @internal Not part of the public API.
  * Validate that a value is a non-empty string after trimming.
  * @param value - The value to validate
  * @param fieldName - Field name for error messages
@@ -320,6 +327,7 @@ export function validateRequiredString(value: unknown, fieldName: string): strin
 }
 
 /**
+ * @internal Not part of the public API.
  * Validate that a value is a positive integer (> 0).
  * @param value - The value to validate (coerced via `Number()`)
  * @param fieldName - Field name for error messages
