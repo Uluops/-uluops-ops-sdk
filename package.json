@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "description": "SDK for the UluOps platform API — execution tracking, analytics, and auth",
   "type": "module",
   "main": "dist/index.js",
@@ -84,7 +84,7 @@
     "url": "git+https://github.com/Uluops/-uluops-ops-sdk.git"
   },
   "dependencies": {
-    "@uluops/sdk-core": "0.11.1",
+    "@uluops/sdk-core": "0.13.0",
     "zod": "4.3.6"
   },
   "devDependencies": {

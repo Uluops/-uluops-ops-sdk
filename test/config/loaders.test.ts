@@ -142,7 +142,9 @@ describe('Config Loaders', () => {
 
   describe('isApiKey', () => {
     it('should return true for valid API key prefix', () => {
-      expect(isApiKey('ulr_abc123')).toBe(true);
+      // sdk-core >=0.13.0: isApiKey enforces the 20-char minimum (matches the
+      // ApiKeyAuth constructor), so the key must be long enough.
+      expect(isApiKey('ulr_abc123def456ghi789')).toBe(true);
     });
 
     it('should return false for invalid prefix', () => {
