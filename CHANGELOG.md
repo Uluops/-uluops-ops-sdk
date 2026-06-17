@@ -6,16 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-Documentation and internal-hygiene fixes from a `consumer-validate` pipeline run
-(run #5: docs 91 / public-interface 87 / dx 96, all gates passed). No public API or
-runtime behavior changes.
+## [4.0.0] - 2026-06-17
+
+Analytics type system realigned to derive from the Zod response schemas, plus the
+documentation and internal-hygiene fixes from a `consumer-validate` pipeline run
+(run #5: docs 91 / public-interface 87 / dx 96, all gates passed). No runtime
+behavior or endpoint changes — the breaking surface is limited to four removed
+analytics **type** exports (see below).
+
+### ⚠ BREAKING CHANGES
+
+- **Removed four analytics type exports** that had no SDK producer method and
+  existed only to annotate `getByMetric()` results by hand: `CrossProjectPattern`,
+  `RegressionEntry`, `CostEntry`, `CategoryPerformanceEntry` (and their
+  `*ResponseSchema` counterparts). The underlying metrics — `cross_project_patterns`,
+  `regression_analysis`, `cost_analysis` — remain available unchanged through the
+  untyped `getByMetric()` path. **Migration:** if you imported these types, inline
+  an equivalent local interface or inspect the `getByMetric()` return directly. No
+  method signatures or runtime behavior changed.
+
+### Changed
+
+- **Analytics types are now schema-derived.** Hand-written `interface` declarations
+  (`Period`, `AgentLifecycleEntry`, `AgentReliability`, `BurndownResult`,
+  `VelocityResult`, `DiscoveryResult`, `AgentMatrixResult`, `TrendSummary`,
+  `BlindSpot`, `MatrixAnalysis`, `SinglePointFailure`, `HighOverlap`, and related
+  row/point shapes) are now `z.infer` aliases of their Zod response schemas, so the
+  compile-time types and runtime validation can no longer drift apart. The exported
+  type names are unchanged; shapes now track the schemas exactly. New backing
+  schemas (`BlindSpotResponseSchema`, `SinglePointFailureResponseSchema`,
+  `HighOverlapResponseSchema`, `MatrixAnalysisResponseSchema`) are internal
+  implementation detail — like all `*ResponseSchema`s, they are not exported through
+  any public subpath. This release introduces **no new public exports**; the surface
+  change is the four removed types below plus the `interface`→`type` conversion.
 
 ### Fixed
 
 - **Overstated 3.4.0 changelog claim.** The 3.4.0 entry said every `OpsClient`
   delegate carries an `@see` link to its underlying operation; delegates actually
   carry a summary line only. Corrected the wording to match what shipped.
-
 - **Stale `runs.validate()` JSDoc example.** The `@example` referenced a
   non-existent `preview.correlation` field and omitted the required
   `recommendations` input. Corrected to use the actual `ValidateRunResponse`
@@ -35,6 +64,8 @@ runtime behavior changes.
 
 ### Removed
 
+- **(Breaking — see above)** `CrossProjectPattern`, `RegressionEntry`, `CostEntry`,
+  `CategoryPerformanceEntry` and their `*ResponseSchema` exports.
 - **Internal-only dead utilities** (not part of any export path, no production
   callers): `toCamelCase` and the `sleep`/`retry`/`truncate`/`isPlainObject`/`isUuid`
   re-exports from `src/utils/helpers.ts`, plus their tests. The API returns
