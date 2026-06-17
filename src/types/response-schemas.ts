@@ -832,13 +832,32 @@ export const AgentMatrixRowResponseSchema = z.object({
   coveragePercent: z.number(),
 });
 
+export const BlindSpotResponseSchema = z.object({
+  agent: z.string(),
+  missingDomains: z.array(z.string()),
+});
+
+export const SinglePointFailureResponseSchema = z.object({
+  domain: z.string(),
+  mode: z.string(),
+  onlyAgent: z.string(),
+});
+
+export const HighOverlapResponseSchema = z.object({
+  mode: z.string(),
+  agentCount: z.number(),
+  agents: z.array(z.string()),
+});
+
+export const MatrixAnalysisResponseSchema = z.object({
+  blindSpots: z.array(BlindSpotResponseSchema),
+  singlePoints: z.array(SinglePointFailureResponseSchema),
+  highOverlap: z.array(HighOverlapResponseSchema),
+});
+
 export const AgentMatrixResultResponseSchema = z.object({
   matrix: z.array(AgentMatrixRowResponseSchema),
-  analysis: z.object({
-    blindSpots: z.array(z.object({ agent: z.string(), missingDomains: z.array(z.string()) })),
-    singlePoints: z.array(z.object({ domain: z.string(), mode: z.string(), onlyAgent: z.string() })),
-    highOverlap: z.array(z.object({ mode: z.string(), agentCount: z.number(), agents: z.array(z.string()) })),
-  }),
+  analysis: MatrixAnalysisResponseSchema,
 });
 
 export const TrendSummaryResponseSchema = z.object({
@@ -847,40 +866,6 @@ export const TrendSummaryResponseSchema = z.object({
   resolvedIssues: z.number().int().nonnegative(),
   regressions: z.number().int().nonnegative(),
   averageScore: z.number().nullable(),
-});
-
-export const CrossProjectPatternResponseSchema = z.object({
-  pattern: z.string(),
-  projects: z.array(z.string()),
-  projectCount: z.number().int().nonnegative(),
-  totalOccurrences: z.number().int().nonnegative(),
-  severity: z.string(),
-});
-
-export const RegressionEntryResponseSchema = z.object({
-  issueId: z.string(),
-  title: z.string(),
-  project: z.string(),
-  timesRegressed: z.number().int().nonnegative(),
-  lastRegression: z.string(),
-  agent: z.string(),
-});
-
-export const CostEntryResponseSchema = z.object({
-  name: z.string(),
-  totalRuns: z.number().int().nonnegative(),
-  totalInputTokens: z.number().int().nonnegative(),
-  totalOutputTokens: z.number().int().nonnegative(),
-  totalEffectiveTokens: z.number().int().nonnegative(),
-  estimatedCost: z.number(),
-});
-
-export const CategoryPerformanceResponseSchema = z.object({
-  category: z.string(),
-  totalIssues: z.number().int().nonnegative(),
-  resolvedIssues: z.number().int().nonnegative(),
-  resolutionRate: z.number(),
-  avgTimeToResolveDays: z.number().nullable(),
 });
 
 export const PeriodResponseSchema = z.object({

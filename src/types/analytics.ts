@@ -1,18 +1,45 @@
 import type { z } from 'zod';
 import type {
   AgentPerformanceResponseSchema,
+  AgentLifecycleEntryResponseSchema,
+  AgentReliabilityResponseSchema,
   AgentReliabilityResultResponseSchema,
   ResolutionRateResponseSchema,
   FileHotspotResponseSchema,
   TaxonomyDistributionResponseSchema,
-  FullTaxonomyAnalyticsResponseSchema,
+  OutlierPointResponseSchema,
+  ResidualDiagnosticsResponseSchema,
+  DomainTrendResponseSchema,
+  BurndownDataPointResponseSchema,
   BurndownResultResponseSchema,
+  VelocityItemResponseSchema,
+  VelocitySummaryResponseSchema,
   VelocityResultResponseSchema,
+  DiscoveryDomainBreakdownSchema,
+  DiscoveryTimelinePointResponseSchema,
+  DiscoverySummaryResponseSchema,
   DiscoveryResultResponseSchema,
+  AgentMatrixRowResponseSchema,
+  BlindSpotResponseSchema,
+  SinglePointFailureResponseSchema,
+  HighOverlapResponseSchema,
+  MatrixAnalysisResponseSchema,
   AgentMatrixResultResponseSchema,
   TrendSummaryResponseSchema,
+  PeriodResponseSchema,
+  FullTaxonomyAnalyticsResponseSchema,
 } from './response-schemas.js';
-import type { FailureDomain, Trend, Granularity, DiscoveryGroupBy } from './enums.js';
+import type { Granularity, DiscoveryGroupBy } from './enums.js';
+
+// ============================================
+// Single source of truth
+//
+// Every analytics response type below is derived from its Zod schema in
+// response-schemas.ts via `z.infer`, so the public type can never drift from
+// the shape the SDK actually parses at runtime. The only hand-written
+// interfaces are query-option shapes (no wire representation) and `AgentInfo`
+// (a client-side projection with no API endpoint, hence no schema).
+// ============================================
 
 /**
  * Common query options for analytics endpoints
@@ -23,21 +50,17 @@ export interface AnalyticsQuery {
   limit?: number; // 1-100
 }
 
-/**
- * Time period metadata
- */
-export interface Period {
-  start: string;
-  end: string;
-  days: number;
-}
+/** Time period metadata — derived from `PeriodResponseSchema`. */
+export type Period = z.infer<typeof PeriodResponseSchema>;
 
 // ============================================
 // AGENT ANALYTICS
 // ============================================
 
 /**
- * Simplified agent info (from performance data).
+ * Simplified agent info — a client-side projection built by `listAgents` from
+ * agent performance data. No API endpoint returns this shape directly, so it
+ * has no response schema.
  * @see {@link AgentInput} in runs.ts for the full agent projection map.
  */
 export interface AgentInfo {
@@ -47,34 +70,14 @@ export interface AgentInfo {
   passRate: number;
 }
 
-/**
- * Agent performance metrics — derived from AgentPerformanceResponseSchema
- */
+/** Agent performance metrics — derived from `AgentPerformanceResponseSchema`. */
 export type AgentPerformance = z.infer<typeof AgentPerformanceResponseSchema>;
 
-/**
- * Agent lifecycle entry — version trajectory across time
- */
-export interface AgentLifecycleEntry {
-  name: string;
-  definitionVersion: string;
-  firstSeenAt: string;
-  runs: number;
-  avgScore: number;
-  passRate: number;
-}
+/** Agent lifecycle entry (version trajectory across time) — derived from `AgentLifecycleEntryResponseSchema`. */
+export type AgentLifecycleEntry = z.infer<typeof AgentLifecycleEntryResponseSchema>;
 
-/**
- * Agent reliability stats
- */
-export interface AgentReliability {
-  name: string;
-  totalIssues: number;
-  falsePositiveRate: number;
-  resolutionRate: number;
-  avgTimeToResolveDays: number | null;
-  reliabilityScore: number;
-}
+/** Agent reliability stats (per-agent element) — derived from `AgentReliabilityResponseSchema`. */
+export type AgentReliability = z.infer<typeof AgentReliabilityResponseSchema>;
 
 /**
  * Agent reliability query options
@@ -89,162 +92,54 @@ export interface AgentReliabilityQuery {
 // RESOLUTION ANALYTICS
 // ============================================
 
-/**
- * Project resolution rate
- */
-export interface ResolutionRate {
-  project: string;
-  totalIssues: number;
-  resolvedIssues: number;
-  resolutionRate: number;
-  avgTimeToResolveDays: number | null;
-}
+/** Project resolution rate — derived from `ResolutionRateResponseSchema`. */
+export type ResolutionRate = z.infer<typeof ResolutionRateResponseSchema>;
 
 // ============================================
 // FILE ANALYTICS
 // ============================================
 
-/**
- * File hotspot (files with most issues)
- */
-export interface FileHotspot {
-  filePath: string;
-  issueCount: number;
-  projects: string[];
-}
+/** File hotspot (files with the most issues) — derived from `FileHotspotResponseSchema`. */
+export type FileHotspot = z.infer<typeof FileHotspotResponseSchema>;
 
 // ============================================
 // TAXONOMY ANALYTICS
 // ============================================
 
-/**
- * Basic taxonomy distribution
- */
-export interface TaxonomyDistribution {
-  domain: FailureDomain;
-  mode: string;
-  count: number;
-  percentage: number;
-}
+/** Basic taxonomy distribution — derived from `TaxonomyDistributionResponseSchema`. */
+export type TaxonomyDistribution = z.infer<typeof TaxonomyDistributionResponseSchema>;
 
 /**
- * Full taxonomy analytics (all aggregations from /analytics/taxonomy/full)
+ * Full taxonomy analytics (all aggregations from `/analytics/taxonomy/full`).
+ * Derived from `FullTaxonomyAnalyticsResponseSchema`.
  *
- * Note: The SDK HttpClient auto-unwraps the API's `{ data }` envelope,
- * so this type represents the unwrapped content, not the raw API response.
+ * Note: The SDK HttpClient auto-unwraps the API's `{ data }` envelope, so this
+ * type represents the unwrapped content, not the raw API response.
  */
-export interface FullTaxonomyAnalytics {
-  byDomain: Array<{
-    domain: FailureDomain;
-    label: string;
-    count: number;
-    percentage: number;
-  }>;
-  bySeverity: Array<{
-    severity: string;
-    label: string;
-    count: number;
-    percentage: number;
-  }>;
-  byMode: Array<{
-    mode: string;
-    label: string;
-    domain: FailureDomain;
-    domainLabel: string;
-    count: number;
-    percentage: number;
-  }>;
-  topCodes: Array<{
-    code: string;
-    domain: string;
-    mode: string;
-    severity: string;
-    label: string;
-    count: number;
-    percentage: number;
-  }>;
-  heatmapData: Array<{
-    domain: string;
-    domainLabel: string;
-    mode: string;
-    modeLabel: string;
-    count: number;
-    percentage: number;
-    intensity: number;
-  }>;
-  totals: {
-    totalIssues: number;
-    classifiedIssues: number;
-    unclassifiedIssues: number;
-    classificationRate: number;
-  };
-  period: Period;
-}
+export type FullTaxonomyAnalytics = z.infer<typeof FullTaxonomyAnalyticsResponseSchema>;
 
 // ============================================
 // BURNDOWN ANALYTICS
 // ============================================
 
 /**
- * Burndown time series data point.
+ * Burndown time-series data point — derived from `BurndownDataPointResponseSchema`.
  * Domain fields are dynamic — includes well-known domains (STR, SEM, PRA, EPI)
  * plus any server-defined domains.
  */
-export interface BurndownDataPoint {
-  date: string;
-  [domain: string]: string | number; // domain counts + date
-  total: number;
-}
+export type BurndownDataPoint = z.infer<typeof BurndownDataPointResponseSchema>;
 
-/**
- * Outlier detection result
- */
-export interface OutlierPoint {
-  date: string;
-  value: number;
-  direction: 'high' | 'low';
-}
+/** Outlier detection result — derived from `OutlierPointResponseSchema`. */
+export type OutlierPoint = z.infer<typeof OutlierPointResponseSchema>;
 
-/**
- * Residual diagnostics for trend reliability
- */
-export interface ResidualDiagnostics {
-  durbinWatson: number;
-  autocorrelation: 'none' | 'positive' | 'negative' | 'inconclusive';
-  varianceRatio: number | null;
-  heteroscedasticity: 'constant' | 'increasing' | 'decreasing' | 'inconclusive';
-  skewness: number;
-  runsTestZ: number;
-  assumptionScore: number;
-  warnings: string[];
-}
+/** Residual diagnostics for trend reliability — derived from `ResidualDiagnosticsResponseSchema`. */
+export type ResidualDiagnostics = z.infer<typeof ResidualDiagnosticsResponseSchema>;
 
-/**
- * Domain trend analysis
- */
-export interface DomainTrend {
-  netChange: number;
-  trend: Trend;
-  avgDailyChange: number;
-  confidence: 'high' | 'medium' | 'low';
-  sampleSize: number;
-  rSquared: number;
-  standardError: number;
-  confidenceInterval: [number, number];
-  outliers: OutlierPoint[];
-  diagnostics: ResidualDiagnostics | null;
-  ciReliable: boolean;
-  warnings: string[];
-  weeklyPatternDetected: boolean;
-}
+/** Domain trend analysis — derived from `DomainTrendResponseSchema`. */
+export type DomainTrend = z.infer<typeof DomainTrendResponseSchema>;
 
-/**
- * Burndown result
- */
-export interface BurndownResult {
-  timeSeries: BurndownDataPoint[];
-  trends: Record<string, DomainTrend>;
-}
+/** Burndown result — derived from `BurndownResultResponseSchema`. */
+export type BurndownResult = z.infer<typeof BurndownResultResponseSchema>;
 
 /**
  * Burndown query options
@@ -257,39 +152,14 @@ export interface BurndownQuery extends AnalyticsQuery {
 // VELOCITY ANALYTICS
 // ============================================
 
-/**
- * Velocity item (rate of change per failure mode)
- */
-export interface VelocityItem {
-  domain: FailureDomain;
-  mode: string;
-  failureCode: string;
-  currentCount: number;
-  previousCount: number;
-  velocityPercent: number;
-  alert: boolean;
-  sparkline: number[];
-  trendReliability: 'high' | 'medium' | 'low';
-}
+/** Velocity item (rate of change per failure mode) — derived from `VelocityItemResponseSchema`. */
+export type VelocityItem = z.infer<typeof VelocityItemResponseSchema>;
 
-/**
- * Velocity summary
- */
-export interface VelocitySummary {
-  improving: string[];
-  stable: string[];
-  degrading: string[];
-  mostImproved: string | null;
-  mostConcerning: string | null;
-}
+/** Velocity summary — derived from `VelocitySummaryResponseSchema`. */
+export type VelocitySummary = z.infer<typeof VelocitySummaryResponseSchema>;
 
-/**
- * Velocity result
- */
-export interface VelocityResult {
-  items: VelocityItem[];
-  summary: VelocitySummary;
-}
+/** Velocity result — derived from `VelocityResultResponseSchema`. */
+export type VelocityResult = z.infer<typeof VelocityResultResponseSchema>;
 
 /**
  * Velocity query options
@@ -302,41 +172,17 @@ export interface VelocityQuery extends AnalyticsQuery {
 // DISCOVERY ANALYTICS
 // ============================================
 
-/**
- * Domain breakdown for discovery
- */
-export interface DiscoveryDomainBreakdown {
-  new: number;
-  recurring: number;
-}
+/** Domain breakdown for discovery — derived from `DiscoveryDomainBreakdownSchema`. */
+export type DiscoveryDomainBreakdown = z.infer<typeof DiscoveryDomainBreakdownSchema>;
 
-/**
- * Discovery timeline point
- */
-export interface DiscoveryTimelinePoint {
-  period: string;
-  newIssues: number;
-  recurringIssues: number;
-  domains: Record<FailureDomain, DiscoveryDomainBreakdown>;
-}
+/** Discovery timeline point — derived from `DiscoveryTimelinePointResponseSchema`. */
+export type DiscoveryTimelinePoint = z.infer<typeof DiscoveryTimelinePointResponseSchema>;
 
-/**
- * Discovery summary
- */
-export interface DiscoverySummary {
-  totalNew: number;
-  totalRecurring: number;
-  newToRecurringRatio: number | null;
-  peakNewPeriod: { period: string; count: number } | null;
-}
+/** Discovery summary — derived from `DiscoverySummaryResponseSchema`. */
+export type DiscoverySummary = z.infer<typeof DiscoverySummaryResponseSchema>;
 
-/**
- * Discovery result
- */
-export interface DiscoveryResult {
-  timeline: DiscoveryTimelinePoint[];
-  summary: DiscoverySummary;
-}
+/** Discovery result — derived from `DiscoveryResultResponseSchema`. */
+export type DiscoveryResult = z.infer<typeof DiscoveryResultResponseSchema>;
 
 /**
  * Discovery query options
@@ -351,58 +197,25 @@ export interface DiscoveryQuery extends AnalyticsQuery {
 
 /**
  * Agent matrix row — coverage vector across failure domains.
+ * Derived from `AgentMatrixRowResponseSchema`.
  * @see {@link AgentInput} in runs.ts for the full agent projection map.
  */
-export interface AgentMatrixRow {
-  agent: string;
-  domains: Record<FailureDomain, number>;
-  total: number;
-  coverage: number;
-  coveragePercent: number;
-}
+export type AgentMatrixRow = z.infer<typeof AgentMatrixRowResponseSchema>;
 
-/**
- * Blind spot (agent missing domain coverage)
- */
-export interface BlindSpot {
-  agent: string;
-  missingDomains: FailureDomain[];
-}
+/** Blind spot (agent missing domain coverage) — derived from `BlindSpotResponseSchema`. */
+export type BlindSpot = z.infer<typeof BlindSpotResponseSchema>;
 
-/**
- * Single point of failure (only one agent detects)
- */
-export interface SinglePointFailure {
-  domain: FailureDomain;
-  mode: string;
-  onlyAgent: string;
-}
+/** Single point of failure (only one agent detects) — derived from `SinglePointFailureResponseSchema`. */
+export type SinglePointFailure = z.infer<typeof SinglePointFailureResponseSchema>;
 
-/**
- * High overlap (multiple agents detect same thing)
- */
-export interface HighOverlap {
-  mode: string;
-  agentCount: number;
-  agents: string[];
-}
+/** High overlap (multiple agents detect the same thing) — derived from `HighOverlapResponseSchema`. */
+export type HighOverlap = z.infer<typeof HighOverlapResponseSchema>;
 
-/**
- * Matrix coverage analysis
- */
-export interface MatrixAnalysis {
-  blindSpots: BlindSpot[];
-  singlePoints: SinglePointFailure[];
-  highOverlap: HighOverlap[];
-}
+/** Matrix coverage analysis — derived from `MatrixAnalysisResponseSchema`. */
+export type MatrixAnalysis = z.infer<typeof MatrixAnalysisResponseSchema>;
 
-/**
- * Agent matrix result
- */
-export interface AgentMatrixResult {
-  matrix: AgentMatrixRow[];
-  analysis: MatrixAnalysis;
-}
+/** Agent matrix result — derived from `AgentMatrixResultResponseSchema`. */
+export type AgentMatrixResult = z.infer<typeof AgentMatrixResultResponseSchema>;
 
 /**
  * Agent matrix query options
@@ -415,82 +228,16 @@ export interface AgentMatrixQuery extends AnalyticsQuery {
 // TREND ANALYTICS
 // ============================================
 
-/**
- * Weekly trend summary — one entry per period (e.g., "Week 1", "Week 2").
- */
-export interface TrendSummary {
-  period: string;
-  newIssues: number;
-  resolvedIssues: number;
-  regressions: number;
-  averageScore: number | null;
-}
+/** Weekly trend summary — one entry per period — derived from `TrendSummaryResponseSchema`. */
+export type TrendSummary = z.infer<typeof TrendSummaryResponseSchema>;
 
 // ============================================
-// CROSS-PROJECT ANALYTICS
-// ============================================
-
-/**
- * Cross-project pattern (shared issues across projects)
- */
-export interface CrossProjectPattern {
-  pattern: string;
-  projects: string[];
-  projectCount: number;
-  totalOccurrences: number;
-  severity: string;
-}
-
-// ============================================
-// REGRESSION ANALYTICS
-// ============================================
-
-/**
- * Regression analysis entry (issues that regressed after resolution)
- */
-export interface RegressionEntry {
-  issueId: string;
-  title: string;
-  project: string;
-  timesRegressed: number;
-  lastRegression: string;
-  agent: string;
-}
-
-// ============================================
-// COST ANALYTICS
-// ============================================
-
-/**
- * Cost analysis entry (token usage and cost per agent/project)
- */
-export interface CostEntry {
-  name: string;
-  totalRuns: number;
-  totalInputTokens: number;
-  totalOutputTokens: number;
-  totalEffectiveTokens: number;
-  estimatedCost: number;
-}
-
-// ============================================
-// CATEGORY ANALYTICS
-// ============================================
-
-/**
- * Category performance entry (issue resolution by category)
- */
-export interface CategoryPerformanceEntry {
-  category: string;
-  totalIssues: number;
-  resolvedIssues: number;
-  resolutionRate: number;
-  avgTimeToResolveDays: number | null;
-}
-
-// ============================================
-// RESPONSE TYPE ALIASES
-// Named aliases for z.infer<typeof Schema> — improves AI/IDE discoverability
+// CLIENT RETURN-TYPE ALIASES
+//
+// Named `*Result` / `*Response` aliases used as the analytics method return
+// types. Each derives from the same schema as its friendly-named twin above, so
+// the two names are guaranteed identical — there is no second definition to
+// drift from.
 // ============================================
 
 /** Agent reliability result from `GET /analytics/agent-reliability` */
