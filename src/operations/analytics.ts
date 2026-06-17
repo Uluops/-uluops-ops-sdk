@@ -307,7 +307,7 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
  * @param metric - One of: agent_performance, resolution_rates, cross_project_patterns, file_hotspots, regression_analysis, trend_summary, cost_analysis, taxonomy_distribution
  * @param query - Optional: project, days
  * @returns Unvalidated response data
- * @throws {Error} If metric is not in ANALYTICS_METRICS
+ * @throws {InputValidationError} If metric is not in ANALYTICS_METRICS
  */
 export async function getByMetric(
   client: OpsHttpClient,

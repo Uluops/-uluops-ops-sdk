@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+Documentation and internal-hygiene fixes from a `consumer-validate` pipeline run
+(run #5: docs 91 / public-interface 87 / dx 96, all gates passed). No public API or
+runtime behavior changes.
+
+### Fixed
+
+- **Overstated 3.4.0 changelog claim.** The 3.4.0 entry said every `OpsClient`
+  delegate carries an `@see` link to its underlying operation; delegates actually
+  carry a summary line only. Corrected the wording to match what shipped.
+
+- **Stale `runs.validate()` JSDoc example.** The `@example` referenced a
+  non-existent `preview.correlation` field and omitted the required
+  `recommendations` input. Corrected to use the actual `ValidateRunResponse`
+  fields (`wouldCreate` / `wouldUpdate` / `wouldRegress`).
+- **`getByMetric()` `@throws` type.** Documented `@throws {Error}` but the
+  implementation throws `InputValidationError`; the tag now names the precise
+  class so consumers can branch on `instanceof`.
+- **README `auth.login()` example.** Destructured the legacy optional `token`
+  field instead of the required `sessionToken`; following the example as written
+  yielded `undefined`.
+- **README `raw_markdown` size limit.** Documented as 100,000 characters but the
+  schema enforces 500,000; the prose now matches the enforced ceiling.
+- **README `types/enums` coverage.** The exports table and a new "Failure Code
+  Utilities" example now document the shipped runtime helpers `parseFailureCode`,
+  `buildFailureCode`, and `severityFromCode`, previously discoverable only by
+  source-diving.
+
+### Removed
+
+- **Internal-only dead utilities** (not part of any export path, no production
+  callers): `toCamelCase` and the `sleep`/`retry`/`truncate`/`isPlainObject`/`isUuid`
+  re-exports from `src/utils/helpers.ts`, plus their tests. The API returns
+  camelCase directly, so no client-side casing conversion was needed; shared
+  utilities remain available from `@uluops/sdk-core` for internal use. No consumer
+  impact — none were reachable through the package `exports` map.
+
 ## [3.4.0] - 2026-06-16
 
 Consumer-experience polish from a `consumer-validate` pipeline run (docs 93 /
@@ -43,6 +79,29 @@ existing successful calls; one error type is now more specific (see Changed).
   `query?: string`; filter-only searches are valid) — the parameter table previously
   marked it required.
 - **Stale README version header** (was `3.2.1`) updated.
+- **Analytics response types no longer drift from their Zod schemas.** Every
+  analytics type in `src/types/analytics.ts` is now derived via `z.infer` from its
+  schema in `response-schemas.ts`, collapsing a second hand-written copy that had
+  already diverged in two places: `ResolutionRate` exposed `avgTimeToResolveDays`
+  where the wire field is `averageTimeToResolve`, and `TaxonomyDistribution`
+  declared a phantom `mode` field (and typed `domain` as the `FailureDomain` enum)
+  that the endpoint never returns. Both now match runtime exactly. No consumer
+  imported these interface types directly — they consume the method return types —
+  so the only break is for anyone who hand-typed against fields that were already
+  `undefined` at runtime. The agent-matrix sub-shapes (`BlindSpot`,
+  `SinglePointFailure`, `HighOverlap`, `MatrixAnalysis`) gained standalone schemas
+  so they derive from a single source too. `AgentInfo` remains a hand-written
+  interface by design — it is a client-side projection from `getAgentPerformance`
+  with no API endpoint, hence no schema.
+
+### Removed
+
+- **Four unreachable analytics types and their schemas** — `CrossProjectPattern`,
+  `RegressionEntry`, `CostEntry`, `CategoryPerformanceEntry`. No typed client method
+  returned them (reachable only via the generic `getByMetric()`, which returns
+  `unknown`) and they had zero references across the SDK and all consumers. The
+  corresponding metric strings (`cross_project_patterns`, `regression_analysis`,
+  `cost_analysis`) still work via `getByMetric()`.
 
 ### Changed
 
@@ -57,9 +116,10 @@ existing successful calls; one error type is now more specific (see Changed).
   Operations section (previously the only public method with no README entry).
 - **Error type guards documented.** Added a "Type Guards" section covering all twelve
   guards (`isNotFoundError`, `isRateLimitError`, …) exported from `@uluops/ops-sdk/errors`.
-- **Every `OpsClient` namespace delegate now carries inline JSDoc**, so IDE hover over
-  `client.runs.save`, `client.issues.search`, etc. surfaces a summary and an
-  `@see` link to the underlying operation instead of a bare signature.
+- **Every `OpsClient` namespace delegate now carries a summary JSDoc line**, so IDE hover over
+  `client.runs.save`, `client.issues.search`, etc. surfaces a one-line description
+  instead of a bare signature. Full `@param`/`@returns`/`@throws` details live on the
+  underlying operation functions (visible in the generated TypeDoc).
 - **`loadCredentials` / `loadConfig` gained full `@param`/`@returns` JSDoc** documenting
   the `options > env > file` priority chain, plus a JSDoc block on the `OpsHttpClient`
   constructor, `buildIssueListParams`, and the config import example at the package root

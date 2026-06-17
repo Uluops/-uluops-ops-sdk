@@ -248,7 +248,7 @@ import {
 | `@uluops/ops-sdk/types/issues` | Issue types only |
 | `@uluops/ops-sdk/types/runs` | Run types only |
 | `@uluops/ops-sdk/types/analytics` | Analytics types only |
-| `@uluops/ops-sdk/types/enums` | Priority, Status, Severity enums |
+| `@uluops/ops-sdk/types/enums` | Priority, Status, Severity enums + failure-code helpers (`parseFailureCode`, `buildFailureCode`, `severityFromCode`) |
 | `@uluops/ops-sdk/types/responses` | API response types |
 | `@uluops/ops-sdk/types/schemas` | Zod input validation schemas |
 | `@uluops/ops-sdk/types/auth` | Auth/credential types |
@@ -267,6 +267,18 @@ import type { BurndownResult } from '@uluops/ops-sdk/types/analytics';
 import type { Priority, Status, Severity } from '@uluops/ops-sdk/types/enums';
 import type { ApiResponse } from '@uluops/ops-sdk/types/responses';
 import type { Credentials } from '@uluops/ops-sdk/config';
+```
+
+#### Failure Code Utilities
+
+The `types/enums` subpath also ships runtime helpers for working with failure codes (the `DOMAIN-MODE/SEVERITY` taxonomy on recommendations):
+
+```typescript
+import { parseFailureCode, buildFailureCode, severityFromCode } from '@uluops/ops-sdk/types/enums';
+
+parseFailureCode('SEM-INC/H'); // { domain: 'SEM', mode: 'INC', severityCode: 'H' } — or null if malformed
+buildFailureCode('SEM', 'INC', 'H'); // 'SEM-INC/H'
+severityFromCode('H'); // 'high' — or null if the code is unknown
 ```
 
 ## API Reference
@@ -332,7 +344,7 @@ Login with email and password.
 | `password` | `string` | Yes | User password |
 
 ```typescript
-const { user, token } = await client.auth.login({
+const { user, sessionToken } = await client.auth.login({
   email: 'user@example.com',
   password: 'password123',
 });
@@ -1657,7 +1669,7 @@ const client = new OpsClient({
 The API enforces the following payload limits:
 
 - **Request body**: 1 MB maximum for most endpoints
-- **`raw_markdown`** field in `runs.save()`: up to 100,000 characters
+- **`raw_markdown`** field in `runs.save()`: up to 500,000 characters
 - **Recommendations array**: no hard limit, but very large arrays (1000+) may cause timeouts
 - **Bulk operations**: capped at 100 items per request (e.g., `bulkUpdateStatus`)
 

@@ -106,8 +106,9 @@ export async function save(
  *   project: 'my-project',
  *   workflowType: 'post-implementation',
  *   agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
+ *   recommendations: [],
  * });
- * console.log(preview.correlation); // { newIssues: 3, recurringIssues: 1, regressions: 0 }
+ * console.log(preview.wouldCreate, preview.wouldUpdate, preview.wouldRegress); // e.g. 3 1 0
  * ```
  */
 export async function validate(
