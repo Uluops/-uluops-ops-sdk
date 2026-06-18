@@ -444,12 +444,19 @@ describe('Config Validators', () => {
       }
     });
 
-    it('should reject invalid username format', () => {
-      expect(() => validateUpdateProfileInput({ username: 'UPPERCASE' })).toThrow(InputValidationError);
+    it('should accept slug-style usernames (hyphens, digit-start)', () => {
+      // Canonical slug pattern (GitHub/npm conventions): hyphens and digit-start
+      // are valid; underscores tolerated.
+      expect(validateUpdateProfileInput({ username: 'ulu-labs' }).username).toBe('ulu-labs');
+      expect(validateUpdateProfileInput({ username: '1abc' }).username).toBe('1abc');
+      expect(validateUpdateProfileInput({ username: 'a_b' }).username).toBe('a_b');
     });
 
-    it('should reject username starting with number', () => {
-      expect(() => validateUpdateProfileInput({ username: '1abc' })).toThrow(InputValidationError);
+    it('should reject invalid username format', () => {
+      expect(() => validateUpdateProfileInput({ username: 'UPPERCASE' })).toThrow(InputValidationError);
+      expect(() => validateUpdateProfileInput({ username: '-bad' })).toThrow(InputValidationError); // leading hyphen
+      expect(() => validateUpdateProfileInput({ username: 'bad-' })).toThrow(InputValidationError); // trailing hyphen
+      expect(() => validateUpdateProfileInput({ username: 'a'.repeat(41) })).toThrow(InputValidationError);
     });
   });
 

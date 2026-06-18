@@ -98,7 +98,7 @@ export function validateLoginInput(data: unknown): z.infer<typeof LoginInputSche
  * Validate profile update input. At least one field must be provided.
  * @param data - Raw input: `{ username?, name?, bio?, timezone?, websiteUrl?, avatar?, avatarMimeType? }`
  * @returns Validated `UpdateProfileInput`
- * @throws {InputValidationError} If no fields provided, or username doesn't match `^[a-z][a-z0-9_]{2,29}$`
+ * @throws {InputValidationError} If no fields provided, or username doesn't match `^[a-z0-9](?:[a-z0-9_-]{0,38}[a-z0-9])?$`
  */
 export function validateUpdateProfileInput(data: unknown): z.infer<typeof UpdateProfileInputSchema> {
   return validate(UpdateProfileInputSchema, data, 'profile update');

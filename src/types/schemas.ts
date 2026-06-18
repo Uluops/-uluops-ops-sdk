@@ -57,9 +57,14 @@ export const SetPasswordInputSchema = z.object({
 
 export const UpdateProfileInputSchema = z
   .object({
+    // Canonical username / personal-org slug: 1-40 chars, lowercase
+    // alphanumeric with internal hyphens or underscores, start/end
+    // alphanumeric (GitHub/npm slug conventions). Hyphens are required for URL
+    // slugs (orgs/ulu-labs/...); the prior letter-start underscore-only rule
+    // rejected valid slugs client-side before they reached the API.
     username: z
       .string()
-      .regex(/^[a-z][a-z0-9_]{2,29}$/)
+      .regex(/^[a-z0-9](?:[a-z0-9_-]{0,38}[a-z0-9])?$/)
       .nullish(),
     name: z.string().max(100).nullish(),
     bio: z.string().max(500).nullish(),
