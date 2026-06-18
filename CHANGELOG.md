@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-06-17
+
+### Fixed
+
+- **`updateProfile` accepts canonical username slugs.** The client-side validator
+  used the old letter-start, underscore-only pattern (`^[a-z][a-z0-9_]{2,29}$`),
+  which rejected valid URL slugs like `ulu-labs` before the request reached the
+  API. Unified to the canonical slug pattern
+  `^[a-z0-9](?:[a-z0-9_-]{0,38}[a-z0-9])?$` (hyphens and digit-start allowed),
+  matching the ops-api username fold-in where setting a username confirms it.
+
 ## [4.0.0] - 2026-06-17
 
 Analytics type system realigned to derive from the Zod response schemas, plus the

@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "SDK for the UluOps platform API — execution tracking, analytics, and auth",
   "type": "module",
   "main": "dist/index.js",
