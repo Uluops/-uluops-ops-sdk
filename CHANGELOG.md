@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-06-23
+
+### Breaking
+
+- **`maxScore` is now `number | null` on response types** — `AgentSnapshotResponseSchema.maxScore` accepts `null`. Completes the score-nullability transition begun in 2.0.0 (which made `score` nullable but left `maxScore` required). A scoreless agent (generator, executor, crashed) now carries `score: null, maxScore: null` — the invariant `score === null ⟺ maxScore === null` holds. This affects any code that performs arithmetic on `maxScore` (e.g. `score / maxScore`) without a null check.
+
+### Changed
+
+- **`AgentInput.maxScore` is now optional and nullable** — agents that do not produce a score can omit `maxScore` or pass `null`. Existing callers that always provide a numeric maxScore are unaffected.
+- **`AgentInputSchema`** — Zod schema updated to `.optional().nullable()` on the `maxScore` field, mirroring the `score` field.
+
+### Migration Guide
+
+- If you always provide a maxScore: **no change needed**
+- If you compute `score / maxScore`: guard on null first (in practice `maxScore` is null only when `score` is null, which you already handle since 2.0.0)
+- Generator/executor agents: omit `maxScore` alongside `score`
+
 ## [4.0.1] - 2026-06-17
 
 ### Fixed
