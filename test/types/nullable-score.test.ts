@@ -44,6 +44,19 @@ describe('nullable score schemas', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('accepts input with maxScore: null (scoreless invariant)', () => {
+      const result = AgentInputSchema.safeParse({
+        name: 'aristotle-generator',
+        score: null,
+        maxScore: null,
+        decision: 'ACTUALIZED',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.maxScore).toBeNull();
+      }
+    });
   });
 
   describe('AnalysisSummaryEntrySchema', () => {
@@ -87,6 +100,32 @@ describe('nullable score schemas', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.score).toBeNull();
+      }
+    });
+
+    it('accepts response with score and maxScore both null (scoreless invariant)', () => {
+      const result = AgentSnapshotResponseSchema.safeParse({
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        runId: '550e8400-e29b-41d4-a716-446655440001',
+        name: 'aristotle-generator',
+        definitionVersion: '0.1.0',
+        score: null,
+        maxScore: null,
+        decision: 'ACTUALIZED',
+        summary: null,
+        model: null,
+        inputTokens: null,
+        outputTokens: null,
+        cacheCreationTokens: null,
+        cacheReadTokens: null,
+        totalEffectiveTokens: null,
+        durationMs: null,
+        createdAt: '2026-05-22T00:00:00.000Z',
+        updatedAt: '2026-05-22T00:00:00.000Z',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.maxScore).toBeNull();
       }
     });
   });

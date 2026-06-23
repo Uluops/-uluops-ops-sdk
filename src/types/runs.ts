@@ -126,7 +126,7 @@ export interface AgentInput {
   name: string;
   definitionVersion?: string;
   score?: number | null;
-  maxScore?: number;
+  maxScore?: number | null;
   decision: string;
   summary?: string;
   model?: string;
