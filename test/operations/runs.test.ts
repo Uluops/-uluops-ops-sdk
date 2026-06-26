@@ -3,6 +3,7 @@ import nock from 'nock';
 import { ZodError } from 'zod';
 import { OpsHttpClient } from '../../src/http/http-client.js';
 import * as runOps from '../../src/operations/runs.js';
+import { ANALYSIS_RECORD_ID_MAX_LENGTH } from '../../src/types/schemas.js';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import {
   TEST_IDS,
@@ -739,6 +740,93 @@ describe('Run Operations', () => {
           agents: [{ name: 'v', score: 50, decision: 'PASS' }],
           recommendations: [],
         } as any)
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('analysis recordId length (100-char widening)', () => {
+    const valid100 = 'a'.repeat(ANALYSIS_RECORD_ID_MAX_LENGTH);
+    const invalid101 = 'a'.repeat(ANALYSIS_RECORD_ID_MAX_LENGTH + 1);
+
+    const longRecord = (recordId: string) => ({
+      recordType: 'four_cause',
+      recordId,
+      title: 'Long semantic id',
+      data: { material: 'TypeScript' },
+    });
+
+    it('forwards a 100-char recordId through save()', async () => {
+      const mockRun = createMockRun({ runNumber: 1 });
+      nock(BASE_URL)
+        .post('/runs', (body) => body.analysisRecords?.[0]?.recordId === valid100)
+        .reply(201, {
+          data: {
+            run: mockRun,
+            agents: [createMockAgentSnapshot({ runId: mockRun.id })],
+            correlation: { newIssues: 0, recurringIssues: 0, regressions: 0 },
+            deduplicated: false,
+          },
+        });
+
+      const result = await runOps.save(client, {
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        agents: [{ name: 'aristotle-analyst', score: 90, decision: 'PROCEED' }],
+        recommendations: [],
+        analysisRecords: [longRecord(valid100)],
+      });
+
+      expect(result.run.runNumber).toBe(1);
+    });
+
+    it('forwards a 100-char recordId through validate()', async () => {
+      nock(BASE_URL)
+        .post('/runs/validate', (body) => body.analysisRecords?.[0]?.recordId === valid100)
+        .reply(200, {
+          data: {
+            wouldCreate: 0,
+            wouldUpdate: 0,
+            wouldRegress: 0,
+            validationErrors: [],
+            preview: { newIssues: [], recurringIssues: [], regressions: [] },
+          },
+        });
+
+      const result = await runOps.validate(client, {
+        project: 'my-project',
+        workflowType: 'post-implementation',
+        agents: [{ name: 'aristotle-analyst', score: 90, decision: 'PROCEED' }],
+        recommendations: [],
+        analysisRecords: [longRecord(valid100)],
+      });
+
+      expect(result.validationErrors).toHaveLength(0);
+    });
+
+    it('forwards a 100-char recordId through update()', async () => {
+      const mockRun = createMockRun({ runNumber: 5 });
+      nock(BASE_URL)
+        .patch('/runs/update', (body) => body.analysisRecords?.[0]?.recordId === valid100)
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.update(client, {
+        project: 'my-project',
+        runNumber: 5,
+        analysisRecords: [longRecord(valid100)],
+      });
+
+      expect(run.runNumber).toBe(5);
+    });
+
+    it('rejects a 101-char recordId client-side on save()', async () => {
+      await expect(
+        runOps.save(client, {
+          project: 'my-project',
+          workflowType: 'post-implementation',
+          agents: [{ name: 'aristotle-analyst', score: 90, decision: 'PROCEED' }],
+          recommendations: [],
+          analysisRecords: [longRecord(invalid101)],
+        })
       ).rejects.toThrow();
     });
   });

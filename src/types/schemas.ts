@@ -15,6 +15,16 @@ import {
 
 export const UuidSchema = z.string().uuid();
 
+/**
+ * Max length of the agent-local analysis `recordId`.
+ *
+ * `recordId` is an agent-local identifier (e.g. `foundations-api-aristotle-20260626`),
+ * not a key or correlation spine. Widened 20→100 to match the namespaced, dated IDs
+ * agents naturally produce; mirrors the API column (migration 058) and the API/MCP
+ * request schemas. Client-side cap only — response schemas do not constrain it.
+ */
+export const ANALYSIS_RECORD_ID_MAX_LENGTH = 100;
+
 export const PrioritySchema = z.enum(PRIORITIES);
 export const StatusSchema = z.enum(STATUSES);
 export const SeveritySchema = z.enum(SEVERITIES);
@@ -207,7 +217,7 @@ export const SaveRunInputSchema = z.object({
   definitionMinSubscription: z.enum(['free', 'hobbyist', 'plus', 'pro', 'enterprise']).optional(),
   analysisRecords: z.array(z.object({
     recordType: z.string().min(1).max(50),
-    recordId: z.string().min(1).max(20),
+    recordId: z.string().min(1).max(ANALYSIS_RECORD_ID_MAX_LENGTH),
     title: z.string().min(1).max(500),
     classification: z.string().max(50).nullish(),
     severity: SeveritySchema.nullish(),

@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-06-26
+
+### Changed
+
+- **Analysis `recordId` max length widened from 20 to 100** in `SaveRunInputSchema`
+  (and therefore `UpdateRunInputSchema`, which reuses it). `recordId` is an agent-local
+  identifier (e.g. `foundations-api-aristotle-20260626`), not a key or correlation
+  spine, so this is a non-breaking client-side relaxation — previously-valid inputs
+  remain valid. New `ANALYSIS_RECORD_ID_MAX_LENGTH` constant (exported) is the single
+  source of truth; mirrors the API column (migration 058) and the API/MCP request
+  schemas. Requires ops-api ≥ 1.61.0 deployed so the server accepts the longer IDs.
+
 ## [5.0.0] - 2026-06-23
 
 ### Breaking
