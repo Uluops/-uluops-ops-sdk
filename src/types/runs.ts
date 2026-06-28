@@ -105,6 +105,14 @@ export interface TokenUsage {
   outputTokens: number;
   cacheCreationTokens?: number;
   cacheReadTokens?: number;
+  /** Input tokens served from cache (v5.2.0). OpenAI/Google report gross input; subtracted in canonical total_effective. 0 for Anthropic/OpenCode. */
+  cachedInputTokens?: number;
+  /** Reasoning tokens (OpenAI o-series) (v5.2.0). Subset of gross outputTokens — stored, never added to total_effective. */
+  reasoningOutputTokens?: number;
+  /** Thinking tokens (Google / Anthropic extended thinking) (v5.2.0). Subset of gross outputTokens — stored, never added to total_effective. */
+  thinkingTokens?: number;
+  /** Tool-call tokens reported as a component of output (v5.2.0). Subset of gross outputTokens — stored, never added to total_effective. */
+  toolTokens?: number;
   totalEffectiveTokens?: number;
 }
 
@@ -130,6 +138,8 @@ export interface AgentInput {
   decision: string;
   summary?: string;
   model?: string;
+  /** Producing CLI/runtime (v5.2.0). Free string at the wire (matches `model`); canonical set: claude-code|codex|opencode|gemini-cli|uluops-core. */
+  harness?: string;
   tokens?: TokenUsage;
   durationMs?: number;
 }
@@ -144,10 +154,16 @@ export interface UpdateAgentInput {
   score?: number;
   decision?: string;
   model?: string;
+  /** Producing CLI/runtime (v5.2.0). See {@link AgentInput.harness}. */
+  harness?: string;
   inputTokens?: number;
   outputTokens?: number;
   cacheCreationTokens?: number;
   cacheReadTokens?: number;
+  cachedInputTokens?: number;
+  reasoningOutputTokens?: number;
+  thinkingTokens?: number;
+  toolTokens?: number;
   totalEffectiveTokens?: number;
   durationMs?: number;
 }

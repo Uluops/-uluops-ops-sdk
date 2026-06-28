@@ -133,6 +133,10 @@ export const TokenUsageSchema = z.object({
   outputTokens: z.number().int().nonnegative(),
   cacheCreationTokens: z.number().int().nonnegative().optional(),
   cacheReadTokens: z.number().int().nonnegative().optional(),
+  cachedInputTokens: z.number().int().nonnegative().optional(),
+  reasoningOutputTokens: z.number().int().nonnegative().optional(),
+  thinkingTokens: z.number().int().nonnegative().optional(),
+  toolTokens: z.number().int().nonnegative().optional(),
   totalEffectiveTokens: z.number().int().nonnegative().optional(),
 });
 
@@ -143,6 +147,8 @@ export const AgentInputSchema = z.object({
   decision: z.string().min(1).max(50),
   summary: z.string().max(2000).optional(),
   model: z.string().max(50).optional(),
+  // Free string at the wire (matches `model`); canonical set claude-code|codex|opencode|gemini-cli|uluops-core. v5.2.0.
+  harness: z.string().max(32).optional(),
   tokens: TokenUsageSchema.optional(),
   durationMs: z.number().int().nonnegative().optional(),
   definitionVersion: z.string().max(50).optional(),

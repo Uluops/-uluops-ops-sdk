@@ -454,10 +454,17 @@ export const AgentSnapshotResponseSchema = z.object({
   decision: z.string(),
   summary: z.string().nullable().optional(),
   model: z.string().nullable(),
+  // Producing CLI/runtime (v5.2.0). Optional: absent from responses until the API §3.5 columns ship.
+  harness: z.string().nullable().optional(),
   inputTokens: z.number().int().nonnegative().nullable(),
   outputTokens: z.number().int().nonnegative().nullable(),
   cacheCreationTokens: z.number().int().nonnegative().nullable(),
   cacheReadTokens: z.number().int().nonnegative().nullable(),
+  // Token components (v5.2.0). Optional: NULL/absent for historical rows and until the API §3.5 columns ship.
+  cachedInputTokens: z.number().int().nonnegative().nullable().optional(),
+  reasoningOutputTokens: z.number().int().nonnegative().nullable().optional(),
+  thinkingTokens: z.number().int().nonnegative().nullable().optional(),
+  toolTokens: z.number().int().nonnegative().nullable().optional(),
   totalEffectiveTokens: z.number().int().nonnegative().nullable(),
   durationMs: z.number().int().nonnegative().nullable(),
   createdAt: DateTimeStringSchema,

@@ -753,7 +753,15 @@ const result = await client.runs.save({
       decision: 'PASS',
       summary: 'Code quality is strong — minor naming inconsistencies in utils/',
       model: 'sonnet',
-      tokens: { inputTokens: 1000, outputTokens: 500 },
+      harness: 'claude-code', // producing CLI/runtime (v5.2.0) — free string; claude-code | codex | opencode | gemini-cli | uluops-core
+      tokens: {
+        inputTokens: 1000,
+        outputTokens: 500,
+        // Cross-harness components (v5.2.0, all optional). cachedInput is subtracted in
+        // total_effective; reasoning/thinking/tool are subsets of gross output, never added.
+        cachedInputTokens: 200,
+        reasoningOutputTokens: 0,
+      },
     },
     {
       name: 'test-architect',

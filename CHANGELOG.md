@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.2.0] - 2026-06-28
+
+### Added
+
+- **Cross-harness token components** (additive, non-breaking). New optional token fields
+  carrying the OpenAI/Google/Codex token shapes that previously died at the SDK wire:
+  - `TokenUsage` / `TokenUsageSchema` (nested, `save_run`): `cachedInputTokens`,
+    `reasoningOutputTokens`, `thinkingTokens`, `toolTokens`.
+  - `UpdateAgentInput` (flat, `update_run`): the same four components.
+  - `AgentSnapshotResponseSchema` (flat, read): the four components as `.nullable().optional()`
+    (NULL for historical rows / until the API columns ship).
+  - `reasoning`/`thinking`/`tool` are subsets of **gross** `outputTokens` — stored for
+    cost/analytics, never added to `totalEffectiveTokens`. `cachedInputTokens` is the cached
+    portion subtracted in the canonical `(input − cached_input) + output_gross + cache_creation`.
+- **`harness` field** on `AgentInput` / `AgentInputSchema`, `UpdateAgentInput`, and
+  `AgentSnapshotResponseSchema` — the producing CLI/runtime. Free string at the wire
+  (matches the `model` precedent; canonical set `claude-code|codex|opencode|gemini-cli|uluops-core`).
+
+See `cross-harness-token-normalization-spec-v0_5_0.md` §3.1/§3.4. All fields optional —
+existing consumers and payloads remain valid.
+
 ## [5.1.0] - 2026-06-26
 
 ### Changed
