@@ -255,7 +255,7 @@ export function validateUpdateIssueInput(data: unknown): z.infer<typeof UpdateIs
 
 /**
  * Validate issue status update input.
- * @param data - Raw input: `{ status: Status, reason?: string (max 500) }`
+ * @param data - Raw input: `{ status: Status, reason?: string (max 1000) }`
  * @returns Validated `UpdateIssueStatusInput`
  * @throws {InputValidationError} If status is not a valid Status enum value
  */
