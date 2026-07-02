@@ -25,6 +25,16 @@ export const UuidSchema = z.string().uuid();
  */
 export const ANALYSIS_RECORD_ID_MAX_LENGTH = 100;
 
+/**
+ * Max length of a status-change `reason` — matches status_history.reason
+ * varchar(1000) (API migration 062) and the API request schemas. Widened
+ * 500→1000: dispositions citing root cause + evidence + trust model did not
+ * fit 500. Deliberately bounded (a reason is a summary, not a document).
+ * Consumed by MCP tool schemas to prevent drift. Does NOT govern the
+ * run-archive `archiveReason` field, which stays at 500 on a different column.
+ */
+export const STATUS_REASON_MAX_LENGTH = 1000;
+
 export const PrioritySchema = z.enum(PRIORITIES);
 export const StatusSchema = z.enum(STATUSES);
 export const SeveritySchema = z.enum(SEVERITIES);
@@ -291,7 +301,7 @@ export const UpdateIssueInputSchema = z.object({
 
 export const UpdateIssueStatusInputSchema = z.object({
   status: StatusSchema,
-  reason: z.string().max(500).optional(),
+  reason: z.string().max(STATUS_REASON_MAX_LENGTH).optional(),
 });
 
 export const CreateIssueNoteInputSchema = z.object({
@@ -304,7 +314,7 @@ export const BulkStatusUpdateItemSchema = z.object({
   issueId: UuidSchema.optional(),
   id: UuidSchema.optional(),
   status: StatusSchema,
-  reason: z.string().max(500).optional(),
+  reason: z.string().max(STATUS_REASON_MAX_LENGTH).optional(),
 }).refine(
   (item) => item.issueId || item.id,
   { message: 'Either issueId or id must be provided', path: ['issueId'] }

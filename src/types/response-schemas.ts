@@ -215,7 +215,7 @@ const MAX_FILE_PATH = 1_000; // issues/occurrences.file_path varchar(1000)
 const MAX_AGENT_NAME = 255; // issues.agent / occurrences agent_name varchar(100)
 const MAX_DESCRIPTION = 10_000; // occurrences.description text
 const MAX_NOTE_CONTENT = 10_000; // issue_notes.content text
-const MAX_REASON = 2_000; // status_history.reason varchar(500)
+const MAX_REASON = 2_000; // headroom above status_history.reason varchar(1000) (migration 062)
 const MAX_CREATED_BY = 200; // issue_notes.created_by varchar(200)
 
 export const IssueResponseSchema = z.object({

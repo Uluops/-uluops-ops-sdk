@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.3.0] - 2026-07-02
+
+### Added
+
+- **`STATUS_REASON_MAX_LENGTH` (= 1000)** exported from `types/schemas.ts` — the
+  single client-side source of truth for the status-change `reason` cap, consumed
+  by the MCP tool schemas (same pattern as `ANALYSIS_RECORD_ID_MAX_LENGTH`).
+
+### Changed
+
+- **Status-change `reason` cap widened from 500 to 1000 characters** in
+  `UpdateIssueStatusInputSchema` and `BulkStatusUpdateItemSchema`, matching
+  `status_history.reason` `varchar(1000)` (ops-api migration `062`; requires
+  ops-api ≥ 1.63.0 deployed — older servers reject 501–1000 char reasons with a
+  400, failing safe). The run-archive `archiveReason` field is a different column
+  and deliberately stays at 500.
+
 ## [5.2.0] - 2026-06-28
 
 ### Added

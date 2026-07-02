@@ -386,6 +386,11 @@ describe('Config Validators', () => {
       expect(result.reason).toBe('Will fix later');
     });
 
+    it('should accept a reason up to 1000 characters and reject over', () => {
+      expect(() => validateUpdateIssueStatusInput({ status: 'wontfix', reason: 'a'.repeat(1000) })).not.toThrow();
+      expect(() => validateUpdateIssueStatusInput({ status: 'wontfix', reason: 'a'.repeat(1001) })).toThrow(InputValidationError);
+    });
+
     it('should reject invalid status with error details', () => {
       try {
         validateUpdateIssueStatusInput({ status: 'invalid-status' });
