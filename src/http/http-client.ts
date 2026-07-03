@@ -8,11 +8,26 @@
  */
 
 import { HttpClient } from '@uluops/sdk-core/http';
+import type { SecurityEventHandler } from '@uluops/sdk-core/http';
 import { DEFAULT_BASE_URL, SDK_VERSION } from '../config/constants.js';
 import { InputValidationError } from '../config/validators.js';
 
 // Re-export query utilities so operations can continue to import from here
 export { toQuery, type QueryParams, type QueryParamValue } from '@uluops/sdk-core/utils';
+
+// Re-export the structured security-event types so consumers can type their
+// onSecurityEvent handler (the channel is forwarded to sdk-core via the config
+// spread in the OpsHttpClient constructor).
+export type {
+  SecurityEvent,
+  SecurityEventType,
+  SecurityEventHandler,
+  AuthType,
+  AuthFailureEvent,
+  RedirectRejectedEvent,
+  TokenRefreshFailedEvent,
+  AuthStrategyReplacedEvent,
+} from '@uluops/sdk-core/http';
 
 import { type QueryParams as _QP } from '@uluops/sdk-core/utils';
 import { toSnakeCase } from '../utils/helpers.js';
@@ -78,6 +93,12 @@ export interface HttpClientConfig {
   rateLimitThreshold?: number;
   /** Called before each retry attempt with attempt info and backoff delay */
   onRetry?: (info: { attempt: number; maxAttempts: number; error: Error; delayMs: number }) => void;
+  /**
+   * Called when a security-relevant event occurs — a rejected credential, a
+   * blocked upstream redirect, a failed token refresh, or a credential swap.
+   * Structured, routable telemetry (see `SecurityEvent`). Forwarded to sdk-core.
+   */
+  onSecurityEvent?: SecurityEventHandler;
   /** Org slug for multi-tenancy — sets X-Org-Slug header on all requests */
   orgSlug?: string;
 }

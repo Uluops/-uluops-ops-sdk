@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.4.0] - 2026-07-02
+
+Adopts `@uluops/sdk-core@0.14.0` (security-observability release) and surfaces its
+new public API so ops-sdk consumers get the hardening and can use the new types.
+
+### Added
+
+- **Structured security-event channel.** `onSecurityEvent` is now a typed option
+  on `HttpClientConfig`/`OpsClientConfig` and is forwarded to the underlying
+  sdk-core client. Re-exports the `SecurityEvent` union and its member types
+  (`SecurityEventHandler`, `SecurityEventType`, `AuthType`, `AuthFailureEvent`,
+  `RedirectRejectedEvent`, `TokenRefreshFailedEvent`, `AuthStrategyReplacedEvent`)
+  so consumers can type their handler.
+- **`RedirectError` + `isRedirectError`** re-exported. An upstream 3xx now throws
+  this dedicated, non-retryable error instead of a retryable `NetworkError`.
+
+### Changed
+
+- **Bump `@uluops/sdk-core` 0.13.0 → 0.14.0.** Pulls in the redirect hardening
+  (`redirect: 'manual'`, credential body never replayed to a redirect target),
+  `baseUrl` embedded-credential rejection (CWE-200), and the structured logger /
+  sanitized `requestId` fixes. **Migration:** code that caught a redirect as
+  `NetworkError` should now catch `RedirectError` (or `isRedirectError(e)`);
+  redirects are no longer auto-retried.
+
 ## [5.3.0] - 2026-07-02
 
 ### Added

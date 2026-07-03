@@ -13,6 +13,16 @@ export { OpsClient, type OpsClientConfig } from './client.js';
 
 // HTTP client — for consumers who need direct HTTP access or custom auth strategies
 export { OpsHttpClient, type HttpClientConfig, type QueryParams, type QueryParamValue } from './http/http-client.js';
+export type {
+  SecurityEvent,
+  SecurityEventType,
+  SecurityEventHandler,
+  AuthType,
+  AuthFailureEvent,
+  RedirectRejectedEvent,
+  TokenRefreshFailedEvent,
+  AuthStrategyReplacedEvent,
+} from './http/http-client.js';
 export { ApiKeyAuth, JwtSessionAuth, createAuthStrategy, type AuthStrategy, type AuthConfig } from './http/auth-strategy.js';
 
 // Errors — typed error classes and type guards for precise error handling

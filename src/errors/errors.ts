@@ -15,6 +15,7 @@ export {
   RateLimitError,
   ServiceUnavailableError,
   NetworkError,
+  RedirectError,
   TimeoutError,
   isSdkApiError as isOpsApiError,
   isValidationError,
@@ -27,6 +28,7 @@ export {
   isPayloadTooLargeError,
   isServiceUnavailableError,
   isNetworkError,
+  isRedirectError,
   isTimeoutError,
 } from '@uluops/sdk-core/errors';
 
