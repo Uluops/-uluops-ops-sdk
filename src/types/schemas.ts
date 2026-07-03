@@ -189,6 +189,12 @@ export const AnalysisSummaryEntrySchema = z.object({
   decision: z.string().min(1).max(50),
   score: z.number().min(0).max(100).optional().nullable(),
   decisionVocabulary: z.string().max(100).nullish(),
+  // Agent's COGNITIVE measurements — counts, levels, categorical indicators
+  // (values: number | boolean | string ≤100 chars). Execution telemetry
+  // (tokens/model/duration) belongs in agents[], not here. The ops-api ingest
+  // normalizes value shapes (objects/arrays stripped, `_` keys reserved);
+  // the SERVER is authoritative — do NOT encode the floor here client-side
+  // (system-metrics-contract spec v0.1.2 D3: one normalizer, no drift).
   systemMetrics: z.record(z.string(), z.unknown()).nullish(),
   categoryScores: z.array(z.object({
     name: z.string().max(100),
