@@ -309,8 +309,40 @@ const client = new OpsClient({
   onRetry: ({ attempt, maxAttempts, error, delayMs }) => {
     console.warn(`Retry ${attempt}/${maxAttempts} after ${delayMs}ms: ${error.message}`);
   },
+  onSecurityEvent: (event) => { /* route to telemetry — see "Security Events" */ },
 });
 ```
+
+---
+
+### Security Events
+
+Since `@uluops/sdk-core@0.14.0`, the client exposes a structured security-event channel. Pass `onSecurityEvent` to route the security-relevant events the client already observes to your telemetry sink, instead of scraping logs or classifying thrown errors. The handler is forwarded to the underlying sdk-core client; delivery is best-effort and fire-and-forget (a throwing handler is caught and logged, never propagated into request flow).
+
+```typescript
+import { OpsClient, type SecurityEvent } from '@uluops/ops-sdk';
+
+const client = new OpsClient({
+  apiKey: 'ulr_...',
+  onSecurityEvent: (event: SecurityEvent) => {
+    switch (event.type) {
+      case 'auth_failure':           siem.alert('auth_rejected', { authType: event.authType, requestId: event.requestId }); break;
+      case 'redirect_rejected':      siem.alert('redirect_blocked', { origin: event.baseUrl }); break;
+      case 'token_refresh_failed':   siem.alert('session_refresh_failed', {}); break;
+      case 'auth_strategy_replaced': siem.alert('credential_swapped', { from: event.previousType, to: event.newType }); break;
+    }
+  },
+});
+```
+
+| Event `type` | Fires when |
+|--------------|-----------|
+| `auth_failure` | A sent credential is rejected with 401 (and not transparently refreshed) |
+| `redirect_rejected` | The configured origin returns a 3xx the SDK refuses to follow |
+| `token_refresh_failed` | A session token refresh (re-login) is rejected |
+| `auth_strategy_replaced` | The live credential is swapped via `setAuthStrategy` |
+
+Related: a blocked redirect throws **`RedirectError`** (re-exported, non-retryable — catch it with `isRedirectError(e)` where you previously caught `NetworkError` for a redirect). The `SecurityEvent` union and its member types are exported from the package root.
 
 ---
 
