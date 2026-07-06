@@ -162,6 +162,8 @@ export const AgentInputSchema = z.object({
   tokens: TokenUsageSchema.optional(),
   durationMs: z.number().int().nonnegative().optional(),
   definitionVersion: z.string().max(50).optional(),
+  // Harness transcript/agent provenance id (v5.5.0), e.g. agent-metrics "a4f35bf2cacc5f3ac".
+  agentId: z.string().max(50).optional(),
 });
 
 export const RecommendationInputSchema = z.object({

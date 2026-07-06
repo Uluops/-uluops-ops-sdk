@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.5.0] - 2026-07-06
+
+### Added
+
+- **`agentId` provenance field on `AgentInput` and `UpdateAgentInput`** (and
+  `AgentInputSchema`). Carries the harness transcript/agent id (e.g.
+  agent-metrics `a4f35bf2cacc5f3ac`) so a saved tracker agent row is joinable
+  back to its agent-metrics buffer entry and session transcript. Optional,
+  max 50 chars; the API persists it to `agent_snapshots.agent_id`
+  (ops-api migration 064). The wire already passed unknown fields through
+  (`save()` posts raw input) — this makes the typed surface truthful.
+
 ## [5.4.0] - 2026-07-02
 
 Adopts `@uluops/sdk-core@0.14.0` (security-observability release) and surfaces its
