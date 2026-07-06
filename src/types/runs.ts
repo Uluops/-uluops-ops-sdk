@@ -142,6 +142,8 @@ export interface AgentInput {
   harness?: string;
   tokens?: TokenUsage;
   durationMs?: number;
+  /** Harness transcript/agent provenance id (v5.5.0). Joins this row to its agent-metrics buffer entry and transcript. */
+  agentId?: string;
 }
 
 /**
@@ -166,6 +168,8 @@ export interface UpdateAgentInput {
   toolTokens?: number;
   totalEffectiveTokens?: number;
   durationMs?: number;
+  /** Harness transcript/agent provenance id (v5.5.0). See {@link AgentInput.agentId}. */
+  agentId?: string;
 }
 
 /**
