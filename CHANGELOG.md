@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.5.1] - 2026-07-06
+
+### Fixed
+
+- **`agentId` was stripped from read responses.** 5.5.0 added `agentId` to the
+  input types but not to `AgentSnapshotResponseSchema`, so Zod response
+  parsing silently dropped the field on `getDetails`/run reads even when the
+  API returned it. Now on the response schema (optional/nullable — absent
+  from pre-1.66 API responses).
+
 ## [5.5.0] - 2026-07-06
 
 ### Added

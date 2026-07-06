@@ -467,6 +467,9 @@ export const AgentSnapshotResponseSchema = z.object({
   toolTokens: z.number().int().nonnegative().nullable().optional(),
   totalEffectiveTokens: z.number().int().nonnegative().nullable(),
   durationMs: z.number().int().nonnegative().nullable(),
+  // Harness transcript/agent provenance id (v5.5.1). Optional: absent from
+  // pre-1.66 API responses; NULL for rows saved before the column existed.
+  agentId: z.string().nullable().optional(),
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
 });
