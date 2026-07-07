@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.6.0] - 2026-07-06
+
+### Changed
+
+- **Bumped `@uluops/sdk-core` pin `0.14.0` → `0.15.0`.** sdk-core 0.15.0 adds the
+  streaming transport (`requestStream`/`getStream`). Because `OpsHttpClient extends
+  HttpClient`, these methods are now **inherited on `OpsHttpClient`** and available
+  to advanced consumers holding the low-level client — a resilient way to obtain an
+  unconsumed `Response` for BFF/stream passthrough (full auth, redirect rejection,
+  error mapping, and security-event emission run through the headers; no retry after
+  handoff). See the sdk-core README for the streaming contract.
+- **`engines.node` raised `>=18.0.0` → `>=20.3.0`** to match sdk-core's real runtime
+  floor: the inherited `getStream` composes the caller's `AbortSignal` via
+  `AbortSignal.any` (Node 20.3.0+). Buffered operations are unaffected, but the
+  declared floor now matches the full public surface.
+
 ## [5.5.1] - 2026-07-06
 
 ### Fixed
