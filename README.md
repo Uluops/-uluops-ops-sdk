@@ -821,8 +821,13 @@ const result = await client.runs.save({
 });
 
 console.log(`Run #${result.run.runNumber} saved`);
-console.log(`Issues: ${result.correlation.newIssues} new, ${result.correlation.recurringIssues} recurring`);
+console.log(`Issues: ${result.correlation?.newIssues} new, ${result.correlation?.recurringIssues} recurring`);
 ```
+
+> `result.correlation` is `null` only when an idempotent replay returns a run
+> that was saved before the API began persisting correlation counts — those
+> counts were never stored and are not fabricated. Fresh saves and
+> post-migration replays always carry a correlation object.
 
 #### `client.runs.validate(input, options?)`
 

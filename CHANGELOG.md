@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **`SaveRunResponseSchema.correlation` is now nullable.** On an idempotent
+  `saveRun` replay of a run saved before the API began persisting correlation
+  counts, the API returns `correlation: null` — the original counts were never
+  stored and are not fabricated. Response parsing previously threw a `ZodError`
+  on that shape. Fresh saves and post-migration replays remain non-null.
+  Consumers reading the correlation should handle `null`
+  (e.g. `result.correlation?.newIssues`). Pairs with the ops-uluops-api change
+  that persists correlation counts on the run (migration 065).
+
 ## [5.6.0] - 2026-07-06
 
 ### Changed
