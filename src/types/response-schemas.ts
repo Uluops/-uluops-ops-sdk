@@ -499,7 +499,10 @@ export const CorrelationResultResponseSchema = z.object({
 export const SaveRunResponseSchema = z.object({
   run: RunResponseSchema,
   agents: z.array(AgentSnapshotResponseSchema),
-  correlation: CorrelationResultResponseSchema,
+  // Nullable: on an idempotent replay of a pre-correlation-persistence run the
+  // API returns `correlation: null` (the original counts were never stored, and
+  // are not fabricated). Fresh saves and post-migration replays are non-null.
+  correlation: CorrelationResultResponseSchema.nullable(),
   deduplicated: z.boolean(),
   analysisRecords: z.lazy(() => z.array(AnalysisRecordResponseSchema)).optional(),
   analysisSummary: z.lazy(() => AnalysisSummaryResponseSchema).optional(),
