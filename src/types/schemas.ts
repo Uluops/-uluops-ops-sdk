@@ -134,6 +134,17 @@ export const RenameProjectInputSchema = z.object({
   newName: z.string().min(1).max(200),
 });
 
+export const MergeProjectsInputSchema = z.object({
+  source: z.string().min(1).max(200),
+  target: z.string().min(1).max(200),
+  dryRun: z.boolean().optional(),
+  deleteSource: z.boolean().optional(),
+  confirmCrossOrg: z.boolean().optional(),
+}).refine((v) => v.source !== v.target, {
+  message: 'source and target must be different projects',
+  path: ['target'],
+});
+
 // ============================================
 // RUN SCHEMAS
 // ============================================

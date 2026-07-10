@@ -240,6 +240,8 @@ export const IssueResponseSchema = z.object({
   lastSeenRunId: z.string().uuid(),
   resolvedAt: NullableDateTimeSchema,
   resolutionRunId: z.string().uuid().nullable(),
+  // Merge provenance (merge-projects v0.3.4, ops-api mig 069); null = never merged.
+  mergedFromProjectId: z.string().uuid().nullable().optional(),
   deletedAt: NullableDateTimeSchema.optional(),  // Stripped by issueToPublic
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
@@ -411,6 +413,11 @@ export const RunResponseSchema = z.object({
   definitionHash: z.string().nullable(),       // Nullable in DB
   definitionId: z.string().uuid().nullable(),  // Registry definition UUID — direct identity linkage
   registrySyncedAt: NullableDateTimeSchema,    // Nullable in DB
+  // Merge provenance (merge-projects v0.3.4, ops-api mig 069). Optional so
+  // responses from pre-merge-feature API versions still parse; null = never merged.
+  mergedFromProjectId: z.string().uuid().nullable().optional(),
+  mergedFromRunNumber: z.number().int().nullable().optional(),
+  mergedFromIdempotencyKey: z.string().nullable().optional(),
   createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
   updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
   // Dashboard URL slugs — included on save_run and get_run responses.
@@ -441,6 +448,9 @@ export const RunSummaryResponseSchema = z.object({
   suggestedCount: z.number().int().nonnegative(),
   backlogCount: z.number().int().nonnegative(),
   agentScores: z.record(z.string(), z.number().nullable()),
+  // Merge provenance (v0.3.4, mig 069) — present only if the summary query selects them.
+  mergedFromProjectId: z.string().uuid().nullable().optional(),
+  mergedFromRunNumber: z.number().int().nullable().optional(),
 });
 
 export const AgentSnapshotResponseSchema = z.object({
@@ -692,6 +702,56 @@ export const MergeIssuesResultResponseSchema = z.object({
   mergedCount: z.number().int().nonnegative(),
   migratedOccurrences: z.number().int().nonnegative(),
   sourceIssues: z.array(z.string().uuid()).optional(),
+});
+
+// ============================================
+// MERGE PROJECTS RESPONSE SCHEMA
+// ============================================
+
+/**
+ * POST /projects/merge result (merge-projects spec v0.3.4 §5).
+ * Field names are snake_case by contract — the spec's §5 shape is the pinned
+ * authoritative HTTP surface (error-code stability policy), unlike the
+ * camelCase business-object responses elsewhere in this API.
+ */
+export const MergeProjectsResultResponseSchema = z.object({
+  source: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    run_count: z.number().int().nonnegative(),
+    issue_count: z.number().int().nonnegative(),
+    status_after: z.enum(['soft-deleted', 'retained', 'dry-run']),
+  }),
+  target: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    run_count_before: z.number().int().nonnegative(),
+    issue_count_before: z.number().int().nonnegative(),
+    run_count_after: z.number().int().nonnegative(),
+    issue_count_after: z.number().int().nonnegative(),
+  }),
+  moved: z.object({
+    runs: z.number().int().nonnegative(),
+    issues: z.number().int().nonnegative(),
+    issue_dedupes: z.number().int().nonnegative(),
+    occurrences_reparented: z.number().int().nonnegative(),
+    issue_notes_reparented: z.number().int().nonnegative(),
+    status_history_reparented: z.number().int().nonnegative(),
+  }),
+  conflicts: z.array(z.object({
+    kind: z.enum(['fingerprint_dedup', 'run_number_collision', 'semantic_fingerprint_dedup']),
+    source_id: z.string().uuid(),
+    target_id: z.string().uuid(),
+    resolution: z.string(),
+  })),
+  audit: z.object({
+    // Empty string for the P5 idempotent no-op; unpersisted UUID for dry-run.
+    merge_id: z.string(),
+    timestamp: DateTimeStringSchema,
+    // User UUID, or the literal 'system' for system-actor merges.
+    actor_id: z.string(),
+    dry_run: z.boolean(),
+  }),
 });
 
 // ============================================

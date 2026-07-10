@@ -18,6 +18,7 @@ import {
   BulkStatusUpdateInputSchema,
   DeleteProjectInputSchema,
   RenameProjectInputSchema,
+  MergeProjectsInputSchema,
   UpdateIssueInputSchema,
 } from '../types/schemas.js';
 
@@ -186,6 +187,18 @@ export function validateDeleteProjectInput(data: unknown): z.infer<typeof Delete
  */
 export function validateRenameProjectInput(data: unknown): z.infer<typeof RenameProjectInputSchema> {
   return validate(RenameProjectInputSchema, data, 'project rename');
+}
+
+/**
+ * Validate merge-projects input (merge-projects spec v0.3.4).
+ * Rejects `source === target` at the client boundary — saves the round-trip
+ * that would return 400 SAME_PROJECT.
+ * @param data - Raw input: `{ source, target, dryRun?, deleteSource?, confirmCrossOrg? }`
+ * @returns Validated `MergeProjectsInput`
+ * @throws {InputValidationError} If either name is empty or source equals target
+ */
+export function validateMergeProjectsInput(data: unknown): z.infer<typeof MergeProjectsInputSchema> {
+  return validate(MergeProjectsInputSchema, data, 'project merge');
 }
 
 // ============================================

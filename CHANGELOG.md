@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.9.0] - 2026-07-10
+
+### Added
+
+- **`client.projects.mergeProjects(input)`** — merge one project into another
+  (merge-projects spec v0.3.4). The source's runs and issues are re-keyed into
+  the target inside one advisory-locked transaction server-side; the source is
+  soft-deleted by default. Pairwise only. Input:
+  `{ source, target, dryRun?, deleteSource?, confirmCrossOrg? }` with
+  client-side rejection of `source === target`. The result follows the spec §5
+  shape (snake_case fields by pinned contract: `source`, `target`, `moved`,
+  `conflicts`, `audit`). Discriminate errors on `err.code`: `SAME_PROJECT`,
+  `TARGET_DELETED`, `MERGE_TOO_LARGE`, `CROSS_ORG_MERGE`,
+  `CROSS_ORG_MERGE_REQUIRES_CONFIRMATION`, `ALREADY_MERGED`
+  (`details.audit_id`), `MERGE_LOCK_UNAVAILABLE`
+  (`details.retry_after_seconds` — the SDK does not auto-retry), `MERGE_FAILED`.
+- **Merge provenance fields on response schemas** — `mergedFromProjectId`,
+  `mergedFromRunNumber`, `mergedFromIdempotencyKey` on `RunResponseSchema` /
+  `RunSummaryResponseSchema` and `mergedFromProjectId` on
+  `IssueResponseSchema` (all optional-nullable; `null` = never merged). Zod's
+  default parse strips unknown keys, so without these declarations the
+  ops-api mig-069 columns would be invisible to every SDK consumer. Note:
+  `save_run` against a merged-away project now returns
+  `410 PROJECT_MERGED` with the successor in `details.target_project_name`.
+
 ## [5.7.0] - 2026-07-08
 
 ### Changed

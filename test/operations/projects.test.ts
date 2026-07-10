@@ -454,4 +454,161 @@ describe('Project Operations', () => {
       expect(result.targetIssue).toBeDefined();
     });
   });
+
+  describe('mergeProjects', () => {
+    const mockMergeResult = {
+      source: {
+        id: TEST_IDS.proj1,
+        name: 'merge-source',
+        run_count: 2,
+        issue_count: 3,
+        status_after: 'soft-deleted',
+      },
+      target: {
+        id: TEST_IDS.proj2,
+        name: 'merge-target',
+        run_count_before: 5,
+        issue_count_before: 4,
+        run_count_after: 7,
+        issue_count_after: 6,
+      },
+      moved: {
+        runs: 2,
+        issues: 2,
+        issue_dedupes: 1,
+        occurrences_reparented: 3,
+        issue_notes_reparented: 1,
+        status_history_reparented: 2,
+      },
+      conflicts: [
+        {
+          kind: 'fingerprint_dedup',
+          source_id: TEST_IDS.issue1,
+          target_id: TEST_IDS.issue2,
+          resolution: 'target_survives_source_absorbed',
+        },
+      ],
+      audit: {
+        merge_id: TEST_IDS.issue3,
+        timestamp: '2026-07-10T12:00:00.000Z',
+        actor_id: TEST_IDS.user1,
+        dry_run: false,
+      },
+    };
+
+    it('should merge projects (response conforms to the spec §5 snake_case contract)', async () => {
+      nock(BASE_URL)
+        .post('/projects/merge', {
+          source: 'merge-source',
+          target: 'merge-target',
+        })
+        .reply(200, { data: mockMergeResult });
+
+      const result = await projectOps.mergeProjects(client, {
+        source: 'merge-source',
+        target: 'merge-target',
+      });
+
+      expect(result.moved.runs).toBe(2);
+      expect(result.moved.issue_dedupes).toBe(1);
+      expect(result.source.status_after).toBe('soft-deleted');
+      expect(result.target.run_count_after).toBe(7);
+      expect(result.conflicts[0]?.kind).toBe('fingerprint_dedup');
+    });
+
+    it('should pass dryRun/deleteSource/confirmCrossOrg through in the request body', async () => {
+      nock(BASE_URL)
+        .post('/projects/merge', {
+          source: 'merge-source',
+          target: 'merge-target',
+          dryRun: true,
+          deleteSource: false,
+          confirmCrossOrg: false,
+        })
+        .reply(200, {
+          data: {
+            ...mockMergeResult,
+            source: { ...mockMergeResult.source, status_after: 'dry-run' },
+            audit: { ...mockMergeResult.audit, dry_run: true },
+          },
+        });
+
+      const result = await projectOps.mergeProjects(client, {
+        source: 'merge-source',
+        target: 'merge-target',
+        dryRun: true,
+        deleteSource: false,
+        confirmCrossOrg: false,
+      });
+
+      expect(result.audit.dry_run).toBe(true);
+      expect(result.source.status_after).toBe('dry-run');
+    });
+
+    it('should surface 409 ALREADY_MERGED with details.audit_id on the typed error', async () => {
+      nock(BASE_URL)
+        .post('/projects/merge')
+        .reply(409, {
+          error: {
+            message: 'Source project was already merged',
+            code: 'ALREADY_MERGED',
+            details: { audit_id: TEST_IDS.issue3, target_project_id: TEST_IDS.proj2 },
+          },
+        });
+
+      try {
+        await projectOps.mergeProjects(client, { source: 'a', target: 'b' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        const typed = err as { statusCode?: number; details?: Record<string, unknown> };
+        expect(typed.statusCode).toBe(409);
+        expect(typed.details).toMatchObject({ audit_id: TEST_IDS.issue3 });
+      }
+    });
+
+    it('should surface 409 MERGE_LOCK_UNAVAILABLE with the retry hint', async () => {
+      nock(BASE_URL)
+        .post('/projects/merge')
+        .reply(409, {
+          error: {
+            message: 'Merge lock unavailable',
+            code: 'MERGE_LOCK_UNAVAILABLE',
+            details: { retry_after_seconds: 5 },
+          },
+        });
+
+      try {
+        await projectOps.mergeProjects(client, { source: 'a', target: 'b' });
+        expect.unreachable('should have thrown');
+      } catch (err) {
+        const typed = err as { statusCode?: number; details?: Record<string, unknown> };
+        expect(typed.statusCode).toBe(409);
+        expect(typed.details).toMatchObject({ retry_after_seconds: 5 });
+      }
+    });
+
+    it('should surface 403 CROSS_ORG_MERGE_REQUIRES_CONFIRMATION (system-actor path)', async () => {
+      nock(BASE_URL)
+        .post('/projects/merge')
+        .reply(403, {
+          error: {
+            message: 'Cross-org merge requires confirmation',
+            code: 'CROSS_ORG_MERGE_REQUIRES_CONFIRMATION',
+            details: { hint: 'Pass confirmCrossOrg=true to allow system-actor cross-org merges' },
+          },
+        });
+
+      await expect(
+        projectOps.mergeProjects(client, { source: 'a', target: 'b' })
+      ).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('should reject source === target at the client boundary WITHOUT an HTTP call', async () => {
+      // No nock intercept registered — an HTTP attempt would fail with a nock
+      // "no match" error, not a validation error.
+      await expect(
+        projectOps.mergeProjects(client, { source: 'same-project', target: 'same-project' })
+      ).rejects.toThrow(/source and target must be different/);
+    });
+  });
 });

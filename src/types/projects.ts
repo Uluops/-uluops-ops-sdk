@@ -8,6 +8,7 @@ import {
   DailyIssueCountsResponseSchema,
   TrendsSummaryResponseSchema,
   MergeIssuesResultResponseSchema,
+  MergeProjectsResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
 } from './response-schemas.js';
 import type { Issue } from './issues.js';
@@ -36,6 +37,9 @@ export type ProjectTrends = z.infer<typeof ProjectTrendsResponseSchema>;
 
 /** Merge issues result */
 export type MergeIssuesResult = z.infer<typeof MergeIssuesResultResponseSchema>;
+
+/** Merge projects result (merge-projects spec v0.3.4 §5 — snake_case by contract) */
+export type MergeProjectsResult = z.infer<typeof MergeProjectsResultResponseSchema>;
 
 /** Bulk issue status update result */
 export type BulkIssueStatusResult = z.infer<typeof BulkStatusUpdateResultResponseSchema>;
@@ -123,4 +127,24 @@ export interface MergeIssuesInput {
   targetIssueId: string;
   sourceIssueIds: string[];
   strategy?: 'keep_target' | 'keep_highest_priority';
+}
+
+/**
+ * Merge projects input (merge-projects spec v0.3.4). Pairwise by contract —
+ * multi-source merges are out of scope; chain pairwise calls instead.
+ */
+export interface MergeProjectsInput {
+  /** Source project name or UUID (consumed by the merge) */
+  source: string;
+  /** Target project name or UUID (survives, absorbs the source) */
+  target: string;
+  /** Preview only — the merge transaction is rolled back. Default false. */
+  dryRun?: boolean;
+  /** Soft-delete the source after the merge. Default true. */
+  deleteSource?: boolean;
+  /**
+   * Required true for system-actor cross-org merges (Q15). No-op for human
+   * callers — human cross-org merges are always rejected with CROSS_ORG_MERGE.
+   */
+  confirmCrossOrg?: boolean;
 }

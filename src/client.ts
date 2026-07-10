@@ -40,6 +40,8 @@ import type {
   BulkIssueStatusResult,
   MergeIssuesInput,
   MergeIssuesResult,
+  MergeProjectsInput,
+  MergeProjectsResult,
 } from './types/projects.js';
 
 import type {
@@ -358,6 +360,15 @@ export class OpsClient {
     /** Merge duplicate issues within a project. */
     mergeIssues: (idOrName: string, input: MergeIssuesInput): Promise<MergeIssuesResult> =>
       projectOps.mergeIssues(this.httpClient, idOrName, input),
+
+    /**
+     * Merge one project into another (merge-projects spec v0.3.4) — the
+     * source's runs and issues are re-keyed into the target inside one
+     * advisory-locked transaction; the source is soft-deleted by default.
+     * Pairwise only. Dry-run first: `{ ...input, dryRun: true }`.
+     */
+    mergeProjects: (input: MergeProjectsInput): Promise<MergeProjectsResult> =>
+      projectOps.mergeProjects(this.httpClient, input),
   };
 
   // ============================================

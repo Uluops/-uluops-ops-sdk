@@ -15,6 +15,8 @@ import type {
   BulkIssueStatusResult,
   MergeIssuesInput,
   MergeIssuesResult,
+  MergeProjectsInput,
+  MergeProjectsResult,
   PaginatedIssues,
 } from '../types/projects.js';
 import type { Issue } from '../types/issues.js';
@@ -26,6 +28,7 @@ import {
   IssueResponseSchema,
   BulkStatusUpdateResultResponseSchema,
   MergeIssuesResultResponseSchema,
+  MergeProjectsResultResponseSchema,
   DeleteResultResponseSchema,
 } from '../types/response-schemas.js';
 import {
@@ -33,6 +36,7 @@ import {
   validateUpdateProjectInput,
   validateDeleteProjectInput,
   validateRenameProjectInput,
+  validateMergeProjectsInput,
 } from '../config/validators.js';
 import { buildIssueListParams } from './query-utils.js';
 
@@ -310,6 +314,39 @@ export async function mergeIssues(
       targetIssueId: input.targetIssueId,
       sourceIssueIds: input.sourceIssueIds,
       strategy: input.strategy,
+    }
+  ));
+}
+
+/**
+ * Merge one project into another (merge-projects spec v0.3.4). The source's
+ * runs and issues are re-keyed into the target inside one advisory-locked
+ * transaction; the source is soft-deleted by default. Pairwise only — chain
+ * calls for multi-source consolidation.
+ *
+ * Error codes to discriminate on (`err.code` on the typed error):
+ * 400 SAME_PROJECT | TARGET_DELETED | MERGE_TOO_LARGE; 403 CROSS_ORG_MERGE |
+ * CROSS_ORG_MERGE_REQUIRES_CONFIRMATION; 409 ALREADY_MERGED (details.audit_id)
+ * | MERGE_LOCK_UNAVAILABLE (details.retry_after_seconds — the SDK does NOT
+ * auto-retry; callers decide); 500 MERGE_FAILED (details.rollback_reason).
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ source, target, dryRun?, deleteSource?, confirmCrossOrg? }`
+ * @returns Merge result (spec §5 shape — snake_case fields by contract)
+ */
+export async function mergeProjects(
+  client: OpsHttpClient,
+  input: MergeProjectsInput
+): Promise<MergeProjectsResult> {
+  validateMergeProjectsInput(input);
+  return MergeProjectsResultResponseSchema.parse(await client.post<unknown>(
+    '/projects/merge',
+    {
+      source: input.source,
+      target: input.target,
+      dryRun: input.dryRun,
+      deleteSource: input.deleteSource,
+      confirmCrossOrg: input.confirmCrossOrg,
     }
   ));
 }
