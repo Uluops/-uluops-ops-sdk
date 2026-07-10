@@ -541,7 +541,19 @@ export const RunDetailsResponseSchema = z.object({
     title: z.string(),
     priority: PriorityResponseSchema,
     agent: z.string(),
+    /**
+     * Correlation status against the issue's history (new/recurring/
+     * regression/observed). Frozen at run time — does NOT change when the
+     * issue is later closed. For lifecycle, read `issueStatus`.
+     */
     status: z.string(),
+    /**
+     * Lifecycle status of the linked issue (open/completed/deferred/…).
+     * Optional: absent when talking to a pre-1.69 API. z.object() strips
+     * unknown keys on parse, so this MUST be declared here for the field
+     * to survive the SDK boundary (issue 659d061d).
+     */
+    issueStatus: z.string().optional(),
   })),
 });
 
