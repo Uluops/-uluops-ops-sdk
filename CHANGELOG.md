@@ -6,7 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [5.9.0] - 2026-07-10
+## [5.10.0] - 2026-07-19
+
+### Changed
+
+- **`allGatesPassed` is now nullable on run response schemas** —
+  `RunResponseSchema` and `RunSummaryResponseSchema` widen the field from
+  `z.boolean()` to `z.boolean().nullable()` (`SaveRunResponseSchema` inherits
+  via its embedded `RunResponseSchema`). `null` means **NOT_A_GATE**: the run
+  carried no gate-bearing agents (e.g. a cognitive-lens-only run), which is
+  distinct from `false` (a gate ran and failed). Consumers should render `null`
+  neutrally ("N/A"/"—") and exclude null runs from both terms of any pass-rate
+  computation. The *input* schemas are unchanged — `summary.allGatesPassed`
+  remains `boolean | undefined`; `null` is never a valid input value.
+
+  This is the read-shape half of ops-uluops-api's
+  `save-run-decision-semantics` spec v0.2.1 (Phase A of its deploy cascade):
+  previously the API fabricated `allGatesPassed: true` for lens-only runs whose
+  every decision fell in a permissive pass-set (including negative poles like
+  `VULNERABLE`), and pre-5.10.0 SDK versions throw `ZodError` if the API emits
+  `null`. The API will begin emitting `null` only after its response consumers
+  resolve 5.10.0+; upgrading is forward-compatibility, not a behavior change —
+  today's API still emits booleans, which parse identically.
 
 ### Added
 

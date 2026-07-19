@@ -857,6 +857,15 @@ console.log('Would create analysis summaries:', preview.wouldCreateAnalysisSumma
 console.log('Analysis records to be created:', preview.preview.analysisRecords);
 ```
 
+> **`allGatesPassed` is `boolean | null` on all run *responses* (since v5.10.0).**
+> `null` means **NOT_A_GATE** — the run carried no gate-bearing agents (e.g. a
+> cognitive-lens-only run), which is distinct from `false` (a gate ran and failed).
+> Render `null` as "N/A"/"—", and exclude null runs from pass-rate denominators.
+> The *input* field `summary.allGatesPassed` is unchanged (`boolean | undefined`;
+> `null` is never a valid input). The API begins emitting `null` only after its
+> consumers resolve v5.10.0+ — older SDK versions throw `ZodError` on a null-gate
+> response.
+
 #### `client.runs.listByProject(projectId, query)`
 
 List runs for a project.
