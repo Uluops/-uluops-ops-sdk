@@ -400,7 +400,10 @@ export const RunResponseSchema = z.object({
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
-  allGatesPassed: z.boolean(),
+  // Nullable: null = NOT_A_GATE — the run carried no gate-bearing agents (lens-only
+  // runs); distinct from false (a gate ran and failed). See ops-uluops-api
+  // save-run-decision-semantics spec v0.2.1 (D1/D5).
+  allGatesPassed: z.boolean().nullable(),
   averageScore: z.number().nullable(),
   rawMarkdown: z.string().nullable(),
   archivedAt: NullableDateTimeSchema,
@@ -434,7 +437,8 @@ export const RunSummaryResponseSchema = z.object({
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
-  allGatesPassed: z.boolean(),
+  // Nullable: null = NOT_A_GATE (no gate-bearing agents on the run) — see RunResponseSchema.
+  allGatesPassed: z.boolean().nullable(),
   averageScore: z.number().nullable().optional(),
   rawMarkdown: z.string().nullable().optional(),
   archivedAt: NullableDateTimeSchema.optional(),
