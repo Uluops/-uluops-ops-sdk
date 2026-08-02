@@ -6,6 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.11.0] - 2026-08-02
+
+### Changed
+
+- **`IssueResponseSchema.resolutionRunId` is now optional** — `z.string().uuid().nullable()`
+  becomes `z.string().uuid().nullable().optional()`. Deprecated; it will be removed in the
+  next major.
+
+  `ops-uluops-api` drops `issues.resolution_run_id` in migration 075 (its tracker
+  `83eeac77`). The column encoded resolution-by-run, a model the tracker never
+  implemented — runs *detect*, humans and agents *resolve*, and no run is in scope at a
+  resolving transition. It was `NULL` on all 18,192 production rows, so every response
+  this SDK has ever parsed carried `null` there.
+
+  **Upgrade before that API deploys — this release is the ordering constraint, not a
+  convenience.** These schemas are runtime-parsed: every response goes through
+  `.parse()`. A *required* key that the API stops sending therefore throws a ZodError on
+  **every issue read**, rather than surfacing as `null`. Any consumer still on ≤5.10.0
+  when the API drops the field breaks on all of `getIssue`, `listIssues`, `searchIssues`
+  and every operation embedding an issue.
+
+  Nothing else changes: `null` and uuid values are still accepted, so this release parses
+  both the old and new API shapes and can ship ahead of either. A malformed value is still
+  rejected — the relaxation is to presence, not to the type.
+
+  **Consumers to upgrade:** `ops-uluops-mcp` (`^5.9.0`), `packages/-uluops-cli` (`5.10.0`),
+  `ops-uluops-dashboard` (`^5.0.0`), `packages/-uluops-rah-service` (`5.10.0`).
+
 ## [5.10.0] - 2026-07-19
 
 ### Changed
