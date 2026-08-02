@@ -239,7 +239,23 @@ export const IssueResponseSchema = z.object({
   firstSeenRunId: z.string().uuid(),
   lastSeenRunId: z.string().uuid(),
   resolvedAt: NullableDateTimeSchema,
-  resolutionRunId: z.string().uuid().nullable(),
+  /**
+   * @deprecated Always absent from ops-uluops-api once migration 075 deploys, and
+   * `null` on every response before that. Do not read it; it will be removed in the
+   * next major.
+   *
+   * **Optional, not removed, and that ordering is load-bearing.** This schema is
+   * runtime-parsed (see the file header) — a required key that the API stops sending
+   * makes `.parse()` throw a ZodError on *every* issue read, not return null. Removing
+   * the key here in the same release the API drops it would strand every consumer still
+   * on an older SDK. Marking it optional accepts both shapes, so this release can go out
+   * ahead of the API and consumers can upgrade at their own pace.
+   *
+   * The field encoded resolution-by-run, which the tracker never implemented: runs
+   * detect, humans and agents resolve, and no run is in scope at a resolving transition.
+   * It was NULL on all 18,192 production rows. ops-uluops-api tracker `83eeac77`.
+   */
+  resolutionRunId: z.string().uuid().nullable().optional(),
   // Merge provenance (merge-projects v0.3.4, ops-api mig 069); null = never merged.
   mergedFromProjectId: z.string().uuid().nullable().optional(),
   deletedAt: NullableDateTimeSchema.optional(),  // Stripped by issueToPublic
