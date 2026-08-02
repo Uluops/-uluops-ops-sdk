@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 4.0.0** | [Changelog](./CHANGELOG.md)
+**Current version: 5.11.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -1093,6 +1093,19 @@ const { items, total } = await client.runs.getAgentRunsAnalysis('epictetus-valid
 ### Issue Operations
 
 Track and manage validation issues.
+
+> **`resolutionRunId` is optional and deprecated on issue *responses* (since v5.11.0).**
+> `ops-uluops-api` drops the underlying column in its migration 075: it encoded
+> resolution-by-run, a model the tracker never implemented — runs *detect*, humans and
+> agents *resolve*, and no run is in scope at a resolving transition. The column was
+> `NULL` on every row, so every response this SDK has parsed carried `null` there. Do not
+> read the field; it is removed in the next major.
+>
+> **Upgrade to v5.11.0 before that API deploys.** Responses are runtime-parsed, so a
+> *required* key the API stops sending throws a `ZodError` on **every issue read** —
+> `get`, `search`, `listByProject`, and every operation embedding an issue — rather than
+> surfacing as `null`. v5.11.0 accepts the field present, `null`, or absent, so it parses
+> both API shapes and can be adopted at any time ahead of the deploy.
 
 #### `client.issues.create(input)`
 
