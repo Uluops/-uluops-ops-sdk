@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.11.1] - 2026-08-02
+
+### Fixed
+
+- **Failure-code examples in TSDoc, error messages and README now use canonical codes.**
+  `SEM-VAL` was the worked example in five source sites and two README examples, and it is
+  not a valid code — `VAL` is an `EPI` mode, so `EPI-VAL` exists and `SEM-VAL` does not.
+  Codes are drawn from a closed set of 24 rather than composed from a domain and a mode
+  independently.
+
+  These are TSDoc, so they surface in consumer IDE tooltips and the generated API docs —
+  the invalid example reached every downstream developer at the point of use. Affected:
+  `types/schemas.ts` (the "invalid failure code format" message), `types/enums.ts` ×2,
+  `config/validators.ts`, `operations/runs.ts` (`@example`), and README.
+
+  Two further non-canonical codes were found in README examples while verifying and are also
+  corrected: `PRA-SEC/C` (`SEC` is not a mode) on a SQL-injection example, now `SEM-INC/C`
+  to match `security-analyst`'s own convention, and a `STR-OMI/M` on a missing-error-handling
+  example, now `PRA-FRA/M`. The `runs.ts` `@example` pairing "Missing null check" now reads
+  `SEM-COM/M`, matching the worked example in the agent render template.
+
+  No behaviour change — the validation regex is unchanged and still checks format, not
+  membership. This corrects what the SDK *teaches*, not what it accepts.
+
+
 ## [5.11.0] - 2026-08-02
 
 ### Changed
