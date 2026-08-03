@@ -13,8 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Failure-code examples in TSDoc, error messages and README now use canonical codes.**
   `SEM-VAL` was the worked example in five source sites and two README examples, and it is
   not a valid code — `VAL` is an `EPI` mode, so `EPI-VAL` exists and `SEM-VAL` does not.
-  Codes are drawn from a closed set of 24 rather than composed from a domain and a mode
-  independently.
+  Codes are drawn from a closed set rather than composed from a domain and a mode
+  independently — 24 at the time of this fix, 28 since failure-taxonomy v1.1.0 added
+  `STR-ORG`, `SEM-CAT`, `PRA-ACT` and `EPI-SCP`. The count is stated as a range because
+  this entry is a record of a fix, not a live mode list; the authority is the
+  `failure_taxonomy` catalog served by `GET /taxonomy`.
 
   These are TSDoc, so they surface in consumer IDE tooltips and the generated API docs —
   the invalid example reached every downstream developer at the point of use. Affected:
