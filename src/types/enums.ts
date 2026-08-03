@@ -216,14 +216,14 @@ export type BulkFailureReason = (typeof BulkFailureReason)[keyof typeof BulkFail
 
 /**
  * Failure code regex pattern
- * Format: DOMAIN-MODE/SEVERITY (e.g., SEM-VAL/H)
+ * Format: DOMAIN-MODE/SEVERITY (e.g., STR-OMI/H)
  * Accepts any uppercase 3-letter domain — not restricted to well-known domains.
  */
 export const FAILURE_CODE_PATTERN = /^[A-Z]{3}-[A-Z]{3}\/[CHMLI]$/;
 
 /**
  * Failure mode pattern (without severity)
- * Format: DOMAIN-MODE (e.g., SEM-VAL)
+ * Format: DOMAIN-MODE (e.g., STR-OMI)
  * Accepts any uppercase 3-letter domain — not restricted to well-known domains.
  */
 export const FAILURE_MODE_PATTERN = /^[A-Z]{3}-[A-Z]{3}$/;

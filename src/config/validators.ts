@@ -248,7 +248,7 @@ export function validateUpdateRunInput(data: unknown): z.infer<typeof UpdateRunI
  * @param data - Raw input with required: `project` (1-200), `title` (1-500),
  *   `priority` ('critical' | 'high' | 'suggested' | 'backlog').
  *   Optional: `severity`, `category`, `description` (max 10000), `filePath`, `lineNumber`,
- *   `failureCode` (e.g. 'SEM-VAL/H'), `failureDomain`, `failureMode`, `agent`, `type`.
+ *   `failureCode` (e.g. 'STR-OMI/H'), `failureDomain`, `failureMode`, `agent`, `type`.
  * @returns Validated `CreateUserIssueInput`
  * @throws {InputValidationError} If required fields missing or constraints violated
  */

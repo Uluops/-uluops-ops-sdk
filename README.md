@@ -811,7 +811,7 @@ const result = await client.runs.save({
       filePath: 'src/api/client.ts',
       lineNumber: 42,
       description: 'Add try-catch for network errors',
-      failureCode: 'SEM-VAL/M',
+      failureCode: 'PRA-FRA/M',
     },
   ],
   summary: {
@@ -1121,7 +1121,7 @@ Create a user-submitted issue.
 | `filePath` | `string` | No | File path where issue exists |
 | `lineNumber` | `number` | No | Line number |
 | `description` | `string` | No | Detailed description |
-| `failureCode` | `string` | No | Taxonomy code (e.g., `'SEM-VAL/H'`) |
+| `failureCode` | `string` | No | Taxonomy code (e.g., `'STR-OMI/H'`) |
 | `agent` | `string` | No | Agent name (defaults to `'user-submitted'`) |
 
 ```typescript
@@ -1134,7 +1134,7 @@ const issue = await client.issues.create({
   filePath: 'src/auth/login.ts',
   lineNumber: 45,
   description: 'SQL injection vulnerability in login query',
-  failureCode: 'PRA-SEC/C',
+  failureCode: 'SEM-INC/C',
 });
 ```
 

@@ -46,7 +46,7 @@ export const NoteTypeSchema = z.enum(NOTE_TYPES);
 export const AvatarMimeTypeSchema = z.enum(AVATAR_MIME_TYPES);
 
 export const FailureCodeSchema = z.string().regex(FAILURE_CODE_PATTERN, {
-  message: 'Invalid failure code format. Expected: DOMAIN-MODE/SEVERITY (e.g., SEM-VAL/H)',
+  message: 'Invalid failure code format. Expected: DOMAIN-MODE/SEVERITY (e.g., STR-OMI/H)',
 });
 
 // ============================================
