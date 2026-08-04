@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.12.0] - 2026-08-04
+
+### Added
+
+- **`clusterKey` on `RecommendationInput`** — orchestrator-declared convergence,
+  **within-run only**. Recommendations sharing a `clusterKey` in one run are the same
+  adjudicated defect reported by different agents. Set it from a merge or falsification
+  stage instead of collapsing the findings before submission. Optional, max 64 chars,
+  opaque to the tracker: never interpreted, never verified, never joined across runs.
+
+  Requires a tracker with migration 076 (`occurrences.convergence_cluster_id`). Against
+  an older tracker the field is accepted and discarded, which is the pre-existing
+  behaviour for any unknown field and is not made worse by declaring it here.
+
+  **Why this is a minor and not a patch.** The field is additive and no existing call
+  breaks, but it is a capability rather than a fix, and consumers span five majors
+  (`^1.1.0` through `5.11.x` across 13 packages in this workspace). A patch bump would
+  read as "nothing to adopt" to every one of them.
+
+  **Why declaring it is load-bearing rather than cosmetic.** `RecommendationInputSchema`
+  is a plain `z.object()`, so Zod *strips* unknown keys rather than erroring. While
+  `clusterKey` was undeclared, an orchestrator that set it saw no type error (the object
+  was a superset of a valid input), no validation error (strip is silent), no runtime
+  error (the request succeeded) — and a tracker row with `convergence_cluster_id = NULL`.
+  The tracker documents NULL as *"no adjudicating stage"* and a per-run count of `0` as
+  *"a stage was declared and silently stopped working"*, so a transport-layer strip
+  produced the tracker's **collapsing-pipeline signature** for a merge stage that was
+  working correctly — and the instrument would have blamed the pipeline rather than this
+  schema. Do not remove the field as unused before a producer ships.
+
+  Tests assert the **parse output**, not the type: a type-level check passes whether or
+  not Zod keeps the value at runtime, and runtime retention is the entire claim. They
+  also assert that `max(64)` rejects rather than truncates — a truncated key is a
+  different cluster id that still looks valid, silently splitting one adjudicated defect
+  into two.
+
 ## [5.11.1] - 2026-08-02
 
 ### Fixed
