@@ -759,7 +759,7 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 | `project` | `string` | Yes | Project name or ID |
 | `workflowType` | `string` | Yes | Workflow type (e.g., `'post-implementation'`) |
 | `agents` | `AgentInput[]` | Yes | Array of agent results |
-| `recommendations` | `Recommendation[]` | Yes | Array of issues/recommendations (use `[]` for empty) |
+| `recommendations` | `Recommendation[]` | Yes | Array of issues/recommendations (use `[]` for empty). Multi-agent pipelines: see [Convergence clustering](#convergence-clustering-clusterkey) before collapsing findings |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
 | `idempotencyKey` | `string` | No | Key for duplicate prevention |
@@ -773,6 +773,33 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 | `analysisRecords` | `AnalysisRecordInput[]` | No | Structured analysis records (v1.4.0) |
 | `analysisSummary` | `AnalysisSummaryInput \| AnalysisSummaryInput[]` | No | Single or per-agent array of analysis summaries (v1.8.1) |
 | `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
+
+#### Convergence clustering (`clusterKey`)
+
+*(v5.12.0)* If your pipeline has a stage that adjudicates duplication — a merge,
+falsification or synthesis stage that decides several agents reported **one** defect —
+submit one recommendation **per agent** and tag them with a shared `clusterKey`, rather
+than collapsing them into a single row before submission.
+
+```typescript
+recommendations: [
+  { agent: 'security-analyst', title: 'Unbounded query in the export path', priority: 'critical', clusterKey: 'cluster-alpha' },
+  { agent: 'code-auditor',     title: 'Unbounded query in the export path', priority: 'critical', clusterKey: 'cluster-alpha' },
+]
+```
+
+- **Within-run only.** Two recommendations sharing a `clusterKey` are the same defect *in
+  the same run*. The value carries no meaning across runs and is never joined across them.
+- **Opaque.** The tracker stores it verbatim and never interprets or verifies it. Any
+  stable string up to 64 chars works; a longer one is rejected rather than truncated,
+  because a truncated key is a different cluster id that still looks valid.
+- **Omit it if your pipeline has no adjudicating stage.** That is the normal case and is
+  not a defect. Absent means "no stage declared", which the tracker distinguishes from a
+  stage that has stopped clustering.
+- Requires a tracker with migration 076. Against an older one the field is discarded.
+
+Collapsing before submission is what this replaces: the merge result reaches the tracker
+as single-agent rows and the fact that *n* agents converged is lost.
 
 ```typescript
 const result = await client.runs.save({
