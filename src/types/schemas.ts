@@ -194,6 +194,26 @@ export const RecommendationInputSchema = z.object({
   classifiedBy: z.enum(['agent', 'classifier', 'human']).optional(),
   secondaryFailureCodes: z.array(z.string().max(20)).max(20).optional(),
   taxonomyVersion: z.string().max(50).optional(),
+  /**
+   * Orchestrator-declared convergence cluster (tracker migration 076).
+   * **Within-run only.**
+   *
+   * Recommendations sharing a `clusterKey` in one run are the same adjudicated
+   * defect reported by different agents. Set it from a merge or falsification
+   * stage instead of collapsing the findings before submission.
+   *
+   * **This field existing here is load-bearing, not cosmetic.** This schema is a
+   * plain `z.object()`, so Zod *strips* unknown keys rather than erroring. While
+   * `clusterKey` was undeclared, an orchestrator that set it had the key deleted
+   * in transit and the tracker recorded NULL — which it documents as "a stage was
+   * declared and silently stopped working". A transport-layer strip would have
+   * produced the tracker's collapsing-pipeline signature and pointed the blame at
+   * the merge stage. Do not remove this as unused before the producer ships.
+   *
+   * @see test/types/cluster-key-survives.test.ts — asserts the parse OUTPUT, since
+   *      a type-level check passes whether or not Zod keeps the value at runtime.
+   */
+  clusterKey: z.string().min(1).max(64).optional(),
 });
 
 /** Single analysis summary entry — shared base for single-object and per-agent array variants */

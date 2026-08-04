@@ -185,6 +185,14 @@ export interface RecommendationInput extends IssueFieldsBase {
   classifiedBy?: ClassifiedBy;
   secondaryFailureCodes?: string[];
   taxonomyVersion?: string;
+  /**
+   * Orchestrator-declared convergence cluster, within-run only (tracker
+   * migration 076). Recommendations sharing this in one run are the same
+   * adjudicated defect seen by different agents. Omit when the pipeline has no
+   * adjudicating stage. @see RecommendationInputSchema for why it must not be
+   * removed as unused.
+   */
+  clusterKey?: string;
 }
 
 /**
