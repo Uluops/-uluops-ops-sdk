@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.13.0] - 2026-08-09
+
+### Added
+
+- **`mergedIntoIssueId` on issue responses** — the issue a merge source was absorbed
+  into (`ops-uluops-api` migration 078, tracker `a5639db7`). `null` = never merged.
+
+  **The key has been on the wire since that migration shipped; this SDK was dropping
+  it.** Responses are parsed with `z.object()`, which strips unknown keys rather than
+  erroring — so the value arrived, was discarded, and nothing anywhere reported a
+  problem. That is the failure mode of a late-added field: not an error, silence. Anyone
+  on an earlier version is not seeing `null`, they are seeing nothing.
+
+  What it buys: an answer to *"where did this issue go?"*. Before this, `status` read
+  `merged` and the trail ended — MCP, the CLI and the dashboard all showed a dead end,
+  and the only fallbacks were parsing `status_history` prose (`Merged into issue <id>`)
+  or querying the database, which in production is reachable only from EC2. During an
+  incident that is the difference between one lookup and no answer.
+
+  **Optional, not required**, so this release still parses responses from an API that
+  predates migration 078 — the same independent-deploy tolerance `resolutionRunId` has
+  in the opposite direction (that field is leaving the wire; this one arrived on it
+  first). Read-only: the API refuses to set it through any update path, and it is an
+  identity relation, so it stays populated when the target is soft-deleted.
+
+
 ## [5.12.0] - 2026-08-04
 
 ### Added

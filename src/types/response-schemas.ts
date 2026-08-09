@@ -258,6 +258,29 @@ export const IssueResponseSchema = z.object({
   resolutionRunId: z.string().uuid().nullable().optional(),
   // Merge provenance (merge-projects v0.3.4, ops-api mig 069); null = never merged.
   mergedFromProjectId: z.string().uuid().nullable().optional(),
+  /**
+   * The issue this one was merged INTO by `POST /issues/merge` (ops-api mig 078).
+   * `null` = not a merge source.
+   *
+   * **Optional because the API has been emitting it since before this SDK release.**
+   * The key has existed on the wire since mig 078 shipped; `z.object()` strips unknown
+   * keys rather than erroring, so older SDKs silently dropped it — additive on the wire,
+   * invisible to every consumer. Marking it optional (rather than required) keeps this
+   * release parseable against an API that predates 078, which matters because the SDK
+   * and the API deploy independently.
+   *
+   * **Why it is worth carrying.** Without it there is no way to answer "where did this
+   * issue go" from any client. `status` reads `merged` and the trail ends: MCP, the CLI
+   * and the dashboard all showed a dead end, and the fallbacks were parsing
+   * `status_history` prose (`Merged into issue <id>`) or querying the database directly
+   * — and production's DB is reachable only from EC2. During an incident that is the
+   * difference between one lookup and no answer at all.
+   *
+   * An IDENTITY relation, not a visibility filter: it stays true when the target is
+   * soft-deleted. Correlation follows it; the by-fingerprint endpoints deliberately do
+   * not. Read-only — the API refuses to set it through any update path.
+   */
+  mergedIntoIssueId: z.string().uuid().nullable().optional(),
   deletedAt: NullableDateTimeSchema.optional(),  // Stripped by issueToPublic
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
