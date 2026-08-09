@@ -1134,6 +1134,22 @@ Track and manage validation issues.
 > surfacing as `null`. v5.11.0 accepts the field present, `null`, or absent, so it parses
 > both API shapes and can be adopted at any time ahead of the deploy.
 
+> **`mergedIntoIssueId` is available on issue responses (since v5.13.0).** When an issue
+> has been merged into another, this carries the surviving issue's UUID; `null` means it
+> was never merged. Without it there is no way to answer *"where did this issue go"* from
+> a client — `status` reads `merged` and the trail ends, leaving only `status_history`
+> prose or direct database access, and production's database is not reachable from a
+> workstation.
+>
+> The key has been on the wire since the API's migration 078. Earlier SDK versions
+> **silently discarded it**: responses are parsed with `z.object()`, which strips unknown
+> keys rather than erroring, so the value was dropped with no error and no warning. If
+> you are on an older SDK you are not seeing a `null` — you are seeing nothing.
+>
+> The field is an *identity* relation and read-only: it stays populated when the target
+> is soft-deleted, and the API refuses to set it through any update path. Correlation
+> follows it; the by-fingerprint endpoints deliberately do not.
+
 #### `client.issues.create(input)`
 
 Create a user-submitted issue.
