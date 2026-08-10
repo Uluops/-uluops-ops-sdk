@@ -271,6 +271,34 @@ export const SaveRunInputSchema = z.object({
   definitionId: z.string().uuid().optional(),
   definitionMinSubscription: z.enum(['free', 'hobbyist', 'plus', 'pro', 'enterprise']).optional(),
   analysisRecords: z.array(z.object({
+    /**
+     * Agent that produced this record — overrides the run-level default.
+     *
+     * **The same load-bearing-declaration case as `clusterKey` above, and it had
+     * already happened.** This is a plain `z.object()`, so an undeclared key is
+     * *stripped, not rejected*. `AnalysisRecordInput` in `./runs.ts` has declared
+     * `agentName` the whole time, so a caller setting it saw no type error, no
+     * validation error, and a successful request.
+     *
+     * It reached the wire regardless — but only by accident: `save()` discards
+     * `validateSaveRunInput`'s return value and transmits the raw `input`
+     * (`operations/runs.ts`). The declared contract and the transmitted contract
+     * were different objects, and the moment anyone sends the *parsed* value —
+     * the natural refactor when adding client-side normalization — every record
+     * loses its agent.
+     *
+     * Where `clusterKey` degraded to NULL, this degrades to something worse than
+     * absent: the tracker falls back to `definitionName ?? agents[0].name ??
+     * 'unknown'` and then infers `agentType` from that string, so the row reads
+     * as confidently attributed to the wrong agent. NULL announces itself; a
+     * plausible wrong name does not. Observed on tracker run #4 (2026-08-09) via
+     * the MCP path, which omitted the field for the same reason: 32 records from
+     * two analysts stored under a definition name, all typed `validator`.
+     *
+     * @see test/types/agent-name-survives.test.ts — asserts the parse OUTPUT, for
+     *      the same reason the clusterKey test does.
+     */
+    agentName: z.string().min(1).max(100).optional(),
     recordType: z.string().min(1).max(50),
     recordId: z.string().min(1).max(ANALYSIS_RECORD_ID_MAX_LENGTH),
     title: z.string().min(1).max(500),
