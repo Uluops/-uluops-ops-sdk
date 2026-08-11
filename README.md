@@ -1290,16 +1290,33 @@ const issue = await client.issues.updateStatus('issue-uuid', {
 
 #### `client.issues.update(issueId, input)`
 
-Update issue metadata.
+Update issue **metadata**. Not status — see the note below.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `title` | `string` | No | New title |
+| `priority` | `Priority` | No | New priority |
+| `type` | `IssueType` | No | New issue type |
 | `filePath` | `string` | No | New file path |
 | `lineNumber` | `number` | No | New line number |
 | `severity` | `Severity` | No | New severity |
 | `category` | `string` | No | New category |
 | `failureCode` | `string` | No | New failure code |
+| `failureDomain` | `FailureDomain` | No | New failure domain |
+| `failureMode` | `string` | No | New failure mode |
+| ~~`status`~~ | `Status` | No | **Deprecated — the server returns `400`.** Use `updateStatus`. |
+
+> **`status` no longer works on this method** *(deprecated in v5.14.0)*. `PATCH /issues/:id` records no
+> `status_history` row and derives no `resolved_at`, so a status change made there
+> bypassed the audit trail and the guards that keep `'merged'` reachable only through
+> a real merge. The tracker refuses it with a `400` naming the right endpoint.
+>
+> It is still declared and still sent, deliberately: an older tracker accepts it, and
+> this SDK does not enforce server policy client-side. Removing it in the next major.
+>
+> ```typescript
+> await client.issues.updateStatus('issue-uuid', { status: 'completed', reason: '…' });
+> ```
 
 ```typescript
 const issue = await client.issues.update('issue-uuid', {
