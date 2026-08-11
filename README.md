@@ -1306,7 +1306,7 @@ Update issue **metadata**. Not status — see the note below.
 | `failureMode` | `string` | No | New failure mode |
 | ~~`status`~~ | `Status` | No | **Deprecated — the server returns `400`.** Use `updateStatus`. |
 
-> **`status` no longer works on this method.** `PATCH /issues/:id` records no
+> **`status` no longer works on this method** *(deprecated in v5.14.0)*. `PATCH /issues/:id` records no
 > `status_history` row and derives no `resolved_at`, so a status change made there
 > bypassed the audit trail and the guards that keep `'merged'` reachable only through
 > a real merge. The tracker refuses it with a `400` naming the right endpoint.
