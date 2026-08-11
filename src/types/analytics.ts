@@ -25,6 +25,7 @@ import type {
   HighOverlapResponseSchema,
   MatrixAnalysisResponseSchema,
   AgentMatrixResultResponseSchema,
+  ShadowModeResponseSchema,
   TrendSummaryResponseSchema,
   PeriodResponseSchema,
   FullTaxonomyAnalyticsResponseSchema,
@@ -210,6 +211,9 @@ export type SinglePointFailure = z.infer<typeof SinglePointFailureResponseSchema
 
 /** High overlap (multiple agents detect the same thing) — derived from `HighOverlapResponseSchema`. */
 export type HighOverlap = z.infer<typeof HighOverlapResponseSchema>;
+
+/** A non-canonical failure code in use — derived from `ShadowModeResponseSchema`. */
+export type ShadowMode = z.infer<typeof ShadowModeResponseSchema>;
 
 /** Matrix coverage analysis — derived from `MatrixAnalysisResponseSchema`. */
 export type MatrixAnalysis = z.infer<typeof MatrixAnalysisResponseSchema>;

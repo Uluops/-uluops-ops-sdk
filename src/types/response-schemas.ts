@@ -983,9 +983,41 @@ export const MatrixAnalysisResponseSchema = z.object({
   highOverlap: z.array(HighOverlapResponseSchema),
 });
 
+/**
+ * A failure code in use that the canonical taxonomy does not contain.
+ *
+ * `issues.failure_domain` / `failure_mode` are free strings server-side — `failure_taxonomy`
+ * has no FK or CHECK against them and no write path rejects an off-catalog value — so issues
+ * can carry well-formed `DDD-MMM` pairs naming no catalogued mode, either invented
+ * (`STR-CON`) or borrowed across domains (`SEM-VAL`, `EPI-OMI`).
+ */
+export const ShadowModeResponseSchema = z.object({
+  mode: z.string(),
+  issueCount: z.number().int().nonnegative(),
+  agentCount: z.number().int().nonnegative(),
+});
+
 export const AgentMatrixResultResponseSchema = z.object({
   matrix: z.array(AgentMatrixRowResponseSchema),
   analysis: MatrixAnalysisResponseSchema,
+  /**
+   * Non-canonical codes excluded from `analysis`, in the same window and scope.
+   *
+   * **`.optional()`, deliberately — not `.default([])`.** This whole field exists because an
+   * exclusion that leaves no trace cannot be told apart from an exclusion of nothing.
+   * Defaulting to `[]` would recreate exactly that ambiguity at the SDK boundary: a server
+   * too old to compute the residue would be indistinguishable from a server reporting a
+   * clean one. `undefined` means "this API does not report shadow modes"; `[]` means "it
+   * does, and found none".
+   *
+   * Consumers must therefore handle `undefined` rather than assuming an array. That cost is
+   * the point.
+   *
+   * Added in 5.15.0 against `ops-uluops-api` `7ada3b0`. Before that release the field was
+   * absent from the response, which is why it cannot be required here — requiring it would
+   * make this SDK throw against every currently-deployed older API.
+   */
+  shadowModes: z.array(ShadowModeResponseSchema).optional(),
 });
 
 export const TrendSummaryResponseSchema = z.object({

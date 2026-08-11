@@ -1571,7 +1571,23 @@ console.log('Coverage matrix:', matrix.matrix);
 console.log('Blind spots:', matrix.analysis.blindSpots); // Domains not detected
 console.log('Single points:', matrix.analysis.singlePoints); // Only one agent detects
 console.log('High overlap:', matrix.analysis.highOverlap); // 3+ agents detect
+
+// `analysis` is scoped to the CANONICAL taxonomy. Codes outside it come back separately
+// (5.15.0+):
+if (matrix.shadowModes === undefined) {
+  // API predates the field — it did not look, which is not the same as finding none.
+} else if (matrix.shadowModes.length > 0) {
+  console.log('Non-canonical codes in use:', matrix.shadowModes);
+  // → [{ mode: 'EPI-OMI', issueCount: 7, agentCount: 3 }]
+}
 ```
+
+> **`shadowModes` is `ShadowMode[] | undefined`, and the distinction matters.** `undefined`
+> means the API does not report shadow modes (any release before `ops-uluops-api` `7ada3b0`);
+> `[]` means it does and found none. The field exists precisely because an exclusion that
+> leaves no trace is indistinguishable from an exclusion of nothing, so it is deliberately
+> **not** defaulted to `[]` — that would rebuild the ambiguity at the SDK boundary. Handle
+> `undefined` rather than assuming an array.
 
 #### `client.analytics.getTrendSummary(query)`
 

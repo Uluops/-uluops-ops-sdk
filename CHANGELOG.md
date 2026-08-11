@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.15.0] - 2026-08-11
+
+### Added
+
+- **`shadowModes` on `AgentMatrixResultResponseSchema`, plus the `ShadowMode` type.**
+  `ops-uluops-api` `7ada3b0` scoped `analysis.singlePoints` / `analysis.highOverlap` to the
+  canonical failure taxonomy and began returning the excluded non-canonical codes under a
+  `shadowModes` key. This SDK did not declare it.
+
+  **The field was therefore unreachable through the SDK, silently.** `getAgentMatrix` returns
+  `AgentMatrixResultResponseSchema.parse(...)`, and a plain `z.object()` strips undeclared
+  keys rather than rejecting them — so the parse succeeded, returned `['matrix','analysis']`,
+  and dropped the field with no error and no type complaint. Both MCP packages call
+  `opsClient.analytics.getAgentMatrix`, so `get_agent_matrix` — the tool whose output
+  surfaced the original shadow-mode defect — could not see the fix for it.
+
+  This is the **third** instance of this mechanism, after `clusterKey` and `agentName`, and
+  the first on a *read* path: those two were fields a caller could not send, this is a field
+  a caller could not receive. `test/types/shadow-modes-survive.test.ts` joins the existing
+  family and asserts on parse output rather than on types, since a type-level check passes
+  whether or not Zod keeps the value at runtime.
+
+  **`shadowModes` is `.optional()`, deliberately not `.default([])`.** The field exists
+  because an exclusion that leaves no trace cannot be told apart from an exclusion of
+  nothing; defaulting would rebuild exactly that ambiguity at the SDK boundary, making a
+  server too old to compute the residue indistinguishable from one reporting a clean one.
+  `undefined` means "this API does not report shadow modes", `[]` means "it does, and found
+  none". Consumers must handle `undefined` rather than assuming an array — that cost is the
+  point. It also means this release does not throw against currently-deployed older APIs.
+
 ## [5.14.0] - 2026-08-11
 
 ### Deprecated
