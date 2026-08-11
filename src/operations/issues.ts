@@ -209,6 +209,11 @@ export async function update(
   validateUpdateIssueInput(input);
   return IssueResponseSchema.parse(await client.patch<unknown>(`/issues/${encodeURIComponent(issueId)}`, {
     title: input.title,
+    // `status` is DEPRECATED and still forwarded. A current tracker answers 400
+    // (tracker `ff0f3d8a`) because this endpoint writes no status history; an older
+    // one still accepts it. Dropping it here would turn that 400 into a silent
+    // no-op for callers on a current server and break callers on an older one — the
+    // server owns the policy, not this client. Use `updateStatus`.
     status: input.status,
     priority: input.priority,
     severity: input.severity,

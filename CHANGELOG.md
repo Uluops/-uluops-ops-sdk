@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.14.0] - 2026-08-11
+
+### Deprecated
+
+- **`status` on `UpdateIssueInput`** (`client.issues.update`) — use
+  `client.issues.updateStatus`. Removed in the next major.
+
+  **The server now refuses it with a `400`** (ops-uluops-api `d42f218`, tracker
+  `ff0f3d8a`). `PATCH /issues/:id` records no `status_history` row and derives no
+  `resolved_at`, so a status change made through it bypassed the audit trail, the
+  resolving-status derivation, and the guards that keep `'merged'` reachable only
+  through a real merge. This SDK was the one consumer that actually sent the field —
+  the MCP tools, the CLI and the dashboard all route status through the status
+  endpoint already.
+
+  **Still declared and still sent on the wire, deliberately.** Two reasons, both
+  learned here the hard way:
+
+  1. An OLDER tracker still accepts it. Enforcing the new server's policy client-side
+     would break callers against an API that works — the same independent-deploy
+     reasoning that made `resolutionRunId` optional rather than removed.
+  2. Dropping it from the request body would convert an actionable `400` into a
+     silent no-op: the call would succeed and the status would not change. That is
+     the exact failure this workspace hit three times in three days
+     (`mergedIntoIssueId` stripped by this SDK, `priority` stripped by the MCP
+     `edit_issue` tool, and a schema test that could not tell either way).
+
+  A test pins the forwarding, so a future "the server rejects it, why send it?"
+  cleanup fails loudly rather than reintroducing that silence.
+
+  `resolvedAt` was already correctly excluded from this input as server-managed and
+  needs no change.
+
+
 ## [5.13.0] - 2026-08-09
 
 ### Added

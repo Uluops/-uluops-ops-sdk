@@ -129,6 +129,29 @@ export interface CreateUserIssueInput extends IssueFieldsBase {
  */
 export interface UpdateIssueInput {
   title?: string;
+  /**
+   * @deprecated Use `client.issues.updateStatus` instead. Removed in the next major.
+   *
+   * **The server refuses this field on `PATCH /issues/:id` with a `400`** as of
+   * ops-uluops-api `d42f218` (tracker `ff0f3d8a`). That endpoint records no
+   * `status_history` row and derives no `resolved_at`, so a status change made
+   * through it bypassed the audit trail, the resolving-status derivation, and the
+   * guards that stop `'merged'` being set outside a real merge.
+   *
+   * **Still declared, and still sent on the wire — deliberately.** Two reasons:
+   *
+   * 1. Removing it now would be a compile break for a field that has a working
+   *    replacement, and this SDK's convention (see `resolutionRunId`) is to relax or
+   *    deprecate first and remove at a major, so client and server can deploy
+   *    independently.
+   * 2. **The SDK must not enforce server policy client-side.** An older tracker still
+   *    accepts this field; refusing it here would break callers against an API that
+   *    works. Forwarding it means the server decides, and a caller on a current
+   *    tracker gets an actionable `400` naming the right endpoint rather than a
+   *    silent no-op — which is the failure mode this workspace hit three times
+   *    (`mergedIntoIssueId`, `edit_issue`'s `priority`, and a schema test that could
+   *    not tell either way).
+   */
   status?: Status;
   priority?: Priority;
   severity?: Severity | null;

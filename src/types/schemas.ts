@@ -354,6 +354,12 @@ export const CreateUserIssueInputSchema = z.object({
 
 export const UpdateIssueInputSchema = z.object({
   title: z.string().min(1).max(500).optional(),
+  /**
+   * @deprecated Rejected by the server on `PATCH /issues/:id` (tracker `ff0f3d8a`);
+   * use `updateStatus`. Kept in the schema so this SDK still validates the same
+   * shape against an OLDER tracker that accepts it — see the note on
+   * `UpdateIssueInput.status`.
+   */
   status: StatusSchema.optional(),
   priority: PrioritySchema.optional(),
   severity: SeveritySchema.nullish(),

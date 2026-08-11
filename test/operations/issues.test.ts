@@ -579,6 +579,30 @@ describe('Issue Operations', () => {
   });
 
   describe('update', () => {
+    // Tracker `ff0f3d8a`. `status` is deprecated on `UpdateIssueInput` and STILL SENT
+    // on purpose: a current tracker answers 400 (that endpoint writes no status
+    // history), while an older one still accepts it. Dropping it from the body here
+    // would turn that 400 into a silent no-op for callers on a current server AND
+    // break callers on an older one — the server owns the policy, not this client.
+    //
+    // This test exists so a future "the server rejects it, why are we sending it?"
+    // cleanup fails loudly instead of reintroducing the silent-strip this workspace
+    // has now hit three times.
+    it('still forwards a deprecated status so the server can reject it, rather than dropping it', async () => {
+      const issueId = '00000000-0000-4000-a000-0000000000f0';
+
+      nock(BASE_URL)
+        .patch(`/issues/${issueId}`, (body: Record<string, unknown>) =>
+          body['status'] === 'completed' && body['title'] === 'Retitled')
+        .reply(200, { data: createMockIssue({ id: issueId, title: 'Retitled' }) });
+
+      await expect(
+        issueOps.update(client, issueId, { title: 'Retitled', status: 'completed' }),
+      ).resolves.toBeDefined();
+      // nock only matches if `status` was actually in the body; an unmatched request
+      // rejects, so reaching here IS the assertion.
+    });
+
     it('should update issue metadata', async () => {
       const issueId = '00000000-0000-4000-a000-000000000094';
       const mockIssue = createMockIssue({
