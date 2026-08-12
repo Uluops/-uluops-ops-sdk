@@ -516,6 +516,51 @@ describe('Project Operations', () => {
       expect(result.conflicts[0]?.kind).toBe('fingerprint_dedup');
     });
 
+    it('parses fingerprint_blocked_by_deleted, and any future conflict kind, without throwing', async () => {
+      // `kind` is server-controlled and additive. It used to be a `z.enum`, and
+      // `mergeProjects` parses via `.parse()` — so every conflict kind the API added
+      // was a client outage, and a particularly bad one: the merge SUCCEEDS server-side
+      // and the SDK throws on the response, so the caller sees an error for completed
+      // work and may retry a non-idempotent operation.
+      //
+      // Two kinds asserted, not one. `fingerprint_blocked_by_deleted` is the value that
+      // forced this change; `some_future_kind_not_yet_invented` is the point of it — a
+      // test that only pinned the known value would pass against a re-closed enum.
+      nock(BASE_URL)
+        .post('/projects/merge')
+        .reply(200, {
+          data: {
+            ...mockMergeResult,
+            conflicts: [
+              { ...mockMergeResult.conflicts[0], kind: 'fingerprint_blocked_by_deleted', resolution: 'source_left_in_place_target_is_soft_deleted' },
+              { ...mockMergeResult.conflicts[0], kind: 'some_future_kind_not_yet_invented' },
+            ],
+          },
+        });
+
+      const result = await projectOps.mergeProjects(client, { source: 'merge-source', target: 'merge-target' });
+
+      // The VALUE must survive verbatim — a `.catch()` fallback would also avoid the
+      // throw while silently replacing the server's answer with a sentinel.
+      expect(result.conflicts[0]?.kind).toBe('fingerprint_blocked_by_deleted');
+      expect(result.conflicts[1]?.kind).toBe('some_future_kind_not_yet_invented');
+    });
+
+    it('still rejects a malformed conflict kind — permissive is not the same as absent', async () => {
+      // Guards the other direction. Widening to `z.string()` with no shape constraint
+      // would make the field unvalidated, and this test would pass either way; the
+      // regex is what keeps the wire contract honest.
+      nock(BASE_URL)
+        .post('/projects/merge')
+        .reply(200, {
+          data: { ...mockMergeResult, conflicts: [{ ...mockMergeResult.conflicts[0], kind: 'Not A Valid Kind!' }] },
+        });
+
+      await expect(
+        projectOps.mergeProjects(client, { source: 'merge-source', target: 'merge-target' })
+      ).rejects.toThrow();
+    });
+
     it('should pass dryRun/deleteSource/confirmCrossOrg through in the request body', async () => {
       nock(BASE_URL)
         .post('/projects/merge', {

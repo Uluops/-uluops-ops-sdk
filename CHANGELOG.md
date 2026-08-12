@@ -6,6 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.16.0] - 2026-08-12
+
+### Changed
+
+- **`conflicts[].kind` on `MergeProjectsResult` is no longer a closed `z.enum`.** It is now
+  shape-validated (`/^[a-z][a-z0-9_]*$/`) — the same call this file already made for
+  `FailureDomainResponseSchema`, and for the same reason.
+
+  **This was an outage waiting on the next API release, not a style preference.** `kind` is
+  server-controlled and additive: the API can add a conflict kind without a breaking change
+  on its side. `mergeProjects` parses via `.parse()`, and `z.enum` **throws** on an unknown
+  member — so every kind the API added would have taken down every consumer that had not
+  upgraded first. The failure mode is unusually bad for this endpoint: the merge **succeeds
+  server-side**, then the SDK throws on the response, so the caller sees an error for work
+  that actually completed and may retry a non-idempotent operation.
+
+  Verified against this schema before and after: a payload carrying `fingerprint_dedup`
+  parsed clean while the same payload with `fingerprint_blocked_by_deleted` failed on
+  `conflicts.0.kind`. After the change all known kinds and an invented
+  `some_future_kind_not_yet_invented` parse, while `Not A Valid Kind!`, `UPPER_CASE` and
+  `''` are still rejected — permissive is not the same as absent, and both directions are
+  pinned by tests that were each confirmed to fail on the opposite mistake.
+
+  **Rejected alternative:** `z.enum(...).catch('unknown')`, which also avoids the throw but
+  silently replaces the server's answer with a sentinel — the value would be gone with no
+  error, which is the failure shape this SDK has been bitten by before.
+
+  **Type-level note, called out because it is the one thing a consumer can notice:**
+  `MergeProjectsResult['conflicts'][number]['kind']` widens from a literal union to
+  `string`. Code that *reads* or compares it is unaffected; code that assigns it to a
+  narrower literal-union variable will no longer typecheck. Released as a minor because no
+  consumer in the workspace narrows on this field — searched `ops-uluops-mcp`,
+  `packages/-uluops-ops-mcp`, `ops-uluops-dashboard` and `ops-uluops-registry` on
+  2026-08-12, zero references to any conflict kind or to `MergeProjectsResult`.
+
+### Added
+
+- **`MERGE_PROJECT_CONFLICT_KINDS`** and the **`MergeProjectConflictKind`** open-union type
+  (`(typeof KINDS)[number] | (string & {})`), so the known set stays documented and
+  autocompletable now that the schema no longer enumerates it. Includes
+  `fingerprint_blocked_by_deleted` (registry-api tracker `642595bb`): the target project
+  holds a soft-deleted issue owning that fingerprint, so the source issue cannot be moved
+  onto it and is left in the source project. Since a successful merge soft-deletes the
+  source project, that issue becomes hidden with it — the conflict is a prompt to restore
+  the target's deleted issue and re-run, not a notice.
+- **`MergeConflictKindResponseSchema`**, exported so the shape rule has one definition.
+
 ## [5.15.0] - 2026-08-11
 
 ### Added

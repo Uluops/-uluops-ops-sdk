@@ -35,6 +35,61 @@ export const PriorityResponseSchema = z.enum(PRIORITIES);
 export const StatusResponseSchema = z.enum(STATUSES);
 export const SeverityResponseSchema = z.enum(SEVERITIES);
 export const FailureDomainResponseSchema = z.string().regex(/^[A-Z]{3}$/);
+
+/**
+ * Conflict kinds emitted by `POST /projects/merge`.
+ *
+ * **Documentation, not validation.** The schema below deliberately does not close over
+ * this list — see {@link MergeConflictKindResponseSchema}. Exported so consumers can
+ * switch on the known set and so a new kind has one obvious place to be recorded.
+ *
+ * - `fingerprint_dedup` — source issue absorbed into a colliding live target issue.
+ * - `semantic_fingerprint_dedup` — same, matched on the semantic fingerprint.
+ * - `fingerprint_blocked_by_deleted` — the target project holds a SOFT-DELETED issue
+ *   owning that fingerprint. `uk_project_fingerprint` does not include `deleted_at`, so
+ *   the hidden row still owns the key and the source issue cannot be moved onto it. The
+ *   source issue is left in the source project — and because a successful merge
+ *   soft-deletes that project, it becomes hidden with it. Restore the target's deleted
+ *   issue and re-run.
+ * - `run_number_collision` — RESERVED, never emitted; run re-keying uses a
+ *   collision-free global offset.
+ */
+export const MERGE_PROJECT_CONFLICT_KINDS = [
+  'fingerprint_dedup',
+  'run_number_collision',
+  'semantic_fingerprint_dedup',
+  'fingerprint_blocked_by_deleted',
+] as const;
+
+/**
+ * A merge conflict kind. Known values are documented above; unknown values are
+ * preserved verbatim rather than rejected.
+ *
+ * `(string & {})` keeps autocomplete for the known set while still admitting any
+ * string — the TypeScript idiom for an open union.
+ */
+export type MergeProjectConflictKind =
+  | (typeof MERGE_PROJECT_CONFLICT_KINDS)[number]
+  | (string & {});
+
+/**
+ * Shape validation, NOT a closed value list — the same call this file already made for
+ * `FailureDomainResponseSchema`, and for the same reason.
+ *
+ * `kind` is server-controlled and additive: the API gains conflict kinds without a
+ * breaking change on its side. A `z.enum` here turns every such addition into a client
+ * outage, because `MergeProjectsResultResponseSchema` is consumed via `.parse()`, which
+ * THROWS on an unknown enum member. The failure is particularly bad for merge: the
+ * merge SUCCEEDS server-side and the SDK then throws on the response, so the caller sees
+ * an error for work that actually completed and may retry a non-idempotent operation.
+ *
+ * Recorded because it happened. `fingerprint_blocked_by_deleted` (registry-api tracker
+ * `642595bb`) could not ship until this line changed — verified against this schema:
+ * the same payload parsed clean with `fingerprint_dedup` and failed on
+ * `conflicts.0.kind` with the new value. The regex keeps the wire format honest
+ * (lower-snake identifier) without asserting knowledge of the value set.
+ */
+export const MergeConflictKindResponseSchema = z.string().regex(/^[a-z][a-z0-9_]*$/);
 export const IssueTypeResponseSchema = z.enum(ISSUE_TYPES);
 export const NoteTypeResponseSchema = z.enum(NOTE_TYPES);
 export const UserRoleResponseSchema = z.enum(USER_ROLES);
@@ -782,7 +837,7 @@ export const MergeProjectsResultResponseSchema = z.object({
     status_history_reparented: z.number().int().nonnegative(),
   }),
   conflicts: z.array(z.object({
-    kind: z.enum(['fingerprint_dedup', 'run_number_collision', 'semantic_fingerprint_dedup']),
+    kind: MergeConflictKindResponseSchema,
     source_id: z.string().uuid(),
     target_id: z.string().uuid(),
     resolution: z.string(),
