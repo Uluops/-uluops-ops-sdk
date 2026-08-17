@@ -46,7 +46,9 @@ describe('OpsClient', () => {
 
   describe('auth operations', () => {
     it('should register a new user', async () => {
-      const mockRegister = createMockRegisterResponse({ email: 'test@example.com' });
+      const mockRegister = createMockRegisterResponse({
+        user: createMockAuthUser({ email: 'test@example.com' }),
+      });
       nock(BASE_URL)
         .post('/auth/register', { email: 'test@example.com', password: 'Password123' })
         .reply(201, { data: mockRegister });
@@ -56,7 +58,14 @@ describe('OpsClient', () => {
         password: 'Password123',
       });
 
-      expect(result.email).toBe('test@example.com');
+      // Nested, matching the live response. This previously asserted
+      // `result.email` — a top-level field the API has never returned. It
+      // passed only because the mock factory fabricated it, which is the
+      // mock/schema-agree-but-neither-matches-the-server failure this release
+      // corrects. Also assert the session token, so the test covers the field
+      // a caller actually needs from a successful registration.
+      expect(result.user.email).toBe('test@example.com');
+      expect(result.sessionToken).toBeTruthy();
     });
 
     it('should login and return token', async () => {

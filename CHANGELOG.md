@@ -25,8 +25,20 @@ documented onboarding step for a new user with no key yet.
 
 **Why no test caught it:** the tests asserted against hand-written mock factories derived
 from this schema rather than from a real response. The mock and the schema agreed with each
-other, and neither agreed with the server. Any future change here must be checked against a
-live `/auth/register` call, not a fixture built from the schema it is meant to validate.
+other, and neither agreed with the server. `createMockRegisterResponse` self-validates against
+`RegisterResponseSchema` under `STRICT_CONTRACTS`, which proves mock/schema agreement and never
+mock/server agreement — so the check that existed could not have caught the defect it was
+positioned to catch.
+
+Corrected alongside the schema, and `prepublishOnly` is what forced it: the 5.17.0 publish was
+blocked by two failures whose error text read *"Invalid mock register response data"*. The
+factory now builds the real `{user, sessionToken, expiresAt}` shape, identical to
+`createMockLoginResponse`. `test/client.test.ts` had been asserting `result.email` — a
+**top-level field the API has never returned** — which passed only because the factory
+fabricated it; it now asserts `result.user.email` and `result.sessionToken`.
+`test/operations/auth.test.ts` already asserted the nested `result.user.email` correctly and
+merely passed a redundant flat override. Any future change here must be checked against a live
+`/auth/register` call, not a fixture built from the schema it is meant to validate.
 
 **This changes the exported `RegisterResponse` type** from flat to nested. Strictly that is
 a breaking type change, and a case for a major bump exists. It is shipped as a minor on the

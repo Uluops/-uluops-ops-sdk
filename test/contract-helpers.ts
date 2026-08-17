@@ -692,19 +692,29 @@ export function createMockLoginResponse(overrides: Partial<z.infer<typeof LoginR
 }
 
 /**
- * Factory for creating valid RegisterResponse data
+ * Factory for creating valid RegisterResponse data.
+ *
+ * Deliberately identical in shape to {@link createMockLoginResponse}, because
+ * `POST /auth/register` auto-logs-in and returns the same body as
+ * `POST /auth/login` — verified against a live API, not inferred.
+ *
+ * **This factory previously built a flat shape** (`id`, `email`, `isActive`,
+ * `role`, `subscriptionTier`, `createdAt`, `updatedAt`) matching the old,
+ * incorrect `RegisterResponseSchema`. Because `STRICT_CONTRACTS` validates this
+ * factory *against that schema*, the mock and the schema agreed with each other
+ * and neither agreed with the server — so the tests passed for months while
+ * `auth.register()` threw a `ZodError` on every real call.
+ *
+ * That is the failure mode to keep in mind when editing any factory here:
+ * self-validation proves mock/schema agreement, never mock/server agreement.
+ * A shape change should be confirmed against a real response.
  */
 export function createMockRegisterResponse(overrides: Partial<z.infer<typeof RegisterResponseSchema>> = {}) {
   const data = {
-    id: generateId(),
     user: createMockAuthUser(),
+    sessionToken: `session-token-${idCounter}`,
     token: `jwt-token-${idCounter}`,
-    email: `user${idCounter}@example.com`,
-    isActive: true,
-    role: 'user' as const,
-    subscriptionTier: 'free' as const,
-    createdAt: isoDate(),
-    updatedAt: isoDate(),
+    expiresAt: isoDate(-1), // 1 day in future
     ...overrides,
   };
 

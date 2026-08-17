@@ -30,7 +30,6 @@ describe('Auth Operations', () => {
   describe('register', () => {
     it('should register a new user', async () => {
       const mockResponse = createMockRegisterResponse({
-        email: 'newuser@example.com',
         user: createMockAuthUser({ email: 'newuser@example.com' }),
         token: 'jwt-token-abc',
       });
