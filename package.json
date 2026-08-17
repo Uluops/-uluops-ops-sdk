@@ -1,7 +1,7 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "5.16.0",
-  "description": "SDK for the UluOps platform API — execution tracking, analytics, and auth",
+  "version": "5.17.0",
+  "description": "Track execution runs, manage issues, and query analytics against the UluOps platform API \u2014 typed TypeScript client with Zod runtime validation.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

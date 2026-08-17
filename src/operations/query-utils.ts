@@ -11,6 +11,14 @@ interface IssueListQuery {
   priority?: string;
   severity?: string;
   failureDomain?: string;
+  /**
+   * Kept in step with `ListProjectIssuesQuery` and `ListIssuesQuery`. Structural
+   * assignability means an absent field here still reaches the wire — `toApiQuery`
+   * converts whatever the object carries — so omitting it would not have broken a
+   * caller, only made this builder's declared contract say the filter does not
+   * exist. That is the exact shape of the defect this field was added to fix.
+   */
+  failureMode?: string;
   agent?: string;
   limit?: number;
   offset?: number;

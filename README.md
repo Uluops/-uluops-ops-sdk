@@ -6,12 +6,12 @@
 
 [![npm version](https://img.shields.io/npm/v/@uluops/ops-sdk.svg)](https://www.npmjs.com/package/@uluops/ops-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20.3+-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 5.11.0** | [Changelog](./CHANGELOG.md)
+**Current version: 5.17.0** | [Changelog](./CHANGELOG.md)
 
 ## Quick Start
 
@@ -64,6 +64,12 @@ for (const issue of issues) {
 
 ### Project Analytics
 
+> **Requires a `plus` tier subscription or higher.** Every method under
+> [Analytics Operations](#analytics-operations) is tier-gated server-side. On a `free`
+> account — which is the default for a newly registered user — these calls reject with
+> `ForbiddenError: This feature requires plus tier or higher.` The rest of this Quick Start
+> works on any tier; this section does not.
+
 ```typescript
 const burndown = await client.analytics.getBurndown({
   project: 'my-project',
@@ -93,6 +99,8 @@ for (const [domain, trend] of Object.entries(burndown.trends)) {
 - [Environment Variables](#environment-variables)
 - [Error Handling](#error-handling)
 - [Advanced Usage](#advanced-usage)
+- [CLI](#cli)
+- [Input Validation](#input-validation)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
@@ -133,7 +141,7 @@ bun add @uluops/ops-sdk
 ```
 
 **Requirements:**
-- Node.js 18.0.0 or higher
+- Node.js 20.3.0 or higher (enforced by `engines` in `package.json`)
 - TypeScript 5.0+ (for TypeScript users)
 
 **Dependencies:**
@@ -687,11 +695,23 @@ List issues for a project with filters.
 | `status` | `Status` | No | Filter by status |
 | `priority` | `Priority` | No | Filter by priority |
 | `severity` | `Severity` | No | Filter by severity |
+| `failureDomain` | `FailureDomain` | No | Filter by taxonomy domain (`STR`/`SEM`/`PRA`/`EPI`) |
+| `failureMode` | `string` | No | Filter by taxonomy mode — the `MODE` half of a `DOMAIN-MODE/SEVERITY` code, e.g. `OMI`. Three uppercase letters. Intentionally not restricted to the canonical mode set, so non-canonical rows remain findable. **Requires API ≥ the release carrying the mode-filter fix; against an older API this filter is silently ignored and you receive unfiltered results.** |
 | `agent` | `string` | No | Filter by agent |
+| `includeResolved` | `boolean` | No | Include `completed`/`wontfix`/`false-positive` issues |
+| `minTimesSeen` | `number` | No | Only issues seen at least this many times |
+| `dateStart` | `string` | No | ISO 8601 — issues created on or after |
+| `dateEnd` | `string` | No | ISO 8601 — issues created on or before |
 | `limit` | `number` | No | Max results (default: 50) |
 | `offset` | `number` | No | Pagination offset |
 
 > **Filter convention:** Passing `'all'` for any filter (e.g., `status: 'all'`) is equivalent to omitting the parameter — the SDK strips `'all'` values before sending the request. This applies to all query methods across the SDK.
+>
+> **The table above is the canonical filter set** for `projects.listIssues`,
+> `projects.listIssuesWithCount`, and `issues.listByProject` — all three take the same
+> query shape. `issues.search` is the exception: it accepts `failureDomains` (an array)
+> and **does not accept `failureMode` at all**, because the server-side search path has no
+> mode predicate. If you need to filter by mode, use one of the three list methods.
 
 ```typescript
 const issues = await client.projects.listIssues('my-project', {
@@ -1909,7 +1929,7 @@ console.log(key); // ulr_abc123...
 ### Authentication Errors
 
 ```text
-UnauthorizedError: Authentication required
+UnauthorizedError: the provided api_key credential was rejected (401)
 ```
 
 Check that:
@@ -1919,7 +1939,7 @@ Check that:
 
 ```bash
 # Verify environment
-echo $ULUOPS_API_KEY
+[ -n "$ULUOPS_API_KEY" ] && echo "ULUOPS_API_KEY is set" || echo "ULUOPS_API_KEY is NOT set"
 ```
 
 ### Rate Limiting

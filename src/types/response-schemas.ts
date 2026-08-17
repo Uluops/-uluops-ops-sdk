@@ -148,20 +148,30 @@ export const LoginResponseSchema = z.object({
 });
 
 /**
- * Register response schema.
- * Guaranteed fields: id, email, role, createdAt, updatedAt.
- * The `user` and `token` fields are included for API variants that return them.
+ * Register response schema — identical to {@link LoginResponseSchema}, because
+ * `POST /auth/register` performs an auto-login and returns the same payload
+ * (`password-auth-controller.ts` register and login return byte-identical
+ * `{user, sessionToken, expiresAt}` bodies).
+ *
+ * **This schema previously declared a flat shape** — required `id`, `email`,
+ * `isActive`, `role`, `subscriptionTier`, `createdAt`, `updatedAt` at the top
+ * level, with `user` optional. The API has never returned that shape, so
+ * `auth.register()` threw a raw `ZodError` with seven issues on every single
+ * call, on a successful HTTP 201, after the account had already been created
+ * server-side. The correct schema was sitting twelve lines above this one the
+ * whole time.
+ *
+ * It survived because the tests asserted against hand-written mock factories
+ * built from this schema rather than from a real response — the mock and the
+ * schema agreed with each other and neither agreed with the server. Any future
+ * change here should be checked against a live `/auth/register` call, not
+ * against a fixture derived from the schema it is meant to validate.
  */
 export const RegisterResponseSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  isActive: z.boolean(),
-  role: UserRoleResponseSchema,
-  subscriptionTier: SubscriptionTierResponseSchema,
-  user: AuthUserResponseSchema.optional(),
-  token: z.string().optional(),
-  createdAt: DateTimeStringSchema,
-  updatedAt: DateTimeStringSchema,
+  user: AuthUserResponseSchema,
+  sessionToken: z.string(),
+  token: z.string().optional(), // Legacy field, mirrors LoginResponseSchema
+  expiresAt: DateTimeStringSchema,
 });
 
 export const PublicApiKeyResponseSchema = z.object({

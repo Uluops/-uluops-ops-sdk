@@ -203,6 +203,17 @@ export interface ListIssuesQuery {
   priority?: Priority;
   severity?: Severity;
   failureDomain?: FailureDomain;
+  /**
+   * Filter by failure MODE — the mode half of a `DOMAIN-MODE/SEVERITY` code,
+   * e.g. `OMI`, `VAL`, `INC`.
+   *
+   * Typed as a bare string rather than a union of the canonical modes on
+   * purpose — see {@link ListProjectIssuesQuery.failureMode}. Kept in step with
+   * that type: both feed `buildIssueListParams`, so a field present on one and
+   * absent from the other silently changes behaviour depending on which
+   * operation the caller reached for.
+   */
+  failureMode?: string;
   agent?: string;
   limit?: number;
   offset?: number;

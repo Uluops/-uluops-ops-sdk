@@ -6,6 +6,89 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.17.0] - 2026-08-17
+
+### Fixed — `auth.register()` threw a raw `ZodError` on every call (BREAKING TYPE CHANGE)
+
+`RegisterResponseSchema` declared a flat shape — required `id`, `email`, `isActive`, `role`,
+`subscriptionTier`, `createdAt`, `updatedAt` at the top level, with `user` optional. The API
+has never returned that. `POST /auth/register` performs an auto-login and returns
+`{user, sessionToken, expiresAt}` — byte-identical to `POST /auth/login`.
+
+So every real call threw an unwrapped `ZodError` with seven issues, on a successful HTTP 201,
+**after the account had already been created server-side**. The error was not caught by
+`instanceof OpsApiError`, `isOpsApiError()`, or any pattern this README's Error Handling
+section teaches, so it also broke the documented error hierarchy. This was the first
+documented onboarding step for a new user with no key yet.
+
+`LoginResponseSchema` — twelve lines above it in the same file — was already correct.
+
+**Why no test caught it:** the tests asserted against hand-written mock factories derived
+from this schema rather than from a real response. The mock and the schema agreed with each
+other, and neither agreed with the server. Any future change here must be checked against a
+live `/auth/register` call, not a fixture built from the schema it is meant to validate.
+
+**This changes the exported `RegisterResponse` type** from flat to nested. Strictly that is
+a breaking type change, and a case for a major bump exists. It is shipped as a minor on the
+grounds that the previous type described a shape the runtime never produced: no consumer
+could have been reading `.email` off a successful call, because there were no successful
+calls. Code typed against the old shape was already failing at runtime. Callers now read
+`result.user.email` and `result.sessionToken`.
+
+Verified live against a dev API: `register()` returns `{user, sessionToken, expiresAt}`,
+`user.email` matches the address requested, and `sessionToken` is populated.
+
+### Added
+
+- **`failureMode` on the issue-list query types.** `ListProjectIssuesQuery`,
+  `ListIssuesQuery`, and the shared private `IssueListQuery` in `query-utils` all carried
+  `failureDomain` and none carried `failureMode`, so the mode half of a
+  `DOMAIN-MODE/SEVERITY` code was untypeable as a filter even though the API accepts it.
+
+  **This was a types-only gap, not a functional one.** `buildIssueListParams` is a bare
+  `toApiQuery(query)` camelCase→snake_case conversion with no allowlist, so a caller who
+  forced the key through with a cast always reached the wire. What the omission actually
+  did was tell every typed consumer the filter did not exist — and that is how it stayed
+  unwired end-to-end for so long: the MCP's `query_issues` declared `failure_mode` in its
+  tool schema and dropped it from its forward-list, and the API declared it in three layers
+  and applied it in none.
+
+  ⚠️ **The server-side half is not deployed yet.** The API fix lives on
+  `fix/analytics-fanout-and-mode-filter` and is pushed but unmerged at the time of writing.
+  Against an API without it, this filter is **silently ignored and returns unfiltered
+  results** — the same failure mode it was added to close, one hop later. The README's
+  filter table carries this caveat. Do not treat the SDK type as evidence the filter works
+  against a given deployment.
+
+  Typed as a bare `string`, deliberately, rather than a union of the 28 canonical modes.
+  `issues.failure_mode` carries no membership constraint server-side, so non-canonical rows
+  exist — and finding them is the filter's most valuable use, because the taxonomy analytics
+  structurally cannot: they build their mode distribution by iterating the catalog, so a
+  non-member is absent from the result by construction.
+
+  Additive and optional on all three interfaces. Note `IssueSearchQuery` (backing
+  `issues.search()`) deliberately does **not** receive it — the server-side search path has
+  no mode predicate — so the filter is available on the three list methods only.
+
+### Changed — documentation corrections found by a live DX pass
+
+- `README.md` version banner said 5.11.0, seven releases stale. Now 5.17.0.
+- Node requirement said 18.0.0 in both the badge and the prerequisites while `engines`
+  requires `>=20.3.0`. A reader on Node 18 followed the stated prerequisite into an engine
+  mismatch npm never warned about. Both corrected to 20.3.
+- **The Quick Start's `getBurndown` example rejects for every newly registered user.** Every
+  route in the API's analytics router is tier-gated, `free` is the default tier on
+  registration, and the README mentioned subscription tiers nowhere. The Quick Start now
+  carries the requirement inline.
+- The `listIssues` filter table documented 6 of 12 parameters — missing `failureDomain`,
+  `failureMode`, `includeResolved`, `minTimesSeen`, `dateStart` and `dateEnd`. Now complete,
+  and declared canonical for the three list methods that share the shape, with the
+  `issues.search` exception stated.
+- Troubleshooting told the reader to run `echo $ULUOPS_API_KEY`, which prints the key value
+  rather than testing presence. Replaced with a presence test that does not emit the secret.
+- Table of contents omitted the `CLI` and `Input Validation` sections.
+- `package.json` description rewritten to lead with a verb.
+
 ## [5.16.0] - 2026-08-12
 
 ### Changed

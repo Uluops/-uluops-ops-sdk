@@ -93,6 +93,18 @@ export interface ListProjectIssuesQuery {
   priority?: Priority;
   severity?: Severity;
   failureDomain?: FailureDomain;
+  /**
+   * Filter by failure MODE — the mode half of a `DOMAIN-MODE/SEVERITY` code,
+   * e.g. `OMI`, `VAL`, `INC`.
+   *
+   * Typed as a bare string rather than a union of the canonical modes on
+   * purpose. `issues.failure_mode` carries no membership constraint server-side,
+   * so non-canonical rows exist and finding them is a real use case — the
+   * taxonomy analytics cannot, because they iterate the catalog and a
+   * non-member is absent from the result by construction. A closed union here
+   * would make the one query capable of enumerating them untypeable.
+   */
+  failureMode?: string;
   agent?: string;
   limit?: number;
   offset?: number;
