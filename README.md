@@ -1014,9 +1014,42 @@ const run = await client.runs.update({
 });
 ```
 
+**Analysis writes are per-agent scoped REPLACE** (API 1a): for each agent named in
+`analysisRecords` / `analysisSummary`, that agent's existing rows are superseded by the
+payload's; agents not named are untouched. Omitting a record an agent previously had
+retires it — preview with `previewUpdate` first when unsure. The SDK asserts the server's
+`analysisWrite` echo on every analysis-bearing update and throws a named
+`AnalysisEchoMismatchError` if the server implements different semantics (the update has
+been applied when this throws — re-read the run rather than retry).
+
+#### `client.runs.previewUpdate(input, options?)` / `client.runs.previewUpdateById(runId, input, options?)`
+
+Read-only preview of an analysis-bearing update: what a replace write would supersede,
+create, and — via `wouldRetireRecordIds` — retire by omission. Accepts analysis concerns
+only (`analysisRecords`, `analysisSummary`); any other update field throws a named
+`InputValidationError` client-side (the SDK builds the request body from the analysis
+fields alone, so the server's own scope-rule 400 is unreachable through it — the
+client-side check is what keeps a spread-in update input from being silently narrowed).
+
+```typescript
+const plan = await client.runs.previewUpdate({
+  project: 'my-project',
+  runNumber: 5,
+  analysisRecords: [
+    { agentName: 'epictetus-analyst', recordType: 'evidence_claim', recordId: 'EC-1',
+      title: 'Registry overclaim', data: { claim: '...' } },
+  ],
+});
+for (const [agent, p] of Object.entries(plan.byAgent)) {
+  if (p.wouldRetireRecordIds.length > 0) {
+    console.warn(`${agent}: write would retire ${p.wouldRetireRecordIds.join(', ')}`);
+  }
+}
+```
+
 #### `client.runs.updateById(runId, input, options?)`
 
-Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0). Accepts `{ _skipClientValidation: true }` option.
+Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0) under the same per-agent replace semantics and echo assertion as `update`. Accepts `{ _skipClientValidation: true }` option.
 
 ```typescript
 // Basic metadata update

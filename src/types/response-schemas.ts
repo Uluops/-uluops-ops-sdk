@@ -534,6 +534,55 @@ export const RunResponseSchema = z.object({
   orgSlug: z.string().nullable().optional(),
 });
 
+/**
+ * The additive `analysisWrite` block on analysis-bearing update responses
+ * (ops-uluops-api update-run replacement-semantics spec §3.9, live since 1a).
+ * `recordMode` is deliberately a plain string, not a literal: the update path
+ * asserts equality with the mode it implements (see assertAnalysisWriteEcho in
+ * operations/runs.ts), so a future server mode surfaces as a loud named
+ * mismatch instead of an anonymous parse failure.
+ */
+export const AnalysisWriteEchoSchema = z.object({
+  recordMode: z.string(),
+  supersededRecords: z.number().int().nonnegative(),
+  supersededSummaries: z.number().int().nonnegative(),
+  createdRecords: z.number().int().nonnegative(),
+  createdSummaries: z.number().int().nonnegative(),
+});
+
+/**
+ * Full update-response envelope. The update paths read the body with
+ * sdk-core's `rawEnvelope` option instead of the default `{ data }` unwrap,
+ * because `analysisWrite` is a SIBLING of `data` and the unwrap discards
+ * siblings (the exact gap that made the §3.9 echo unreachable from SDKs
+ * pinned to sdk-core ≤0.15.0).
+ */
+export const UpdateRunEnvelopeSchema = z.object({
+  data: RunResponseSchema,
+  analysisWrite: AnalysisWriteEchoSchema.optional(),
+});
+
+/** Per-agent plan block of an update preview (spec §4). */
+export const AgentWritePlanResponseSchema = z.object({
+  wouldSupersedeRecords: z.number().int().nonnegative(),
+  wouldSupersedeSummaries: z.number().int().nonnegative(),
+  wouldCreateRecords: z.number().int().nonnegative(),
+  wouldCreateSummaries: z.number().int().nonnegative(),
+  /**
+   * Live record_ids for the agent absent from the payload — what a replace
+   * write would retire by omission. A non-empty list on a preview is the
+   * signal the write would destroy rows the caller did not resend.
+   */
+  wouldRetireRecordIds: z.array(z.string()),
+});
+
+/** Response of POST /runs/:id/update-preview and POST /runs/update-preview. */
+export const RunUpdatePreviewResponseSchema = z.object({
+  preview: z.literal(true),
+  recordMode: z.string(),
+  byAgent: z.record(z.string(), AgentWritePlanResponseSchema),
+});
+
 /** Run summary schema for list endpoints — enriched with aggregate fields, omits detail-only fields */
 export const RunSummaryResponseSchema = z.object({
   id: z.string().uuid(),

@@ -60,6 +60,9 @@ import type {
   ArchiveRunsResult,
   UpdateRunInput,
   UpdateRunByNumberInput,
+  UpdateRunPreviewInput,
+  UpdateRunPreviewByNumberInput,
+  RunUpdatePreview,
   ListRunsQuery,
   RunDetails,
   ProjectAnalysisQuery,
@@ -397,6 +400,10 @@ export class OpsClient {
     update: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
       runOps.update(this.httpClient, input, options),
 
+    /** Read-only preview of an analysis-bearing update (project + run number): what a replace write would supersede, create, and retire. */
+    previewUpdate: (input: UpdateRunPreviewByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<RunUpdatePreview> =>
+      runOps.previewUpdate(this.httpClient, input, options),
+
     /** List run summaries for a project. */
     listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
       runOps.listByProject(this.httpClient, projectId, query),
@@ -416,6 +423,10 @@ export class OpsClient {
     /** Update a run identified directly by id. */
     updateById: (runId: string, input: UpdateRunInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
       runOps.updateById(this.httpClient, runId, input, options),
+
+    /** Read-only preview of an analysis-bearing update, by run id. See previewUpdate. */
+    previewUpdateById: (runId: string, input: UpdateRunPreviewInput, options?: { _skipClientValidation?: boolean }): Promise<RunUpdatePreview> =>
+      runOps.previewUpdateById(this.httpClient, runId, input, options),
 
     /** Delete a run by id. */
     delete: (runId: string): Promise<DeleteResult> =>

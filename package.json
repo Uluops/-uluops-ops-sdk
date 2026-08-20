@@ -1,7 +1,7 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "5.17.0",
-  "description": "Track execution runs, manage issues, and query analytics against the UluOps platform API \u2014 typed TypeScript client with Zod runtime validation.",
+  "version": "5.18.0",
+  "description": "Track execution runs, manage issues, and query analytics against the UluOps platform API — typed TypeScript client with Zod runtime validation.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -68,6 +68,8 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
+    "check:tarball": "npm run build && node scripts/verify-update-run-tarball.mjs",
+    "check:tarball:control": "node scripts/verify-update-run-tarball.mjs --control 5.17.0",
     "docs:api": "typedoc",
     "prepublishOnly": "npm run lint && npm test && npm audit --audit-level=high --omit=dev && npm run build"
   },
@@ -85,7 +87,7 @@
     "url": "git+https://github.com/Uluops/-uluops-ops-sdk.git"
   },
   "dependencies": {
-    "@uluops/sdk-core": "0.15.0",
+    "@uluops/sdk-core": "0.16.0",
     "zod": "4.3.6"
   },
   "devDependencies": {

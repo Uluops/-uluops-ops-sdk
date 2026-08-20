@@ -13,6 +13,9 @@ import type {
   ArchiveRunsResult,
   UpdateRunInput,
   UpdateRunByNumberInput,
+  UpdateRunPreviewInput,
+  UpdateRunPreviewByNumberInput,
+  RunUpdatePreview,
   ListRunsQuery,
   RunDetails,
   ProjectAnalysisQuery,
@@ -22,6 +25,8 @@ import type {
 import type { DeleteResult } from '../types/responses.js';
 import {
   RunResponseSchema,
+  UpdateRunEnvelopeSchema,
+  RunUpdatePreviewResponseSchema,
   RunSummaryResponseSchema,
   SaveRunResponseSchema,
   ValidateRunResponseSchema,
@@ -38,7 +43,9 @@ import {
   validateSaveRunInput,
   validateArchiveRunsInput,
   validateUpdateRunInput,
+  validateUpdateRunPreviewInput,
 } from '../config/validators.js';
+import { AnalysisEchoMismatchError, OpsApiError } from '../errors/errors.js';
 
 /**
  * Save an execution run with agent scores and recommendations.
@@ -170,15 +177,23 @@ export async function archive(
   }));
 }
 
-/** Build the shared update payload from an UpdateRunInput */
+/**
+ * Build the shared update payload from an UpdateRunInput.
+ *
+ * `workflowType` is deliberately NOT sent: both API update schemas omit it
+ * (ADR-005 — structural identity is immutable), so sending it was a silent
+ * strip-and-200, the same defect class as the `archiveReason` key below.
+ */
 function buildUpdatePayload(input: UpdateRunInput) {
   return {
-    workflowType: input.workflowType,
     allGatesPassed: input.allGatesPassed,
     averageScore: input.averageScore,
     rawMarkdown: input.rawMarkdown,
     archivedAt: input.archivedAt,
-    archiveReason: input.archiveReason,
+    // Wire key is `archivedReason` (the API's UpdateRunSchema key); the input
+    // field stays `archiveReason` to match the Run response field. Sending
+    // `archiveReason` was silently stripped by the API (tracker d21e0a57).
+    archivedReason: input.archiveReason,
     agents: input.agents,
     recommendations: input.recommendations,
     analysisRecords: input.analysisRecords,
@@ -186,13 +201,91 @@ function buildUpdatePayload(input: UpdateRunInput) {
   };
 }
 
+/** The record-write mode this SDK version implements (per-agent scoped replace, API 1a). */
+const IMPLEMENTED_RECORD_MODE = 'replace';
+
+/**
+ * Mirror of the API's `hasAnalysis` predicate (mutations.ts: entries required,
+ * `length > 0`). MUST stay aligned with it: the server emits the analysisWrite
+ * echo only when this is true on ITS side, so a broader client predicate makes
+ * the echo assertion fire falsely against a healthy server — `analysisRecords:
+ * []` (a filter that matched nothing) is the case that bites. This is a
+ * cross-boundary predicate written twice with no shared definition; the tests
+ * pin the empty-array boundary so divergence is at least caught here.
+ */
+function isAnalysisBearing(input: UpdateRunInput): boolean {
+  const hasRecords = (input.analysisRecords?.length ?? 0) > 0;
+  const hasSummaries = input.analysisSummary !== undefined &&
+    (!Array.isArray(input.analysisSummary) || input.analysisSummary.length > 0);
+  return hasRecords || hasSummaries;
+}
+
+/**
+ * §3.9 skew alarm. An analysis-bearing update must come back with the
+ * server's `analysisWrite` echo, and its `recordMode` must equal the mode
+ * this SDK's types document. Absence or mismatch throws
+ * {@link AnalysisEchoMismatchError} — the write HAS landed server-side at
+ * that point; the alarm is about its semantics, not its delivery. The thrown
+ * error carries the updated run and the observed echo so callers can act
+ * without re-reading.
+ */
+function assertAnalysisWriteEcho(
+  input: UpdateRunInput,
+  envelope: z.infer<typeof UpdateRunEnvelopeSchema>
+): void {
+  if (!isAnalysisBearing(input)) return;
+  const echo = envelope.analysisWrite;
+  if (!echo) {
+    throw new AnalysisEchoMismatchError(
+      'analysis-bearing update returned no analysisWrite echo — the server predates ' +
+      'per-agent replace semantics (update-run spec §3.9); this SDK version cannot ' +
+      'verify what the write superseded. The update was applied; the error carries the run.',
+      { reason: 'missing-echo', expectedRecordMode: IMPLEMENTED_RECORD_MODE, actualRecordMode: null, run: envelope.data, analysisWrite: null }
+    );
+  }
+  if (echo.recordMode !== IMPLEMENTED_RECORD_MODE) {
+    throw new AnalysisEchoMismatchError(
+      `analysisWrite.recordMode '${echo.recordMode}' differs from the '${IMPLEMENTED_RECORD_MODE}' ` +
+      'semantics this SDK version implements — upgrade @uluops/ops-sdk. ' +
+      'The update was applied under the server\'s mode; the error carries the run and echo.',
+      { reason: 'mode-mismatch', expectedRecordMode: IMPLEMENTED_RECORD_MODE, actualRecordMode: echo.recordMode, run: envelope.data, analysisWrite: echo }
+    );
+  }
+}
+
+/**
+ * Guard the raw envelope before Zod field validation, restoring the named
+ * format error the default unwrap path threw (`rawEnvelope` skips sdk-core's
+ * `isDataEnvelope` check). Without this, a 204/empty body or a non-envelope
+ * 2xx JSON body (gateway page, proxy error object) surfaces as an anonymous
+ * ZodError listing missing run fields — worst on exactly the path where
+ * knowing WHICH half-succeeded call failed matters most.
+ */
+function parseUpdateEnvelope(body: unknown, endpoint: string): z.infer<typeof UpdateRunEnvelopeSchema> {
+  if (body === null || typeof body !== 'object' || !('data' in body)) {
+    // Status is 2xx by construction (non-2xx threw in sdk-core before parsing);
+    // the raw path does not surface the exact code, so report the family.
+    throw new OpsApiError(
+      200,
+      `Unexpected API response format from PATCH ${endpoint}: expected { data: ... } envelope but received ` +
+      (body === null ? 'null' : Array.isArray(body) ? 'array' : typeof body)
+    );
+  }
+  return UpdateRunEnvelopeSchema.parse(body);
+}
+
 /**
  * Update run metadata by project and run number. Supports post-hoc
- * enrichment with analysis records and summaries.
+ * enrichment with analysis records and summaries (per-agent scoped replace —
+ * see {@link UpdateRunInput}).
  *
  * @param client - HTTP client instance
  * @param input - Update payload with project + runNumber identifier
  * @returns Updated run
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {AnalysisEchoMismatchError} If an analysis-bearing update's response
+ *   carries no `analysisWrite` echo or a foreign `recordMode` — the write has
+ *   ALREADY been applied when this throws; the error carries the run. Do not retry.
  */
 export async function update(
   client: OpsHttpClient,
@@ -200,11 +293,20 @@ export async function update(
   options?: { _skipClientValidation?: boolean }
 ): Promise<Run> {
   if (!options?._skipClientValidation) validateUpdateRunInput(input);
-  return RunResponseSchema.parse(await client.patch<unknown>('/runs/update', {
-    project: input.project,
-    runNumber: input.runNumber,
-    ...buildUpdatePayload(input),
-  }));
+  // rawEnvelope: `analysisWrite` is a sibling of `data`; the default unwrap
+  // would discard it and with it the §3.9 skew alarm.
+  const envelope = parseUpdateEnvelope(await client.request<unknown>(
+    'PATCH',
+    '/runs/update',
+    {
+      project: input.project,
+      runNumber: input.runNumber,
+      ...buildUpdatePayload(input),
+    },
+    { rawEnvelope: true }
+  ), '/runs/update');
+  assertAnalysisWriteEcho(input, envelope);
+  return envelope.data;
 }
 
 /**
@@ -279,12 +381,17 @@ export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
 
 /**
  * Update run metadata by UUID. Supports post-hoc enrichment with
- * analysis records, summaries, and exploration maps.
+ * analysis records, summaries, and exploration maps (per-agent scoped
+ * replace — see {@link UpdateRunInput}).
  *
  * @param client - HTTP client instance
  * @param runId - Run UUID
  * @param input - Fields to update (all optional except identifier)
  * @returns Updated run
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {AnalysisEchoMismatchError} If an analysis-bearing update's response
+ *   carries no `analysisWrite` echo or a foreign `recordMode` — the write has
+ *   ALREADY been applied when this throws; the error carries the run. Do not retry.
  */
 export async function updateById(
   client: OpsHttpClient,
@@ -293,7 +400,70 @@ export async function updateById(
   options?: { _skipClientValidation?: boolean }
 ): Promise<Run> {
   if (!options?._skipClientValidation) validateUpdateRunInput(input);
-  return RunResponseSchema.parse(await client.patch<unknown>(`/runs/${encodeURIComponent(runId)}`, buildUpdatePayload(input)));
+  // rawEnvelope: see update() — the echo is a sibling of `data`.
+  const endpoint = `/runs/${encodeURIComponent(runId)}`;
+  const envelope = parseUpdateEnvelope(await client.request<unknown>(
+    'PATCH',
+    endpoint,
+    buildUpdatePayload(input),
+    { rawEnvelope: true }
+  ), endpoint);
+  assertAnalysisWriteEcho(input, envelope);
+  return envelope.data;
+}
+
+/**
+ * Read-only preview of an analysis-bearing update, by project + run number.
+ * Returns, per agent named in the payload, what a replace-mode write would
+ * supersede, create, and retire-by-omission — without writing anything.
+ * Analysis concerns only: any other update field is rejected with a named 400
+ * (spec §4 scope rule).
+ *
+ * @param client - HTTP client instance
+ * @param input - project + runNumber plus analysisRecords / analysisSummary
+ * @returns The write plan: `{ preview: true, recordMode, byAgent }`
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {NotFoundError} If project or run does not exist
+ */
+export async function previewUpdate(
+  client: OpsHttpClient,
+  input: UpdateRunPreviewByNumberInput,
+  options?: { _skipClientValidation?: boolean }
+): Promise<RunUpdatePreview> {
+  if (!options?._skipClientValidation) validateUpdateRunPreviewInput(input);
+  return RunUpdatePreviewResponseSchema.parse(await client.post<unknown>('/runs/update-preview', {
+    project: input.project,
+    runNumber: input.runNumber,
+    analysisRecords: input.analysisRecords,
+    analysisSummary: input.analysisSummary,
+  }));
+}
+
+/**
+ * Read-only preview of an analysis-bearing update, by run UUID.
+ * See {@link previewUpdate} for semantics.
+ *
+ * @param client - HTTP client instance
+ * @param runId - Run UUID
+ * @param input - analysisRecords / analysisSummary (analysis concerns only)
+ * @returns The write plan: `{ preview: true, recordMode, byAgent }`
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {NotFoundError} If run does not exist
+ */
+export async function previewUpdateById(
+  client: OpsHttpClient,
+  runId: string,
+  input: UpdateRunPreviewInput,
+  options?: { _skipClientValidation?: boolean }
+): Promise<RunUpdatePreview> {
+  if (!options?._skipClientValidation) validateUpdateRunPreviewInput(input);
+  return RunUpdatePreviewResponseSchema.parse(await client.post<unknown>(
+    `/runs/${encodeURIComponent(runId)}/update-preview`,
+    {
+      analysisRecords: input.analysisRecords,
+      analysisSummary: input.analysisSummary,
+    }
+  ));
 }
 
 /**

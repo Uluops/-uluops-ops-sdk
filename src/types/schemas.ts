@@ -324,6 +324,37 @@ export const UpdateRunInputSchema = SaveRunInputSchema.pick({
   archiveReason: z.string().max(500).nullish(),
 });
 
+/**
+ * Update-preview input: analysis concerns ONLY (spec §4 scope rule). The API
+ * rejects non-analysis update fields with a named 400, but the SDK builds the
+ * request body from the analysis fields alone, so that 400 is unreachable
+ * through the SDK — a spread-in update input would otherwise be silently
+ * narrowed. `validateUpdateRunPreviewInput` therefore re-implements the
+ * API's rejection client-side against UPDATE_PREVIEW_FORBIDDEN_INPUT_KEYS;
+ * this schema alone (a non-strict pick) does NOT enforce the scope rule.
+ */
+export const UpdateRunPreviewInputSchema = SaveRunInputSchema.pick({
+  analysisRecords: true,
+  analysisSummary: true,
+});
+
+/**
+ * Mirror of the API's UPDATE_PREVIEW_FORBIDDEN_KEYS
+ * (ops-uluops-api run-transformers.ts), plus `archiveReason` — the SDK-side
+ * input spelling of the API's `archivedReason` wire key.
+ */
+export const UPDATE_PREVIEW_FORBIDDEN_INPUT_KEYS = [
+  'agents',
+  'recommendations',
+  'allGatesPassed',
+  'averageScore',
+  'rawMarkdown',
+  'archivedAt',
+  'archivedReason',
+  'archiveReason',
+  'workflowType',
+] as const;
+
 export const ArchiveRunsInputSchema = z.object({
   project: z.string().min(1),
   beforeRunNumber: z.number().int().positive().optional(),

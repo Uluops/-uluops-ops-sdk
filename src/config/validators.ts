@@ -8,6 +8,8 @@ import {
   CreateIssueNoteInputSchema,
   ArchiveRunsInputSchema,
   UpdateRunInputSchema,
+  UpdateRunPreviewInputSchema,
+  UPDATE_PREVIEW_FORBIDDEN_INPUT_KEYS,
   RegisterInputSchema,
   LoginInputSchema,
   UpdateProfileInputSchema,
@@ -237,6 +239,33 @@ export function validateArchiveRunsInput(data: unknown): z.infer<typeof ArchiveR
  */
 export function validateUpdateRunInput(data: unknown): z.infer<typeof UpdateRunInputSchema> {
   return validate(UpdateRunInputSchema, data, 'update run');
+}
+
+/**
+ * Validate update-preview input: analysis concerns only (spec §4 scope rule).
+ * The SDK builds the preview request body from the analysis fields alone, so
+ * a non-analysis update field passed here would otherwise be silently dropped
+ * — never rejected by the server, whose named 400 is unreachable through the
+ * SDK. This validator therefore enforces the scope rule client-side: any
+ * forbidden key present (even explicitly `null`d) is a named error, matching
+ * the server's own wording.
+ * @param data - Raw input with optional `analysisRecords` / `analysisSummary`
+ * @returns Validated update-preview input
+ * @throws {InputValidationError} If a non-analysis update field is present or
+ *   analysis field constraints are violated
+ */
+export function validateUpdateRunPreviewInput(data: unknown): z.infer<typeof UpdateRunPreviewInputSchema> {
+  if (data !== null && typeof data === 'object' && !Array.isArray(data)) {
+    const body = data as Record<string, unknown>;
+    const offending = UPDATE_PREVIEW_FORBIDDEN_INPUT_KEYS.filter((k) => body[k] !== undefined);
+    if (offending.length > 0) {
+      throw new InputValidationError(
+        `update-preview accepts analysis concerns only; remove: ${offending.join(', ')}`,
+        []
+      );
+    }
+  }
+  return validate(UpdateRunPreviewInputSchema, data, 'update-run preview');
 }
 
 // ============================================

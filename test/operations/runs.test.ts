@@ -279,7 +279,7 @@ describe('Run Operations', () => {
       expect(run.averageScore).toBe(92);
     });
 
-    it('should forward archivedAt and archiveReason in update body', async () => {
+    it('should forward archivedAt and archive reason (wire key archivedReason) in update body', async () => {
       const archivedAt = '2026-04-08T22:00:00.000Z';
       const mockRun = createMockRun({ runNumber: 10 });
 
@@ -289,7 +289,12 @@ describe('Run Operations', () => {
             body.project === 'my-project' &&
             body.runNumber === 10 &&
             body.archivedAt === archivedAt &&
-            body.archiveReason === 'Superseded by run #11'
+            // The API's update schema reads `archivedReason`; the old
+            // `archiveReason` spelling was silently stripped (tracker
+            // d21e0a57). Assert the value ARRIVES under the read key and
+            // that the stripped key is not sent at all.
+            body.archivedReason === 'Superseded by run #11' &&
+            body.archiveReason === undefined
           );
         })
         .reply(200, { data: mockRun });
@@ -311,7 +316,8 @@ describe('Run Operations', () => {
         .patch('/runs/update', (body) => {
           return (
             body.archivedAt === null &&
-            body.archiveReason === null
+            body.archivedReason === null &&
+            body.archiveReason === undefined
           );
         })
         .reply(200, { data: mockRun });
@@ -506,7 +512,7 @@ describe('Run Operations', () => {
       expect(run.averageScore).toBe(88);
     });
 
-    it('should forward archivedAt and archiveReason for archive', async () => {
+    it('should forward archivedAt and archive reason (wire key archivedReason) for archive', async () => {
       const mockRun = createMockRun();
       const archivedAt = '2026-04-08T22:00:00.000Z';
 
@@ -514,7 +520,9 @@ describe('Run Operations', () => {
         .patch(`/runs/${mockRun.id}`, (body) => {
           return (
             body.archivedAt === archivedAt &&
-            body.archiveReason === 'Manual cleanup'
+            // Wire key is `archivedReason` — see the update() twin of this test.
+            body.archivedReason === 'Manual cleanup' &&
+            body.archiveReason === undefined
           );
         })
         .reply(200, { data: mockRun });
@@ -532,7 +540,7 @@ describe('Run Operations', () => {
 
       nock(BASE_URL)
         .patch(`/runs/${mockRun.id}`, (body) => {
-          return body.archivedAt === null && body.archiveReason === null;
+          return body.archivedAt === null && body.archivedReason === null && body.archiveReason === undefined;
         })
         .reply(200, { data: mockRun });
 
@@ -542,6 +550,198 @@ describe('Run Operations', () => {
       });
 
       expect(run.id).toBe(mockRun.id);
+    });
+  });
+
+  describe('analysisWrite echo assertion (spec §3.9 skew alarm)', () => {
+    const echo = { recordMode: 'replace', supersededRecords: 2, supersededSummaries: 1, createdRecords: 3, createdSummaries: 1 };
+    const inputRecord = { agentName: 'aristotle-analyst', recordType: 'finding', recordId: 'F-1', title: 'Test finding', data: {} };
+    const analysisInput = { analysisRecords: [inputRecord] };
+
+    it('accepts an analysis-bearing update whose reply carries a replace echo', async () => {
+      const mockRun = createMockRun({ runNumber: 5 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun, analysisWrite: echo });
+
+      const run = await runOps.update(client, { project: 'my-project', runNumber: 5, ...analysisInput });
+      expect(run.runNumber).toBe(5);
+    });
+
+    it('throws AnalysisEchoMismatchError when an analysis-bearing update reply has NO echo (old API)', async () => {
+      const mockRun = createMockRun({ runNumber: 5 });
+      // The stubbed OLD-API response shape: { data } with no analysisWrite —
+      // the checklist's required control: the assertion observed failing.
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun });
+
+      await expect(
+        runOps.update(client, { project: 'my-project', runNumber: 5, ...analysisInput })
+      ).rejects.toMatchObject({ name: 'AnalysisEchoMismatchError' });
+    });
+
+    it('throws AnalysisEchoMismatchError when the echoed recordMode differs (future API)', async () => {
+      const mockRun = createMockRun();
+      nock(BASE_URL)
+        .patch(`/runs/${mockRun.id}`)
+        .reply(200, { data: mockRun, analysisWrite: { ...echo, recordMode: 'merge' } });
+
+      await expect(
+        runOps.updateById(client, mockRun.id, analysisInput)
+      ).rejects.toMatchObject({ name: 'AnalysisEchoMismatchError' });
+    });
+
+    it('does NOT require an echo on a non-analysis update', async () => {
+      const mockRun = createMockRun({ runNumber: 7 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.update(client, { project: 'my-project', runNumber: 7, averageScore: 90 });
+      expect(run.runNumber).toBe(7);
+    });
+
+    it('does NOT require an echo for analysisRecords: [] (API hasAnalysis is length > 0)', async () => {
+      // The F1 boundary: an empty array is `!== undefined` but not analysis-
+      // bearing to the API, which replies WITHOUT an echo. The SDK predicate
+      // must agree, or this exact call throws a false "server predates 1a"
+      // against a healthy production server.
+      const mockRun = createMockRun({ runNumber: 9 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.update(client, { project: 'my-project', runNumber: 9, analysisRecords: [], averageScore: 91 });
+      expect(run.runNumber).toBe(9);
+    });
+
+    it('does NOT require an echo for analysisSummary: [] either', async () => {
+      const mockRun = createMockRun({ runNumber: 9 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun });
+
+      const run = await runOps.update(client, { project: 'my-project', runNumber: 9, analysisSummary: [] });
+      expect(run.runNumber).toBe(9);
+    });
+
+    it('carries structured discriminators and the landed run on the error', async () => {
+      const mockRun = createMockRun({ runNumber: 5 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun, analysisWrite: { ...echo, recordMode: 'merge' } });
+
+      let thrown: unknown;
+      try {
+        await runOps.update(client, { project: 'my-project', runNumber: 5, ...analysisInput });
+      } catch (e) { thrown = e; }
+      expect(thrown).toMatchObject({
+        name: 'AnalysisEchoMismatchError',
+        reason: 'mode-mismatch',
+        expectedRecordMode: 'replace',
+        actualRecordMode: 'merge',
+      });
+      expect((thrown as { run: { runNumber: number } }).run.runNumber).toBe(5);
+    });
+
+    it('asserts the echo on analysisSummary-only updates too', async () => {
+      const mockRun = createMockRun({ runNumber: 8 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun });
+
+      await expect(
+        runOps.update(client, {
+          project: 'my-project',
+          runNumber: 8,
+          analysisSummary: { agentName: 'aristotle-analyst', decision: 'PROCEED' },
+        })
+      ).rejects.toMatchObject({ name: 'AnalysisEchoMismatchError' });
+    });
+  });
+
+  describe('previewUpdate', () => {
+    const previewReply = {
+      data: {
+        preview: true,
+        recordMode: 'replace',
+        byAgent: {
+          'aristotle-analyst': {
+            wouldSupersedeRecords: 2,
+            wouldSupersedeSummaries: 1,
+            wouldCreateRecords: 1,
+            wouldCreateSummaries: 1,
+            wouldRetireRecordIds: ['old-finding-1'],
+          },
+        },
+      },
+    };
+
+    it('previews by project + run number via POST /runs/update-preview', async () => {
+      nock(BASE_URL)
+        .post('/runs/update-preview', (body) => body.project === 'my-project' && body.runNumber === 5)
+        .reply(200, previewReply);
+
+      const plan = await runOps.previewUpdate(client, {
+        project: 'my-project',
+        runNumber: 5,
+        analysisRecords: [{ agentName: 'aristotle-analyst', recordType: 'finding', recordId: 'F-1', title: 'Test finding', data: {} }],
+      });
+
+      expect(plan.preview).toBe(true);
+      expect(plan.recordMode).toBe('replace');
+      expect(plan.byAgent['aristotle-analyst']?.wouldRetireRecordIds).toEqual(['old-finding-1']);
+    });
+
+    it('previews by run id via POST /runs/:id/update-preview', async () => {
+      const runId = TEST_IDS.run1;
+      nock(BASE_URL)
+        .post(`/runs/${runId}/update-preview`)
+        .reply(200, previewReply);
+
+      const plan = await runOps.previewUpdateById(client, runId, {
+        analysisRecords: [{ agentName: 'aristotle-analyst', recordType: 'finding', recordId: 'F-1', title: 'Test finding', data: {} }],
+      });
+
+      expect(plan.byAgent['aristotle-analyst']?.wouldSupersedeRecords).toBe(2);
+    });
+
+    it('rejects non-analysis update fields client-side with a named error', async () => {
+      // The API's scope-rule 400 is unreachable through the SDK (the body is
+      // built from the analysis fields alone), so this client-side rejection
+      // is the only thing standing between a spread-in update input and a
+      // silently narrowed preview. No nock stub: reaching the error proves
+      // no request left.
+      await expect(
+        runOps.previewUpdate(client, {
+          project: 'my-project',
+          runNumber: 5,
+          // A caller spreading an UpdateRunInput into the preview:
+          ...( { averageScore: 90, agents: [{ name: 'code-validator', score: 90 }] } as object),
+        })
+      ).rejects.toThrow(/analysis concerns only; remove: agents, averageScore/);
+    });
+
+    it('rejects an invalid analysis record client-side before any request', async () => {
+      // No nock stub: a network attempt would throw a nock "no match" error,
+      // so reaching the InputValidationError proves the request never left.
+      await expect(
+        runOps.previewUpdateById(client, TEST_IDS.run1, {
+          // recordId: '' violates .min(1) — client-side validation must reject it
+          analysisRecords: [{ agentName: 'aristotle-analyst', recordType: 'finding', recordId: '', title: 't', data: {} }],
+        })
+      ).rejects.toMatchObject({ name: 'InputValidationError' });
+    });
+
+    it('throws ZodError on a malformed preview response', async () => {
+      nock(BASE_URL)
+        .post('/runs/update-preview')
+        .reply(200, { data: { preview: true, recordMode: 'replace', byAgent: { a: { wouldSupersedeRecords: 'two' } } } });
+
+      await expect(
+        runOps.previewUpdate(client, { project: 'my-project', runNumber: 5 })
+      ).rejects.toBeInstanceOf(ZodError);
     });
   });
 
@@ -807,7 +1007,12 @@ describe('Run Operations', () => {
       const mockRun = createMockRun({ runNumber: 5 });
       nock(BASE_URL)
         .patch('/runs/update', (body) => body.analysisRecords?.[0]?.recordId === valid100)
-        .reply(200, { data: mockRun });
+        .reply(200, {
+          data: mockRun,
+          // Analysis-bearing update: the 1a API echoes analysisWrite, and the
+          // SDK asserts on it (spec §3.9) — an echo-less reply here would throw.
+          analysisWrite: { recordMode: 'replace', supersededRecords: 0, supersededSummaries: 0, createdRecords: 1, createdSummaries: 0 },
+        });
 
       const run = await runOps.update(client, {
         project: 'my-project',

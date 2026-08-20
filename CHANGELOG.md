@@ -6,6 +6,80 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.18.0] - 2026-08-20
+
+Adopts the ops-uluops-api update-run replacement-semantics change (spec v0.5.0, API 1a,
+prod since 2026-08-20): analysis writes through `update`/`updateById` are **per-agent
+scoped replace** — an update speaks only for the agents named in it. This was a
+**semantics change with no signature change** on the wire: the same payload now
+supersedes less. This entry and the type docblocks are the channel for it.
+
+### Added
+
+- **`runs.previewUpdate(input)` / `runs.previewUpdateById(runId, input)`** — read-only
+  preview of an analysis-bearing update (`POST /runs/update-preview`,
+  `POST /runs/:id/update-preview`). Returns `{ preview, recordMode, byAgent }` where each
+  agent's plan carries `wouldSupersede*`, `wouldCreate*`, and `wouldRetireRecordIds` —
+  the rows a replace write would retire by omission. Analysis concerns only; the API
+  rejects any other update field with a named 400 (spec §4 scope rule).
+- **`AnalysisEchoMismatchError`** — the §3.9 skew alarm. Analysis-bearing updates now
+  read the response envelope raw (sdk-core ≥0.16.0 `rawEnvelope`; the default unwrap
+  discards `analysisWrite` because it is a sibling of `data`) and assert the server's
+  echoed `recordMode` equals the mode this SDK implements (`replace`). No echo (server
+  predates 1a) or a different mode (server moved past it) throws the named error
+  **after the write has landed** — silent client/server semantics skew becomes loud.
+  Updates without analysis concerns are unaffected.
+- Public types `AnalysisWriteEcho`, `AgentWritePlan`, `RunUpdatePreview`,
+  `UpdateRunPreviewInput`, `UpdateRunPreviewByNumberInput`.
+
+### Changed
+
+- `UpdateRunInput.analysisRecords` / `.analysisSummary` docblocks now state the
+  per-agent replace scoping (previously "replaces existing" with no scope — ambiguous
+  between run-wide and per-agent, and run-wide was true before API 1a).
+- `@uluops/sdk-core` pin `0.15.0` → `0.16.0` (exact), for `rawEnvelope`.
+- **"Analysis-bearing" now mirrors the API's predicate — entries required, not mere
+  key presence.** The echo assertion fires only when `analysisRecords` /
+  `analysisSummary` carry at least one entry, matching the server's `hasAnalysis`
+  (`length > 0`). Without this, `analysisRecords: []` (a filter that matched nothing)
+  would have thrown a false "server predates 1a" against a healthy production server,
+  after the metadata half of the PATCH had already landed. Found by review before
+  release; never shipped.
+- **`workflowType` is no longer sent by `update`/`updateById` and is `@deprecated` on
+  `UpdateRunInput`.** Both API update schemas deliberately omit it (ADR-005 —
+  structural identity is immutable), so it was a silent strip-and-200 — the identical
+  defect class to the `archiveReason` key fixed below, sitting two lines above it.
+  No observable behavior changes (the server ignored it either way); the type now
+  says so instead of implying updatability.
+- `previewUpdate`/`previewUpdateById` **reject non-analysis update fields client-side**
+  with a named `InputValidationError` listing the offending keys (mirroring the API's
+  scope-rule 400, which is unreachable through the SDK since the request body is built
+  from the analysis fields alone). Previously a spread-in update input was silently
+  narrowed to its analysis fields — a preview that modeled only part of the write.
+- `AnalysisEchoMismatchError` carries structured fields — `reason`
+  (`'missing-echo' | 'mode-mismatch'`), `expectedRecordMode`, `actualRecordMode`,
+  `run` (the updated run: the write that already landed), `analysisWrite` — so
+  callers branch on data, not message strings, and can honor "do not retry" without
+  a re-read.
+- Malformed 2xx bodies on the update path (204/empty, non-envelope JSON) throw a
+  named `OpsApiError` naming the endpoint, restoring the diagnostic the default
+  unwrap path had (`rawEnvelope` skips sdk-core's envelope check).
+- `scripts/verify-update-run-tarball.mjs` (`npm run check:tarball`) commits the
+  packed-tarball behavioural check as a standing instrument, with
+  `check:tarball:control` running it against published 5.17.0 and requiring exactly
+  the three new-behavior checks to fail — a control run where nothing fails means
+  the instrument is inert.
+
+### Fixed
+
+- **`archiveReason` never reached the API** (tracker `d21e0a57`): the update payload sent
+  the key `archiveReason`, but the API's update schema reads `archivedReason`, so the
+  value was silently stripped — archiving via SDK set `archivedAt` but never the reason.
+  The wire key is now `archivedReason`; the input field name is unchanged
+  (`archiveReason`, matching the Run response field), so no caller code changes.
+  Note: the by-project `update` path additionally drops ALL archive fields server-side
+  (open API issue `15e58cab`); `updateById` applies them today.
+
 ## [5.17.0] - 2026-08-17
 
 ### Fixed — `auth.register()` threw a raw `ZodError` on every call (BREAKING TYPE CHANGE)

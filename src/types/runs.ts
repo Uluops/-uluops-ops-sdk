@@ -253,6 +253,12 @@ export interface ArchiveRunsInput {
  * Update run input
  */
 export interface UpdateRunInput {
+  /**
+   * @deprecated Never updatable: the API deliberately omits `workflowType`
+   * from both update schemas (ADR-005 — structural identity is immutable).
+   * Earlier SDK versions sent it and the server silently stripped it; as of
+   * 5.18.0 it is not sent at all. Set it at save time.
+   */
   workflowType?: string;
   allGatesPassed?: boolean;
   averageScore?: number | null;
@@ -261,9 +267,18 @@ export interface UpdateRunInput {
   archiveReason?: string | null;
   recommendations?: RecommendationInput[];
   agents?: UpdateAgentInput[];
-  /** Structured analysis records (v1.4.0) — replaces existing records if present */
+  /**
+   * Structured analysis records (v1.4.0) — per-agent scoped REPLACE (API 1a,
+   * spec §3.4): for each agent named in this array, that agent's existing
+   * records are superseded and these rows written; agents not named are
+   * untouched. Omitting a record an agent previously had retires it.
+   */
   analysisRecords?: AnalysisRecordInput[];
-  /** Analysis summary/summaries (v1.7.0) — single or per-agent array. Replaces existing. */
+  /**
+   * Analysis summary/summaries (v1.7.0) — single or per-agent array. Per-agent
+   * scoped REPLACE (API 1a, spec §3.6): each named agent's existing summary is
+   * superseded by its entry here; other agents' summaries are untouched.
+   */
   analysisSummary?: AnalysisSummaryInput | AnalysisSummaryInput[];
 }
 
@@ -273,6 +288,59 @@ export interface UpdateRunInput {
 export interface UpdateRunByNumberInput extends UpdateRunInput {
   project: string;
   runNumber: number;
+}
+
+/**
+ * Input for the read-only update preview (POST /runs/:id/update-preview).
+ * Analysis concerns ONLY (spec §4 scope rule) — the SDK rejects any other
+ * update field client-side with a named `InputValidationError` (the request
+ * body is built from the analysis fields alone, so nothing else can reach
+ * the server through this path).
+ */
+export interface UpdateRunPreviewInput {
+  analysisRecords?: AnalysisRecordInput[];
+  analysisSummary?: AnalysisSummaryInput | AnalysisSummaryInput[];
+}
+
+/** By-project sibling of {@link UpdateRunPreviewInput} (POST /runs/update-preview). */
+export interface UpdateRunPreviewByNumberInput extends UpdateRunPreviewInput {
+  project: string;
+  runNumber: number;
+}
+
+/**
+ * The additive `analysisWrite` block echoed on analysis-bearing update
+ * responses (API 1a, spec §3.9). The SDK asserts `recordMode` equals the mode
+ * it implements before returning; consumers normally never see a mismatch —
+ * it surfaces as {@link AnalysisEchoMismatchError}.
+ */
+export interface AnalysisWriteEcho {
+  recordMode: string;
+  supersededRecords: number;
+  supersededSummaries: number;
+  createdRecords: number;
+  createdSummaries: number;
+}
+
+/** Per-agent block of an update preview (spec §4). */
+export interface AgentWritePlan {
+  wouldSupersedeRecords: number;
+  wouldSupersedeSummaries: number;
+  wouldCreateRecords: number;
+  wouldCreateSummaries: number;
+  /**
+   * Live record_ids for the agent absent from the payload — what a replace
+   * write would retire by omission. Non-empty means the write would destroy
+   * rows the caller did not resend.
+   */
+  wouldRetireRecordIds: string[];
+}
+
+/** Result of the read-only update preview endpoints. */
+export interface RunUpdatePreview {
+  preview: true;
+  recordMode: string;
+  byAgent: Record<string, AgentWritePlan>;
 }
 
 /**
