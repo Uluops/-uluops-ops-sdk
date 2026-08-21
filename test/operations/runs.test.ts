@@ -750,6 +750,31 @@ describe('Run Operations', () => {
       },
     };
 
+    it('merge preview against a mode-stripping server throws preview-mode-mismatch BEFORE any write (F8)', async () => {
+      // The rehearsal gets the same guard as the performance: a pre-1b server
+      // previews replace for a merge send — returning that plan would model
+      // the wrong semantics (its retire list describes a write that will not
+      // happen as previewed).
+      nock(BASE_URL)
+        .post('/runs/update-preview')
+        .reply(200, previewReply); // recordMode: 'replace' — the stripped answer
+
+      let thrown: unknown;
+      try {
+        await runOps.previewUpdate(client, {
+          project: 'my-project', runNumber: 5, recordWriteMode: 'merge',
+          analysisRecords: [{ agentName: 'aristotle-analyst', recordType: 'finding', recordId: 'F-1', title: 'Test finding', data: {} }],
+        });
+      } catch (e) { thrown = e; }
+      expect(thrown).toMatchObject({
+        name: 'AnalysisEchoMismatchError',
+        reason: 'preview-mode-mismatch',
+        expectedRecordMode: 'merge',
+        actualRecordMode: 'replace',
+        run: null, // nothing was written
+      });
+    });
+
     it('forwards record_write_mode on the preview wire (1b — a stripped mode previews the wrong semantics)', async () => {
       nock(BASE_URL)
         .post('/runs/update-preview', (body) => body.recordWriteMode === 'merge')

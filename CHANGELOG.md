@@ -35,9 +35,39 @@ modes, and the F17 success-path echo (both ratified 2026-08-20).
   `update`/`updateById` signatures and returns are unchanged.
 - 204/empty-body regression test on the update path (tracker `71626d6a`):
   the named `OpsApiError` from `parseUpdateEnvelope`, pinned.
-- Tarball instrument extended to 7 checks (mode-on-wire, with-echo);
-  `check:tarball:control` re-derived — exactly 5 failures required against
-  published 5.17.0.
+- Tarball instrument extended to 8 checks (mode-on-wire, with-echo, and the
+  two skew paths below at published shape); `check:tarball:control`
+  re-derived — exactly 7 failures required against published 5.17.0.
+
+### Fixed — pre-publish review round (code-validator 89 PASS / anxiety-reader 66 FRAGILITY_MASKED / public-interface 84+89 POLISHED)
+
+- **The preview now asserts the echoed mode** (`reason:
+  'preview-mode-mismatch'`, nothing written): a pre-1b server that strips
+  `record_write_mode` previews replace while the caller plans a merge — the
+  plan's `would_retire_record_ids` then models a write that will not happen
+  as previewed. This was the anxiety read's composed scenario (preview says
+  safe → write destroys → error reads as version skew → recovery shows only
+  survivors); the rehearsal now carries the same guard as the performance.
+- **The mode-mismatch error leads with the data consequence**: a merge send
+  answered with a replace echo now says RECORDS MAY HAVE BEEN RETIRED first
+  (with the superseded/created counts inline and a pointer at the
+  include_superseded export — the only read surface where superseded rows
+  are visible), before the version-skew explanation.
+- Public `update`/`updateById` regained their docblocks (they had migrated
+  to the private envelope helpers): both now state that they DISCARD the
+  echo, point at the with-echo variants, and carry the post-write-throw
+  @throws contract; the OpsClient one-liners say the same.
+- `AnalysisEchoMismatchError` docs rewritten for 1b's dynamic expected mode
+  (it is the mode each call sent, not a fixed 'replace'), naming the
+  server-BEHIND case as the primary cause.
+- The SDK's analysis-bearing predicate comment no longer claims to mirror
+  the API's `hasAnalysis` (1b gave that a third, 400-only disjunct): it
+  mirrors the ECHO-EMISSION condition, and says so precisely.
+- README: hand-maintained "Current version" line and "75 methods" count
+  removed (a claim that does not exist cannot drift — the real count had
+  reached 81); dedicated `updateWithEcho` section with the
+  supersededRecords>createdRecords duplicate-collapse note; preview and
+  updateById descriptions rewritten mode-aware.
 
 ## [5.18.0] - 2026-08-20
 

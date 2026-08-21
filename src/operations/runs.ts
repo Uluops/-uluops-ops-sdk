@@ -209,13 +209,17 @@ function buildUpdatePayload(input: UpdateRunInput) {
 const DEFAULT_RECORD_MODE = 'replace';
 
 /**
- * Mirror of the API's `hasAnalysis` predicate (mutations.ts: entries required,
- * `length > 0`). MUST stay aligned with it: the server emits the analysisWrite
- * echo only when this is true on ITS side, so a broader client predicate makes
- * the echo assertion fire falsely against a healthy server — `analysisRecords:
- * []` (a filter that matched nothing) is the case that bites. This is a
- * cross-boundary predicate written twice with no shared definition; the tests
- * pin the empty-array boundary so divergence is at least caught here.
+ * Mirror of the API's ECHO-EMISSION condition — NOT of its full `hasAnalysis`
+ * predicate, and the difference is deliberate (anxiety F10 corrected the
+ * earlier comment, which vouched for a mirror that 1b broke): as of 1b the
+ * API's hasAnalysis carries a third disjunct (`recordWriteMode !== undefined`)
+ * that routes exclusively to the mode-without-records 400 — a path that emits
+ * an ERROR, never an echo. What this predicate must match is "the server will
+ * emit analysisWrite on a 200": entries present, `length > 0` (spec's
+ * hasAnalysis minus the 400-only branch). A broader client predicate fires
+ * the alarm falsely on healthy servers (`analysisRecords: []`); a narrower
+ * one skips the assertion where an echo exists. Cross-boundary predicate,
+ * hand-written on both sides; the empty-array boundary is test-pinned.
  */
 function isAnalysisBearing(input: UpdateRunInput): boolean {
   const hasRecords = (input.analysisRecords?.length ?? 0) > 0;
@@ -252,11 +256,44 @@ function assertAnalysisWriteEcho(
     );
   }
   if (echo.recordMode !== expectedMode) {
+    // Lead with the DATA consequence, not the version story: a merge sent to
+    // a server that stripped the mode executed REPLACE — retiring every live
+    // record the named agents had that this payload did not restate. Merge
+    // callers hold partial sets by selection, so those are exactly the rows
+    // they cannot resend (anxiety run F1/F2: the version-skew framing read
+    // as an upgrade problem while being a loss notice).
+    const consequence = expectedMode === 'merge' && echo.recordMode === 'replace'
+      ? `RECORDS MAY HAVE BEEN RETIRED: the server executed replace, so the named agents' live records ` +
+        `NOT in this payload were superseded (supersededRecords: ${String(echo.supersededRecords)} vs ` +
+        `createdRecords: ${String(echo.createdRecords)}). Superseded rows are invisible to normal reads; ` +
+        `the dataset export with include_superseded is the surface that still shows them. `
+      : '';
     throw new AnalysisEchoMismatchError(
-      `analysisWrite.recordMode '${echo.recordMode}' differs from the '${expectedMode}' this call sent — ` +
-      'the server does not speak this mode (pre-1b servers STRIP record_write_mode and execute replace). ' +
-      'The update was applied under the server\'s mode; the error carries the run and echo.',
+      consequence +
+      `analysisWrite.recordMode '${echo.recordMode}' differs from the '${expectedMode}' this call sent ` +
+      '(pre-1b servers STRIP record_write_mode and execute replace). ' +
+      'The update was applied under the server\'s mode; the error carries the run and echo. Do not retry.',
       { reason: 'mode-mismatch', expectedRecordMode: expectedMode, actualRecordMode: echo.recordMode, run: envelope.data, analysisWrite: echo }
+    );
+  }
+}
+
+/**
+ * The PREVIEW half of the mode guard (anxiety run F8): the write path has
+ * assertAnalysisWriteEcho, but the preview is the surface a caller uses to
+ * DECIDE whether to write — a server that strips record_write_mode previews
+ * replace while the caller plans a merge, and its `would_retire_record_ids`
+ * then reports retirements that will not happen (or, worse, its merge answer
+ * omits retirements that WILL). Nothing has been written when this throws.
+ */
+function assertPreviewMode(sentMode: 'replace' | 'merge' | undefined, plan: RunUpdatePreview): void {
+  const expected = sentMode ?? DEFAULT_RECORD_MODE;
+  if (plan.recordMode !== expected) {
+    throw new AnalysisEchoMismatchError(
+      `preview recordMode '${plan.recordMode}' differs from the '${expected}' this call sent — ` +
+      'the server does not speak this mode (pre-1b servers STRIP record_write_mode), so this preview ' +
+      'models the WRONG semantics and must not be used to justify the write. Nothing was written.',
+      { reason: 'preview-mode-mismatch', expectedRecordMode: expected, actualRecordMode: plan.recordMode, run: null, analysisWrite: null }
     );
   }
 }
@@ -317,6 +354,19 @@ async function updateEnvelope(
   return envelope;
 }
 
+/**
+ * Update run metadata by project and run number (per-agent analysis writes —
+ * see {@link UpdateRunInput}).
+ *
+ * NOTE: this method DISCARDS the server's analysis-write echo — the
+ * superseded/created counts a caller needs to see what the write actually
+ * did. Use {@link updateWithEcho} for success-path visibility.
+ *
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {AnalysisEchoMismatchError} On echo absence or mode mismatch — the
+ *   write has ALREADY been applied when this throws; the error carries the
+ *   run and echo. Do not retry.
+ */
 export async function update(
   client: OpsHttpClient,
   input: UpdateRunByNumberInput,
@@ -446,6 +496,14 @@ async function updateByIdEnvelope(
   return envelope;
 }
 
+/**
+ * Update run metadata by UUID (per-agent analysis writes). DISCARDS the
+ * analysis-write echo — use {@link updateByIdWithEcho} to see it.
+ *
+ * @throws {InputValidationError} If input fails client-side Zod validation
+ * @throws {AnalysisEchoMismatchError} On echo absence or mode mismatch —
+ *   thrown AFTER the write landed; carries the run and echo. Do not retry.
+ */
 export async function updateById(
   client: OpsHttpClient,
   runId: string,
@@ -485,13 +543,15 @@ export async function previewUpdate(
   options?: { _skipClientValidation?: boolean }
 ): Promise<RunUpdatePreview> {
   if (!options?._skipClientValidation) validateUpdateRunPreviewInput(input);
-  return RunUpdatePreviewResponseSchema.parse(await client.post<unknown>('/runs/update-preview', {
+  const plan = RunUpdatePreviewResponseSchema.parse(await client.post<unknown>('/runs/update-preview', {
     project: input.project,
     runNumber: input.runNumber,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
     recordWriteMode: input.recordWriteMode,
   }));
+  assertPreviewMode(input.recordWriteMode, plan);
+  return plan;
 }
 
 /**
@@ -512,7 +572,7 @@ export async function previewUpdateById(
   options?: { _skipClientValidation?: boolean }
 ): Promise<RunUpdatePreview> {
   if (!options?._skipClientValidation) validateUpdateRunPreviewInput(input);
-  return RunUpdatePreviewResponseSchema.parse(await client.post<unknown>(
+  const plan = RunUpdatePreviewResponseSchema.parse(await client.post<unknown>(
     `/runs/${encodeURIComponent(runId)}/update-preview`,
     {
       analysisRecords: input.analysisRecords,
@@ -520,6 +580,8 @@ export async function previewUpdateById(
       recordWriteMode: input.recordWriteMode,
     }
   ));
+  assertPreviewMode(input.recordWriteMode, plan);
+  return plan;
 }
 
 /**

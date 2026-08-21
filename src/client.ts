@@ -397,7 +397,7 @@ export class OpsClient {
     archive: (input: ArchiveRunsInput): Promise<ArchiveRunsResult> =>
       runOps.archive(this.httpClient, input),
 
-    /** Update a run identified by project + run number. */
+    /** Update a run (project + run number). Discards the analysis-write echo (use updateWithEcho); on analysis-bearing calls can throw AnalysisEchoMismatchError AFTER the write landed. */
     update: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
       runOps.update(this.httpClient, input, options),
 
@@ -425,7 +425,7 @@ export class OpsClient {
     get: (runId: string): Promise<Run> =>
       runOps.get(this.httpClient, runId),
 
-    /** Update a run identified directly by id. */
+    /** Update a run by id. Discards the analysis-write echo (use updateByIdWithEcho); on analysis-bearing calls can throw AnalysisEchoMismatchError AFTER the write landed. */
     updateById: (runId: string, input: UpdateRunInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
       runOps.updateById(this.httpClient, runId, input, options),
 

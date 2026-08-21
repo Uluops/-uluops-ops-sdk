@@ -30,7 +30,7 @@
  * Control mode — REQUIRED reading before trusting a green run:
  *   `node scripts/verify-update-run-tarball.mjs --control 5.17.0`
  *   installs the named PUBLISHED version instead of packing the tree, and
- *   expects checks 1, 2b, 3, 5, 6 to FAIL (pre-5.18/5.19 behavior) while
+ *   expects checks 1, 2b, 3, 5, 6, 7, 8 to FAIL (pre-5.18/5.19 behavior) while
  *   the harness itself still runs. A control run where nothing fails means the instrument is
  *   inert — do not trust the normal run either. (House rule: a check that
  *   cannot fail proves nothing.)
@@ -57,7 +57,7 @@ process.on('exit', () => rmSync(workDir, { recursive: true, force: true }));
 let installSpec;
 if (controlVersion) {
   installSpec = `@uluops/ops-sdk@${controlVersion}`;
-  console.log(`CONTROL RUN against published ${installSpec} — checks 1, 2b, 3, 5, 6 MUST fail.`);
+  console.log(`CONTROL RUN against published ${installSpec} — checks 1, 2b, 3, 5, 6, 7, 8 MUST fail.`);
 } else {
   execSync('npm pack --silent', { cwd: pkgRoot, stdio: ['ignore', 'ignore', 'inherit'] });
   const tgz = readdirSync(pkgRoot).find((f) => /^uluops-ops-sdk-.*\.tgz$/.test(f));
@@ -99,19 +99,25 @@ const server = http.createServer((req, res) => {
       const summaries = parsed.analysisSummary === undefined ? []
         : Array.isArray(parsed.analysisSummary) ? parsed.analysisSummary : [parsed.analysisSummary];
       const hasAnalysis = (parsed.analysisRecords?.length ?? 0) > 0 || summaries.length > 0;
-      // In-payload marker: a record titled ECHOLESS simulates a pre-1a API.
+      // In-payload markers: a record titled ECHOLESS simulates a pre-1a API;
+      // STRIPMODE simulates a pre-1b API that strips record_write_mode and
+      // executes (and echoes) replace.
       const echoless = parsed.analysisRecords?.some((r) => r.title === 'ECHOLESS');
+      const stripmode = parsed.analysisRecords?.some((r) => r.title === 'STRIPMODE');
       const payload = { data: run };
       if (hasAnalysis && !echoless) {
         // 1b: echo the caller's mode, defaulted — like the live API.
-        payload.analysisWrite = { recordMode: parsed.recordWriteMode ?? 'replace', supersededRecords: 1, supersededSummaries: 0, createdRecords: 1, createdSummaries: 0 };
+        payload.analysisWrite = { recordMode: stripmode ? 'replace' : (parsed.recordWriteMode ?? 'replace'), supersededRecords: 1, supersededSummaries: 0, createdRecords: 1, createdSummaries: 0 };
       }
       res.end(JSON.stringify(payload));
       return;
     }
     if (req.method === 'POST' && req.url === '/api/v1/runs/update-preview') {
       seen.previewBody = parsed;
-      res.end(JSON.stringify({ data: { preview: true, recordMode: 'replace', byAgent: {
+      // STRIPMODE marker: a pre-1b API previews replace regardless of the
+      // sent mode — the case the SDK's preview assertion must catch.
+      const previewStrip = parsed.analysisRecords?.some((r) => r.title === 'STRIPMODE');
+      res.end(JSON.stringify({ data: { preview: true, recordMode: previewStrip ? 'replace' : (parsed.recordWriteMode ?? 'replace'), byAgent: {
         'aristotle-analyst': { wouldSupersedeRecords: 1, wouldSupersedeSummaries: 0, wouldCreateRecords: 1, wouldCreateSummaries: 0, wouldRetireRecordIds: ['F-9'] },
       } } }));
       return;
@@ -180,13 +186,29 @@ await check('6. updateWithEcho returns { run, analysisWrite } (F17)', async () =
   assert.strictEqual(r.analysisWrite?.recordMode, 'replace', 'echo not surfaced on success path');
 });
 
+await check('7. merge send to a mode-stripping server throws mode-mismatch (pre-1b silent-strip skew)', async () => {
+  let threw = null;
+  try {
+    await client.runs.update({ project: 'p', runNumber: 5, recordWriteMode: 'merge', analysisRecords: [{ ...record, title: 'STRIPMODE' }] });
+  } catch (e) { threw = e; }
+  assert.ok(threw && threw.name === 'AnalysisEchoMismatchError' && threw.reason === 'mode-mismatch', `expected mode-mismatch, got ${threw && threw.name}/${threw && threw.reason}`);
+});
+
+await check('8. merge preview against a mode-stripping server throws BEFORE any write (preview assertion)', async () => {
+  let threw = null;
+  try {
+    await client.runs.previewUpdate({ project: 'p', runNumber: 5, recordWriteMode: 'merge', analysisRecords: [{ ...record, title: 'STRIPMODE' }] });
+  } catch (e) { threw = e; }
+  assert.ok(threw && threw.name === 'AnalysisEchoMismatchError' && threw.reason === 'preview-mode-mismatch', `expected preview-mode-mismatch, got ${threw && threw.name}/${threw && threw.reason}`);
+});
+
 server.close();
 
 if (controlVersion) {
   // 2a and 4 legitimately pass on old SDKs (they never asserted the echo);
-  // 1, 2b, 3 encode 5.18.0 behavior and 5, 6 encode 5.19.0 — all MUST have
-  // failed against the 5.17.0 control.
-  const expectedFailures = 5;
+  // 1, 2b, 3 encode 5.18.0 behavior and 5, 6, 7, 8 encode 5.19.0 — all MUST
+  // have failed against the 5.17.0 control.
+  const expectedFailures = 7;
   if (failures === expectedFailures) {
     console.log(`CONTROL OK — exactly the ${expectedFailures} new-behavior checks failed against ${controlVersion}; the instrument can fire.`);
     process.exit(0);

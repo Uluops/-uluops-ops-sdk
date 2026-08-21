@@ -11,7 +11,7 @@
 
 Official TypeScript SDK with Zod runtime validation for the UluOps platform API. Track execution runs, manage issues, analyze trends, and integrate agent pipelines into your workflow.
 
-**Current version: 5.17.0** | [Changelog](./CHANGELOG.md)
+See the [Changelog](./CHANGELOG.md) for the current version and release history.
 
 ## Quick Start
 
@@ -113,11 +113,11 @@ The UluOps SDK provides programmatic access to the UluOps platform API, enabling
 - **Analyze Trends**: Get burndown charts, velocity metrics, and taxonomy distribution analytics
 - **Automate Workflows**: Integrate execution tracking into CI/CD and agent pipelines
 
-The SDK covers **75 methods** across 7 operation domains with full TypeScript support.
+The SDK covers the full platform API surface across 7 operation domains with full TypeScript support.
 
 ## Features
 
-- **Full API Coverage**: 75 methods across auth, projects, runs, issues, analytics, and taxonomy domains
+- **Full API Coverage**: auth, projects, runs, issues, analytics, and taxonomy domains
 - **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429, network failures)
@@ -1029,11 +1029,39 @@ write actually superseded, use `updateWithEcho` / `updateByIdWithEcho`, which re
 `{ run, analysisWrite }` — `supersededRecords: 0` on an enrichment that expected to
 replace means the named agents had no live rows (first enrichment, or attribution drift).
 
+#### `client.runs.updateWithEcho(input, options?)` / `client.runs.updateByIdWithEcho(runId, input, options?)`
+
+Same write as `update`/`updateById`, but returns `{ run, analysisWrite }` — the server's
+superseded/created counts, the success path's only view of what the write actually did.
+`analysisWrite` is `null` on non-analysis updates.
+
+```typescript
+const { run, analysisWrite } = await client.runs.updateWithEcho({
+  project: 'my-project',
+  runNumber: 5,
+  recordWriteMode: 'merge',
+  analysisRecords: [
+    { agentName: 'epictetus-analyst', recordType: 'evidence_claim', recordId: 'EC-2',
+      title: 'Follow-up claim', data: { claim: '...' } },
+  ],
+});
+// analysisWrite -> { recordMode: 'merge', supersededRecords: 0, supersededSummaries: 0,
+//                    createdRecords: 1, createdSummaries: 0 }
+// supersededRecords > createdRecords under merge means prior duplicate rows
+// sharing a key collapsed to one (lossy by design — check before merging into
+// agents with a duplicate history).
+```
+
 #### `client.runs.previewUpdate(input, options?)` / `client.runs.previewUpdateById(runId, input, options?)`
 
-Read-only preview of an analysis-bearing update: what a replace write would supersede,
-create, and — via `wouldRetireRecordIds` — retire by omission. Accepts analysis concerns
-only (`analysisRecords`, `analysisSummary`); any other update field throws a named
+Read-only preview of an analysis-bearing update under the requested `recordWriteMode`
+(default `replace`): what the write would supersede, create, and — replace only, via
+`wouldRetireRecordIds` — retire by omission (always `[]` under merge, which cannot
+retire). The preview asserts the server echoed the mode you sent — a pre-1b server that
+strips the mode throws `AnalysisEchoMismatchError` (`reason: 'preview-mode-mismatch'`,
+nothing written) instead of returning a plan that models the wrong semantics. Accepts
+analysis concerns only (`analysisRecords`, `analysisSummary`, `recordWriteMode`); any
+other update field throws a named
 `InputValidationError` client-side (the SDK builds the request body from the analysis
 fields alone, so the server's own scope-rule 400 is unreachable through it — the
 client-side check is what keeps a spread-in update input from being silently narrowed).
@@ -1056,7 +1084,7 @@ for (const [agent, p] of Object.entries(plan.byAgent)) {
 
 #### `client.runs.updateById(runId, input, options?)`
 
-Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0) under the same per-agent replace semantics and echo assertion as `update`. Accepts `{ _skipClientValidation: true }` option.
+Update run metadata by run UUID (alternative to `update` which uses project+runNumber). Supports post-hoc enrichment with structured analysis data (v1.7.0) under the same per-agent write semantics (`recordWriteMode` replace/merge) and echo assertion as `update` — and, like `update`, discards the echo on success; use `updateByIdWithEcho` to see it. Accepts `{ _skipClientValidation: true }` option.
 
 ```typescript
 // Basic metadata update
