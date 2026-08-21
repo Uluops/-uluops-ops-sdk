@@ -22,12 +22,16 @@
  *      the API's hasAnalysis predicate is `length > 0`, so a healthy 1a
  *      server replies without one; the SDK predicate must agree or the alarm
  *      fires falsely against production (the F1 class).
+ *   5. record_write_mode reaches the wire and a matching merge echo is
+ *      accepted (1b) — a stripped mode is the §3.9 silent-strip skew.
+ *   6. updateWithEcho returns { run, analysisWrite } (F17) — success-path
+ *      visibility of the superseded/created counts.
  *
  * Control mode — REQUIRED reading before trusting a green run:
  *   `node scripts/verify-update-run-tarball.mjs --control 5.17.0`
  *   installs the named PUBLISHED version instead of packing the tree, and
- *   expects checks 1–3 to FAIL (pre-5.18 behavior) while the harness itself
- *   still runs. A control run where nothing fails means the instrument is
+ *   expects checks 1, 2b, 3, 5, 6 to FAIL (pre-5.18/5.19 behavior) while
+ *   the harness itself still runs. A control run where nothing fails means the instrument is
  *   inert — do not trust the normal run either. (House rule: a check that
  *   cannot fail proves nothing.)
  */
@@ -53,7 +57,7 @@ process.on('exit', () => rmSync(workDir, { recursive: true, force: true }));
 let installSpec;
 if (controlVersion) {
   installSpec = `@uluops/ops-sdk@${controlVersion}`;
-  console.log(`CONTROL RUN against published ${installSpec} — checks 1–3 MUST fail.`);
+  console.log(`CONTROL RUN against published ${installSpec} — checks 1, 2b, 3, 5, 6 MUST fail.`);
 } else {
   execSync('npm pack --silent', { cwd: pkgRoot, stdio: ['ignore', 'ignore', 'inherit'] });
   const tgz = readdirSync(pkgRoot).find((f) => /^uluops-ops-sdk-.*\.tgz$/.test(f));
@@ -99,7 +103,8 @@ const server = http.createServer((req, res) => {
       const echoless = parsed.analysisRecords?.some((r) => r.title === 'ECHOLESS');
       const payload = { data: run };
       if (hasAnalysis && !echoless) {
-        payload.analysisWrite = { recordMode: 'replace', supersededRecords: 1, supersededSummaries: 0, createdRecords: 1, createdSummaries: 0 };
+        // 1b: echo the caller's mode, defaulted — like the live API.
+        payload.analysisWrite = { recordMode: parsed.recordWriteMode ?? 'replace', supersededRecords: 1, supersededSummaries: 0, createdRecords: 1, createdSummaries: 0 };
       }
       res.end(JSON.stringify(payload));
       return;
@@ -162,12 +167,26 @@ await check('4. analysisRecords: [] does not demand an echo (F1 — healthy-1a f
   assert.strictEqual(r.runNumber, 5);
 });
 
+await check('5. record_write_mode reaches the wire; matching merge echo accepted (1b)', async () => {
+  const r = await client.runs.update({ project: 'p', runNumber: 5, recordWriteMode: 'merge', analysisRecords: [record] });
+  assert.strictEqual(r.runNumber, 5);
+  assert.strictEqual(seen.updateBody.recordWriteMode, 'merge', 'mode missing from wire body');
+});
+
+await check('6. updateWithEcho returns { run, analysisWrite } (F17)', async () => {
+  assert.ok(typeof client.runs.updateWithEcho === 'function', 'updateWithEcho method absent');
+  const r = await client.runs.updateWithEcho({ project: 'p', runNumber: 5, analysisRecords: [record] });
+  assert.strictEqual(r.run.runNumber, 5);
+  assert.strictEqual(r.analysisWrite?.recordMode, 'replace', 'echo not surfaced on success path');
+});
+
 server.close();
 
 if (controlVersion) {
   // 2a and 4 legitimately pass on old SDKs (they never asserted the echo);
-  // 1, 2b, and 3 encode 5.18.0 behavior and MUST have failed.
-  const expectedFailures = 3;
+  // 1, 2b, 3 encode 5.18.0 behavior and 5, 6 encode 5.19.0 — all MUST have
+  // failed against the 5.17.0 control.
+  const expectedFailures = 5;
   if (failures === expectedFailures) {
     console.log(`CONTROL OK — exactly the ${expectedFailures} new-behavior checks failed against ${controlVersion}; the instrument can fire.`);
     process.exit(0);

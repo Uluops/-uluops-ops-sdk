@@ -6,6 +6,39 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.19.0] - 2026-08-21
+
+Adopts update-run phase 1b (API live 2026-08-21, spec v0.7.0): record write
+modes, and the F17 success-path echo (both ratified 2026-08-20).
+
+### Added
+
+- **`recordWriteMode: 'replace' | 'merge'`** on `UpdateRunInput` and both
+  preview inputs, wired through `buildUpdatePayload`'s allow-list (the
+  checklist 2-1 edit, deliberately held back from 5.18.0 while the 1a API
+  would have silently stripped it). `merge` upserts on
+  `(agent_name, record_id)`: matched rows superseded, unmatched keys
+  appended, nothing retired; summaries have no mode. The echo assertion now
+  compares against **the mode this call sent** — a pre-1b server that
+  strips the field echoes `replace` for a `merge` send, and that mismatch
+  throws `AnalysisEchoMismatchError` instead of silently retiring the
+  agent's unmatched records under replace semantics the caller didn't ask
+  for. The previews forward the mode for the same reason (a stripped mode
+  previews the wrong semantics).
+- **`runs.updateWithEcho` / `runs.updateByIdWithEcho`** (F17, tracker
+  `93031143`): distinct methods returning `{ run, analysisWrite }` —
+  success-path visibility of the superseded/created counts.
+  `supersededRecords: 0` on an enrichment that expected to replace is the
+  only caller-visible symptom of old-attribution rows accumulating beside
+  the insert; until now that signal existed solely in a server-side warn
+  log. `analysisWrite` is `null` on non-analysis updates. Existing
+  `update`/`updateById` signatures and returns are unchanged.
+- 204/empty-body regression test on the update path (tracker `71626d6a`):
+  the named `OpsApiError` from `parseUpdateEnvelope`, pinned.
+- Tarball instrument extended to 7 checks (mode-on-wire, with-echo);
+  `check:tarball:control` re-derived — exactly 5 failures required against
+  published 5.17.0.
+
 ## [5.18.0] - 2026-08-20
 
 Adopts the ops-uluops-api update-run replacement-semantics change (spec v0.5.0, API 1a,

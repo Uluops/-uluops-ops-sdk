@@ -16,6 +16,7 @@ import type {
   UpdateRunPreviewInput,
   UpdateRunPreviewByNumberInput,
   RunUpdatePreview,
+  UpdateRunWithEchoResult,
   ListRunsQuery,
   RunDetails,
   ProjectAnalysisQuery,
@@ -194,6 +195,9 @@ function buildUpdatePayload(input: UpdateRunInput) {
     // field stays `archiveReason` to match the Run response field. Sending
     // `archiveReason` was silently stripped by the API (tracker d21e0a57).
     archivedReason: input.archiveReason,
+    // 1b (spec §3.2): the load-bearing allow-list entry — type edits alone
+    // ship nothing through this hand-written gate (pipeline A1).
+    recordWriteMode: input.recordWriteMode,
     agents: input.agents,
     recommendations: input.recommendations,
     analysisRecords: input.analysisRecords,
@@ -201,8 +205,8 @@ function buildUpdatePayload(input: UpdateRunInput) {
   };
 }
 
-/** The record-write mode this SDK version implements (per-agent scoped replace, API 1a). */
-const IMPLEMENTED_RECORD_MODE = 'replace';
+/** The record-write modes this SDK version implements (API 1b). */
+const DEFAULT_RECORD_MODE = 'replace';
 
 /**
  * Mirror of the API's `hasAnalysis` predicate (mutations.ts: entries required,
@@ -234,21 +238,25 @@ function assertAnalysisWriteEcho(
   envelope: z.infer<typeof UpdateRunEnvelopeSchema>
 ): void {
   if (!isAnalysisBearing(input)) return;
+  // 1b: the expected mode is the mode THIS CALL sent (defaulted). A server
+  // that strips the field (pre-1b) echoes 'replace' for a merge send — the
+  // mismatch below is exactly the silent-strip skew the assertion exists for.
+  const expectedMode = input.recordWriteMode ?? DEFAULT_RECORD_MODE;
   const echo = envelope.analysisWrite;
   if (!echo) {
     throw new AnalysisEchoMismatchError(
       'analysis-bearing update returned no analysisWrite echo — the server predates ' +
       'per-agent replace semantics (update-run spec §3.9); this SDK version cannot ' +
       'verify what the write superseded. The update was applied; the error carries the run.',
-      { reason: 'missing-echo', expectedRecordMode: IMPLEMENTED_RECORD_MODE, actualRecordMode: null, run: envelope.data, analysisWrite: null }
+      { reason: 'missing-echo', expectedRecordMode: expectedMode, actualRecordMode: null, run: envelope.data, analysisWrite: null }
     );
   }
-  if (echo.recordMode !== IMPLEMENTED_RECORD_MODE) {
+  if (echo.recordMode !== expectedMode) {
     throw new AnalysisEchoMismatchError(
-      `analysisWrite.recordMode '${echo.recordMode}' differs from the '${IMPLEMENTED_RECORD_MODE}' ` +
-      'semantics this SDK version implements — upgrade @uluops/ops-sdk. ' +
+      `analysisWrite.recordMode '${echo.recordMode}' differs from the '${expectedMode}' this call sent — ` +
+      'the server does not speak this mode (pre-1b servers STRIP record_write_mode and execute replace). ' +
       'The update was applied under the server\'s mode; the error carries the run and echo.',
-      { reason: 'mode-mismatch', expectedRecordMode: IMPLEMENTED_RECORD_MODE, actualRecordMode: echo.recordMode, run: envelope.data, analysisWrite: echo }
+      { reason: 'mode-mismatch', expectedRecordMode: expectedMode, actualRecordMode: echo.recordMode, run: envelope.data, analysisWrite: echo }
     );
   }
 }
@@ -287,11 +295,11 @@ function parseUpdateEnvelope(body: unknown, endpoint: string): z.infer<typeof Up
  *   carries no `analysisWrite` echo or a foreign `recordMode` — the write has
  *   ALREADY been applied when this throws; the error carries the run. Do not retry.
  */
-export async function update(
+async function updateEnvelope(
   client: OpsHttpClient,
   input: UpdateRunByNumberInput,
   options?: { _skipClientValidation?: boolean }
-): Promise<Run> {
+): Promise<z.infer<typeof UpdateRunEnvelopeSchema>> {
   if (!options?._skipClientValidation) validateUpdateRunInput(input);
   // rawEnvelope: `analysisWrite` is a sibling of `data`; the default unwrap
   // would discard it and with it the §3.9 skew alarm.
@@ -306,7 +314,33 @@ export async function update(
     { rawEnvelope: true }
   ), '/runs/update');
   assertAnalysisWriteEcho(input, envelope);
-  return envelope.data;
+  return envelope;
+}
+
+export async function update(
+  client: OpsHttpClient,
+  input: UpdateRunByNumberInput,
+  options?: { _skipClientValidation?: boolean }
+): Promise<Run> {
+  return (await updateEnvelope(client, input, options)).data;
+}
+
+/**
+ * Update by project + run number, returning the run AND the server's §3.9
+ * analysis-write echo (F17): success-path visibility of what the write
+ * actually superseded. `analysisWrite` is null on updates that carried no
+ * analysis concerns. The echo assertion runs identically to {@link update} —
+ * this method changes what SUCCESS returns, not what failure means.
+ *
+ * @throws {AnalysisEchoMismatchError} Same contract as {@link update}.
+ */
+export async function updateWithEcho(
+  client: OpsHttpClient,
+  input: UpdateRunByNumberInput,
+  options?: { _skipClientValidation?: boolean }
+): Promise<UpdateRunWithEchoResult> {
+  const envelope = await updateEnvelope(client, input, options);
+  return { run: envelope.data, analysisWrite: envelope.analysisWrite ?? null };
 }
 
 /**
@@ -393,14 +427,14 @@ export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
  *   carries no `analysisWrite` echo or a foreign `recordMode` — the write has
  *   ALREADY been applied when this throws; the error carries the run. Do not retry.
  */
-export async function updateById(
+async function updateByIdEnvelope(
   client: OpsHttpClient,
   runId: string,
   input: UpdateRunInput,
   options?: { _skipClientValidation?: boolean }
-): Promise<Run> {
+): Promise<z.infer<typeof UpdateRunEnvelopeSchema>> {
   if (!options?._skipClientValidation) validateUpdateRunInput(input);
-  // rawEnvelope: see update() — the echo is a sibling of `data`.
+  // rawEnvelope: see updateEnvelope() — the echo is a sibling of `data`.
   const endpoint = `/runs/${encodeURIComponent(runId)}`;
   const envelope = parseUpdateEnvelope(await client.request<unknown>(
     'PATCH',
@@ -409,7 +443,27 @@ export async function updateById(
     { rawEnvelope: true }
   ), endpoint);
   assertAnalysisWriteEcho(input, envelope);
-  return envelope.data;
+  return envelope;
+}
+
+export async function updateById(
+  client: OpsHttpClient,
+  runId: string,
+  input: UpdateRunInput,
+  options?: { _skipClientValidation?: boolean }
+): Promise<Run> {
+  return (await updateByIdEnvelope(client, runId, input, options)).data;
+}
+
+/** By-id sibling of {@link updateWithEcho} (F17). */
+export async function updateByIdWithEcho(
+  client: OpsHttpClient,
+  runId: string,
+  input: UpdateRunInput,
+  options?: { _skipClientValidation?: boolean }
+): Promise<UpdateRunWithEchoResult> {
+  const envelope = await updateByIdEnvelope(client, runId, input, options);
+  return { run: envelope.data, analysisWrite: envelope.analysisWrite ?? null };
 }
 
 /**
@@ -436,6 +490,7 @@ export async function previewUpdate(
     runNumber: input.runNumber,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
+    recordWriteMode: input.recordWriteMode,
   }));
 }
 
@@ -462,6 +517,7 @@ export async function previewUpdateById(
     {
       analysisRecords: input.analysisRecords,
       analysisSummary: input.analysisSummary,
+      recordWriteMode: input.recordWriteMode,
     }
   ));
 }

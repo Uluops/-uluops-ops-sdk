@@ -268,12 +268,25 @@ export interface UpdateRunInput {
   recommendations?: RecommendationInput[];
   agents?: UpdateAgentInput[];
   /**
-   * Structured analysis records (v1.4.0) — per-agent scoped REPLACE (API 1a,
-   * spec §3.4): for each agent named in this array, that agent's existing
-   * records are superseded and these rows written; agents not named are
-   * untouched. Omitting a record an agent previously had retires it.
+   * Structured analysis records (v1.4.0) — per-agent scoped write (API 1a/1b).
+   * Under the default `replace` (spec §3.4): for each agent named in this
+   * array, that agent's existing records are superseded and these rows
+   * written; agents not named are untouched; omitting a record an agent
+   * previously had retires it. Under `merge` (see {@link recordWriteMode}):
+   * upsert on (agent_name, record_id) — nothing is retired.
    */
   analysisRecords?: AnalysisRecordInput[];
+  /**
+   * Records-only write mode (API 1b, spec §3.2; default 'replace').
+   * `merge` upserts on (agent_name, record_id): matched live rows are
+   * superseded (all matches — prior duplicates collapse to one, visible in
+   * the echo's supersededRecords), unmatched keys are pure appends, and
+   * nothing is ever retired. Summaries have no mode — always per-agent
+   * replace. Sending the mode without analysisRecords is a named 400.
+   * Requires an API with 1b (2026-08-21+); older servers strip the field —
+   * the echo assertion converts that skew into AnalysisEchoMismatchError.
+   */
+  recordWriteMode?: 'replace' | 'merge';
   /**
    * Analysis summary/summaries (v1.7.0) — single or per-agent array. Per-agent
    * scoped REPLACE (API 1a, spec §3.6): each named agent's existing summary is
@@ -300,6 +313,8 @@ export interface UpdateRunByNumberInput extends UpdateRunInput {
 export interface UpdateRunPreviewInput {
   analysisRecords?: AnalysisRecordInput[];
   analysisSummary?: AnalysisSummaryInput | AnalysisSummaryInput[];
+  /** Preview under this mode (default 'replace') — see {@link UpdateRunInput.recordWriteMode}. The preview forwarding the mode is load-bearing: a stripped mode would preview replace while the write merges. */
+  recordWriteMode?: 'replace' | 'merge';
 }
 
 /** By-project sibling of {@link UpdateRunPreviewInput} (POST /runs/update-preview). */
@@ -341,6 +356,21 @@ export interface RunUpdatePreview {
   preview: true;
   recordMode: string;
   byAgent: Record<string, AgentWritePlan>;
+}
+
+/**
+ * Result of {@link updateWithEcho}/{@link updateByIdWithEcho}: the updated
+ * run PLUS the server's §3.9 analysis-write echo, so success-path callers
+ * can see what the write actually superseded — `supersededRecords: 0` on an
+ * enrichment that expected to replace is the only caller-visible symptom of
+ * old-attribution rows accumulating beside the insert (the server logs it
+ * as `run.analysis_write.superseded_zero`, but that log never reaches SDK
+ * callers). `analysisWrite` is null when the update carried no analysis
+ * concerns (the server emits no echo for those).
+ */
+export interface UpdateRunWithEchoResult {
+  run: Run;
+  analysisWrite: AnalysisWriteEcho | null;
 }
 
 /**

@@ -63,6 +63,7 @@ import type {
   UpdateRunPreviewInput,
   UpdateRunPreviewByNumberInput,
   RunUpdatePreview,
+  UpdateRunWithEchoResult,
   ListRunsQuery,
   RunDetails,
   ProjectAnalysisQuery,
@@ -400,9 +401,13 @@ export class OpsClient {
     update: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
       runOps.update(this.httpClient, input, options),
 
-    /** Read-only preview of an analysis-bearing update (project + run number): what a replace write would supersede, create, and retire. */
+    /** Read-only preview of an analysis-bearing update (project + run number): what a write under the requested record_write_mode would supersede, create, and retire. */
     previewUpdate: (input: UpdateRunPreviewByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<RunUpdatePreview> =>
       runOps.previewUpdate(this.httpClient, input, options),
+
+    /** Update (project + run number) returning the run AND the §3.9 analysis-write echo — success-path visibility of superseded/created counts (F17). */
+    updateWithEcho: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<UpdateRunWithEchoResult> =>
+      runOps.updateWithEcho(this.httpClient, input, options),
 
     /** List run summaries for a project. */
     listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
@@ -427,6 +432,10 @@ export class OpsClient {
     /** Read-only preview of an analysis-bearing update, by run id. See previewUpdate. */
     previewUpdateById: (runId: string, input: UpdateRunPreviewInput, options?: { _skipClientValidation?: boolean }): Promise<RunUpdatePreview> =>
       runOps.previewUpdateById(this.httpClient, runId, input, options),
+
+    /** By-id sibling of updateWithEcho (F17). */
+    updateByIdWithEcho: (runId: string, input: UpdateRunInput, options?: { _skipClientValidation?: boolean }): Promise<UpdateRunWithEchoResult> =>
+      runOps.updateByIdWithEcho(this.httpClient, runId, input, options),
 
     /** Delete a run by id. */
     delete: (runId: string): Promise<DeleteResult> =>

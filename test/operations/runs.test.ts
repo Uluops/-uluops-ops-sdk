@@ -626,6 +626,78 @@ describe('Run Operations', () => {
       expect(run.runNumber).toBe(9);
     });
 
+    it('forwards record_write_mode on the wire and accepts a matching merge echo (1b)', async () => {
+      const mockRun = createMockRun({ runNumber: 5 });
+      nock(BASE_URL)
+        .patch('/runs/update', (body) => body.recordWriteMode === 'merge')
+        .reply(200, { data: mockRun, analysisWrite: { ...echo, recordMode: 'merge' } });
+
+      const run = await runOps.update(client, {
+        project: 'my-project', runNumber: 5, recordWriteMode: 'merge', ...analysisInput,
+      });
+      expect(run.runNumber).toBe(5);
+    });
+
+    it('sent merge but echoed replace → mode-mismatch (the pre-1b silent-strip skew, spec §3.9)', async () => {
+      // A pre-1b server STRIPS record_write_mode and executes replace — the
+      // echo then says 'replace' for a merge send. This is the exact skew the
+      // assertion exists for: without it, a caller who thought they appended
+      // has silently retired the agent's unmatched records.
+      const mockRun = createMockRun({ runNumber: 5 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun, analysisWrite: echo }); // recordMode: 'replace'
+
+      let thrown: unknown;
+      try {
+        await runOps.update(client, { project: 'my-project', runNumber: 5, recordWriteMode: 'merge', ...analysisInput });
+      } catch (e) { thrown = e; }
+      expect(thrown).toMatchObject({
+        name: 'AnalysisEchoMismatchError',
+        reason: 'mode-mismatch',
+        expectedRecordMode: 'merge',
+        actualRecordMode: 'replace',
+      });
+    });
+
+    it('updateWithEcho returns the run AND the echo; null when no analysis sent (F17)', async () => {
+      const mockRun = createMockRun({ runNumber: 5 });
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun, analysisWrite: echo });
+      const withEcho = await runOps.updateWithEcho(client, { project: 'my-project', runNumber: 5, ...analysisInput });
+      expect(withEcho.run.runNumber).toBe(5);
+      expect(withEcho.analysisWrite).toEqual(echo);
+
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(200, { data: mockRun });
+      const noEcho = await runOps.updateWithEcho(client, { project: 'my-project', runNumber: 5, averageScore: 90 });
+      expect(noEcho.analysisWrite).toBeNull();
+    });
+
+    it('updateByIdWithEcho mirrors by id (F17)', async () => {
+      const mockRun = createMockRun();
+      nock(BASE_URL)
+        .patch(`/runs/${mockRun.id}`)
+        .reply(200, { data: mockRun, analysisWrite: echo });
+      const withEcho = await runOps.updateByIdWithEcho(client, mockRun.id, analysisInput);
+      expect(withEcho.run.id).toBe(mockRun.id);
+      expect(withEcho.analysisWrite?.supersededRecords).toBe(2);
+    });
+
+    it('a 204/empty body on the update path throws a named OpsApiError, not an anonymous ZodError', async () => {
+      // Tracker 71626d6a: rawEnvelope skips sdk-core's envelope check;
+      // parseUpdateEnvelope restores the named format error.
+      nock(BASE_URL)
+        .patch('/runs/update')
+        .reply(204);
+
+      await expect(
+        runOps.update(client, { project: 'my-project', runNumber: 5, averageScore: 90 })
+      ).rejects.toMatchObject({ name: expect.stringMatching(/SdkApiError|OpsApiError/) });
+    });
+
     it('carries structured discriminators and the landed run on the error', async () => {
       const mockRun = createMockRun({ runNumber: 5 });
       nock(BASE_URL)
@@ -677,6 +749,18 @@ describe('Run Operations', () => {
         },
       },
     };
+
+    it('forwards record_write_mode on the preview wire (1b — a stripped mode previews the wrong semantics)', async () => {
+      nock(BASE_URL)
+        .post('/runs/update-preview', (body) => body.recordWriteMode === 'merge')
+        .reply(200, { data: { ...previewReply.data, recordMode: 'merge' } });
+
+      const plan = await runOps.previewUpdate(client, {
+        project: 'my-project', runNumber: 5, recordWriteMode: 'merge',
+        analysisRecords: [{ agentName: 'aristotle-analyst', recordType: 'finding', recordId: 'F-1', title: 'Test finding', data: {} }],
+      });
+      expect(plan.recordMode).toBe('merge');
+    });
 
     it('previews by project + run number via POST /runs/update-preview', async () => {
       nock(BASE_URL)

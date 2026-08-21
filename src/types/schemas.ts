@@ -322,6 +322,9 @@ export const UpdateRunInputSchema = SaveRunInputSchema.pick({
   rawMarkdown: z.string().nullish(),
   archivedAt: z.string().datetime().nullish(),
   archiveReason: z.string().max(500).nullish(),
+  // Records-only write mode (API 1b, spec §3.2). Unknown values fail here
+  // with a named issue instead of reaching the server.
+  recordWriteMode: z.enum(['replace', 'merge']).optional(),
 });
 
 /**
@@ -336,6 +339,11 @@ export const UpdateRunInputSchema = SaveRunInputSchema.pick({
 export const UpdateRunPreviewInputSchema = SaveRunInputSchema.pick({
   analysisRecords: true,
   analysisSummary: true,
+}).extend({
+  // The preview MUST carry the mode (spec §4): previewing replace while the
+  // write merges is the strip-and-execute divergence the endpoint exists to
+  // prevent.
+  recordWriteMode: z.enum(['replace', 'merge']).optional(),
 });
 
 /**

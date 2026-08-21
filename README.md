@@ -1014,13 +1014,20 @@ const run = await client.runs.update({
 });
 ```
 
-**Analysis writes are per-agent scoped REPLACE** (API 1a): for each agent named in
-`analysisRecords` / `analysisSummary`, that agent's existing rows are superseded by the
-payload's; agents not named are untouched. Omitting a record an agent previously had
-retires it — preview with `previewUpdate` first when unsure. The SDK asserts the server's
-`analysisWrite` echo on every analysis-bearing update and throws a named
-`AnalysisEchoMismatchError` if the server implements different semantics (the update has
-been applied when this throws — re-read the run rather than retry).
+**Analysis writes are per-agent scoped** (API 1a/1b): for each agent named in
+`analysisRecords` / `analysisSummary`, that agent's existing rows are affected; agents not
+named are untouched. Under the default `recordWriteMode: 'replace'`, a named agent's set is
+fully replaced — omitting a record it previously had retires it. Under `'merge'` (API 1b),
+records upsert on `(agent_name, record_id)`: matched rows are superseded, unmatched keys
+append, and nothing is retired; summaries have no mode. Preview with `previewUpdate` first
+when unsure. The SDK asserts the server's `analysisWrite` echo on every analysis-bearing
+update — the echoed `recordMode` must equal the mode this call sent, so a pre-1b server
+that strips `recordWriteMode` (and executes replace on a merge send) throws a named
+`AnalysisEchoMismatchError` instead of silently retiring records (the update has been
+applied when this throws — re-read the run rather than retry). To see what a successful
+write actually superseded, use `updateWithEcho` / `updateByIdWithEcho`, which return
+`{ run, analysisWrite }` — `supersededRecords: 0` on an enrichment that expected to
+replace means the named agents had no live rows (first enrichment, or attribution drift).
 
 #### `client.runs.previewUpdate(input, options?)` / `client.runs.previewUpdateById(runId, input, options?)`
 
