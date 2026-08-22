@@ -739,6 +739,7 @@ export function createMockPublicApiKey(overrides: Partial<z.infer<typeof PublicA
     lastUsedAt: null,
     expiresAt: null,
     createdAt: isoDate(7),
+    scope: 'write',
     ...overrides,
   };
 

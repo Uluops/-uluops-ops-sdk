@@ -536,6 +536,22 @@ describe('Config Validators', () => {
       expect(result.expiresAt).toBe('2025-12-31T00:00:00Z');
     });
 
+    it('should accept a valid scope (read | write)', () => {
+      expect(validateCreateApiKeyInput({ scope: 'read' }).scope).toBe('read');
+      expect(validateCreateApiKeyInput({ scope: 'write' }).scope).toBe('write');
+    });
+
+    it('should reject an out-of-enum scope client-side (the mint-direction gate)', () => {
+      try {
+        validateCreateApiKeyInput({ scope: 'admin' });
+        expect.fail('Should throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(InputValidationError);
+        const validationError = error as InputValidationError;
+        expect(validationError.errors.some(e => e.path.includes('scope'))).toBe(true);
+      }
+    });
+
     it('should reject name exceeding 100 chars with error path', () => {
       try {
         validateCreateApiKeyInput({ name: 'x'.repeat(101) });
