@@ -524,7 +524,7 @@ Create a new API key.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `name` | `string` | No | Key name/description |
-| `scope` | `'read' \| 'write'` | No | Per-key scope (v5.20.0 / platform v1.27.0). Omitted ⇒ `'write'` server-side. A `read` key gets `403 INSUFFICIENT_SCOPE` on any non-GET/HEAD request. |
+| `scope` | `'read' \| 'write'` | No | Per-key scope (v5.21.0 / platform v1.27.0). Omitted ⇒ `'write'` server-side. A `read` key gets `403 INSUFFICIENT_SCOPE` on any non-GET/HEAD request. |
 
 ```typescript
 // A read-only key — cannot write (close/delete/merge), only read

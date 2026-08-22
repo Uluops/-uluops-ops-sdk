@@ -291,7 +291,11 @@ describe('Auth Operations', () => {
       expect(result.apiKey.scope).toBe('read');
     });
 
-    it('GATE — strict response schema throws on an undeclared field (no more silent strip)', async () => {
+    it('resilient-client: an undeclared response field is stripped, not thrown on (createApiKey still returns the minted key)', async () => {
+      // The response schema is deliberately NOT .strict(): a field the platform
+      // adds must not throw — least of all here, where the key is already minted
+      // and returned once. Strip-and-continue is the correct resilient-client
+      // behavior; scope survives because it is declared.
       nock(BASE_URL)
         .post('/auth/keys', { name: 'x' })
         .reply(201, {
@@ -304,12 +308,27 @@ describe('Auth Operations', () => {
               expiresAt: null,
               createdAt: new Date().toISOString(),
               scope: 'write',
-              somethingUndeclared: 'should make .strict() throw',
+              somethingUndeclared: 'a future platform field — must not break the client',
             },
           },
         });
 
-      await expect(authOps.createApiKey(client, { name: 'x' })).rejects.toThrow();
+      const result = await authOps.createApiKey(client, { name: 'x' });
+      expect(result.key).toBe('ulr_x');       // secret delivered, not lost to a parse throw
+      expect(result.apiKey.scope).toBe('write');
+      expect('somethingUndeclared' in result.apiKey).toBe(false); // unknown field stripped
+    });
+
+    it('backward-compat: a response with scope absent (pre-migration) still parses', async () => {
+      const mockResponse = createMockApiKeyCreated({
+        key: 'ulr_noscope',
+        apiKey: createMockPublicApiKey({ name: 'legacy', scope: undefined }),
+      });
+      nock(BASE_URL).post('/auth/keys', { name: 'legacy' }).reply(201, { data: mockResponse });
+
+      const result = await authOps.createApiKey(client, { name: 'legacy' });
+      expect(result.key).toBe('ulr_noscope');
+      expect(result.apiKey.scope).toBeUndefined();
     });
   });
 

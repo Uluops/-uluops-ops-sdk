@@ -214,7 +214,7 @@ export async function deleteAvatar(client: OpsHttpClient): Promise<void> {
 }
 
 /**
- * List the current user's API keys (excludes the full key value — only id, name, prefix, createdAt).
+ * List the current user's API keys (excludes the full key value — id, name, prefix, scope, lastUsedAt, expiresAt, createdAt).
  *
  * @param client - HTTP client instance
  * @returns Array of `PublicApiKey` objects
@@ -229,9 +229,9 @@ export async function listApiKeys(
  * Create a new API key. The full key is only returned once — store it securely.
  *
  * @param client - HTTP client instance
- * @param input - Optional: `{ name?, expiresAt? }`
+ * @param input - Optional: `{ name?, scope?: 'read'|'write', expiresAt? }` (scope omitted ⇒ server defaults to 'write')
  * @returns `{ id, name, key }` — key starts with `ulr_` prefix
- * @throws {InputValidationError} If name exceeds 100 chars
+ * @throws {InputValidationError} If name exceeds 100 chars or scope is not 'read'|'write'
  */
 export async function createApiKey(
   client: OpsHttpClient,
