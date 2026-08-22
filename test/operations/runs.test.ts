@@ -1075,6 +1075,8 @@ describe('Run Operations', () => {
             correlation: { newIssues: 0, recurringIssues: 0, regressions: 0 },
             deduplicated: false,
           },
+          // T21: analysis-bearing saves carry the echo (asserted by save()).
+          analysisWrite: { recordMode: 'initial', supersededRecords: 0, supersededSummaries: 0, createdRecords: 1, createdSummaries: 0 },
         });
 
       const result = await runOps.save(client, {
@@ -1221,6 +1223,98 @@ describe('Run Operations', () => {
           workflowType: '',
         } as any)
       ).rejects.toThrow();
+    });
+  });
+
+  describe('tool-sweep batch 1 — T1 content-derived idempotency key, T21 save echo', () => {
+    const plainInput = () => ({
+      project: 'my-project',
+      workflowType: 'post-implementation',
+      agents: [{ name: 'code-validator', score: 85, decision: 'PASS' }],
+      recommendations: [],
+    });
+    const plainReply = (deduplicated = false) => ({
+      data: {
+        run: createMockRun({ runNumber: 1 }),
+        agents: [],
+        correlation: { newIssues: 0, recurringIssues: 0, regressions: 0 },
+        deduplicated,
+      },
+    });
+
+    it('T1: the default idempotency key is content-derived — identical payloads send the SAME key', async () => {
+      const keys: string[] = [];
+      nock(BASE_URL)
+        .post('/runs', (body) => { keys.push(body.idempotencyKey); return true; })
+        .times(2)
+        .reply(201, plainReply());
+
+      await runOps.save(client, plainInput());
+      await runOps.save(client, plainInput());
+
+      expect(keys).toHaveLength(2);
+      expect(keys[0]).toBe(keys[1]);
+      // sha256 hex, not a UUID — the random default was the T1 mechanism.
+      expect(keys[0]).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('T1 control: different payloads derive DIFFERENT keys; an explicit key passes through', async () => {
+      const keys: string[] = [];
+      nock(BASE_URL)
+        .post('/runs', (body) => { keys.push(body.idempotencyKey); return true; })
+        .times(3)
+        .reply(201, plainReply());
+
+      await runOps.save(client, plainInput());
+      await runOps.save(client, { ...plainInput(), workflowType: 'ship' });
+      await runOps.save(client, { ...plainInput(), idempotencyKey: 'my-explicit-key' });
+
+      expect(keys[0]).not.toBe(keys[1]);
+      expect(keys[2]).toBe('my-explicit-key');
+    });
+
+    it('T21: the analysisWrite echo is surfaced on the save result', async () => {
+      const echo = { recordMode: 'initial', supersededRecords: 0, supersededSummaries: 0, createdRecords: 2, createdSummaries: 1 };
+      nock(BASE_URL)
+        .post('/runs')
+        .reply(201, { ...plainReply(), analysisWrite: echo });
+
+      const result = await runOps.save(client, {
+        ...plainInput(),
+        analysisRecords: [{ recordType: 'finding', recordId: 'r1', title: 't', data: { k: 1 } }],
+      });
+
+      expect(result.analysisWrite).toEqual(echo);
+    });
+
+    it('T21: analysis-bearing save with NO echo throws AnalysisEchoMismatchError (old API)', async () => {
+      nock(BASE_URL).post('/runs').reply(201, plainReply());
+
+      await expect(
+        runOps.save(client, {
+          ...plainInput(),
+          analysisRecords: [{ recordType: 'finding', recordId: 'r1', title: 't', data: { k: 1 } }],
+        })
+      ).rejects.toMatchObject({ name: 'AnalysisEchoMismatchError', reason: 'missing-echo' });
+    });
+
+    it('T21 control: a DEDUPLICATED analysis-bearing replay carries no echo and does not throw — nothing was written', async () => {
+      nock(BASE_URL).post('/runs').reply(200, plainReply(true));
+
+      const result = await runOps.save(client, {
+        ...plainInput(),
+        analysisRecords: [{ recordType: 'finding', recordId: 'r1', title: 't', data: { k: 1 } }],
+      });
+
+      expect(result.deduplicated).toBe(true);
+      expect(result.analysisWrite).toBeNull();
+    });
+
+    it('T21 control: a plain save without analysis needs no echo and returns analysisWrite null', async () => {
+      nock(BASE_URL).post('/runs').reply(201, plainReply());
+
+      const result = await runOps.save(client, plainInput());
+      expect(result.analysisWrite).toBeNull();
     });
   });
 });

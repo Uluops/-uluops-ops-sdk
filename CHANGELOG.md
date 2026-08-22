@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.22.0] — 2026-08-21
+
+> Numbered past 5.21.0, which is reserved by the in-flight per-key-scopes train
+> (staged on Verdaccio 2026-08-21). If this train merges first, scopes rebases and
+> takes 5.23.0 — reconcile at merge, whichever lands second renumbers.
+
+### Changed — behavior, not just API surface
+
+- **The default `idempotencyKey` on `runs.save()` is now derived from the payload content
+  (sha256), not `randomUUID()`** (tool-sweep T1, tracker project `mcp-tool-surface-sweep`).
+  The random default only deduplicated retries inside one call's HTTP loop; a harness-level
+  retry — a new `save()` call with the same payload, the default behavior of every agent on
+  timeout — minted a fresh UUID and wrote a second billable run. Content-derived, a
+  byte-identical resubmission maps to the same key and the server returns the original run
+  with `deduplicated: true`. **Semantics to note:** two deliberate, byte-identical keyless
+  saves now deduplicate. Callers who want two identical runs pass explicit distinct
+  `idempotencyKey`s — or include a `timestamp`, which makes the payloads differ. Caret-ranged
+  consumers adopt this on a plain `npm install`.
+
+### Added
+
+- **`runs.save()` surfaces the `analysisWrite` confirmation** (tool-sweep T21; API ≥1.71.0).
+  The save response envelope now carries `analysisWrite` as a sibling of `data` — the same
+  placement as the update envelope — read via `rawEnvelope` and returned on the result
+  (`analysisWrite: AnalysisWriteEcho | null`; `recordMode: 'initial'` on this path). Like the
+  update path, an **analysis-bearing** save that comes back without the echo throws
+  `AnalysisEchoMismatchError` (`reason: 'missing-echo'`) — the run WAS saved; verify via
+  `get_run_analysis`, do not retry. A deduplicated replay correctly carries no echo and does
+  not throw (nothing was written). Return type is `SaveRunResponseWithEcho` (a superset of
+  the previous `SaveRunResponse` — source-compatible).
+
 ## [5.20.0] — 2026-08-21
 
 ### Changed

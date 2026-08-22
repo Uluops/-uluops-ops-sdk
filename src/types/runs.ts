@@ -46,6 +46,13 @@ export type CorrelationResult = z.infer<typeof CorrelationResultResponseSchema>;
 /** Save run response */
 export type SaveRunResponse = z.infer<typeof SaveRunResponseSchema>;
 
+/**
+ * save() return: the response fields plus the analysisWrite confirmation
+ * (tool-sweep T21). `analysisWrite` is null when the payload carried no
+ * analysis data or the save deduplicated (a replay writes nothing).
+ */
+export type SaveRunResponseWithEcho = SaveRunResponse & { analysisWrite: AnalysisWriteEcho | null };
+
 /** Validate run response (preview without saving) */
 export type ValidateRunResponse = z.infer<typeof ValidateRunResponseSchema>;
 

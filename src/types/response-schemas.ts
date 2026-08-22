@@ -675,6 +675,17 @@ export const SaveRunResponseSchema = z.object({
   analysisSummary: z.lazy(() => AnalysisSummaryResponseSchema).optional(),
 });
 
+/**
+ * Full save-response envelope (tool-sweep T21). `analysisWrite` is a SIBLING
+ * of `data` — the same placement as the update envelope — so both paths read
+ * the body with `rawEnvelope` and one pattern. `recordMode` is 'initial' on
+ * this path (no supersede semantics on first write).
+ */
+export const SaveRunEnvelopeSchema = z.object({
+  data: SaveRunResponseSchema,
+  analysisWrite: AnalysisWriteEchoSchema.optional(),
+});
+
 export const DiffIssueRefResponseSchema = z.object({
   issueId: z.string().uuid(),
   title: z.string(),

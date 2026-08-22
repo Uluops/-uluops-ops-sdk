@@ -782,7 +782,7 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 | `recommendations` | `Recommendation[]` | Yes | Array of issues/recommendations (use `[]` for empty). Multi-agent pipelines: see [Convergence clustering](#convergence-clustering-clusterkey) before collapsing findings |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
-| `idempotencyKey` | `string` | No | Key for duplicate prevention |
+| `idempotencyKey` | `string` | No | Key for duplicate prevention. When omitted, the SDK derives it from the payload content (sha256), so a byte-identical retry returns the original run (`deduplicated: true`) instead of creating a second one. Pass explicit distinct keys to deliberately save identical payloads twice |
 | `definitionType` | `string` | No | Definition type (`'agent'`, `'command'`, `'workflow'`, `'pipeline'`) |
 | `definitionName` | `string` | No | Definition name (e.g., `'code-validator'`) |
 | `definitionVersion` | `string` | No | Definition version (e.g., `'1.2.0'`) |

@@ -1,11 +1,11 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import type {
   Run,
   SaveRunInput,
-  SaveRunResponse,
+  SaveRunResponseWithEcho,
   ValidateRunResponse,
   RunDiffQuery,
   RunDiffResult,
@@ -29,7 +29,7 @@ import {
   UpdateRunEnvelopeSchema,
   RunUpdatePreviewResponseSchema,
   RunSummaryResponseSchema,
-  SaveRunResponseSchema,
+  SaveRunEnvelopeSchema,
   ValidateRunResponseSchema,
   RunDiffResultResponseSchema,
   ArchiveRunsResultResponseSchema,
@@ -76,11 +76,9 @@ export async function save(
   client: OpsHttpClient,
   input: SaveRunInput,
   options?: { _skipClientValidation?: boolean }
-): Promise<SaveRunResponse> {
+): Promise<SaveRunResponseWithEcho> {
   if (!options?._skipClientValidation) validateSaveRunInput(input);
-  // Generate idempotency key if not provided — prevents duplicate runs on retry
-  const idempotencyKey = input.idempotencyKey ?? randomUUID();
-  return SaveRunResponseSchema.parse(await client.post<unknown>('/runs', {
+  const payload = {
     project: input.project,
     workflowType: input.workflowType,
     agents: input.agents,
@@ -88,7 +86,6 @@ export async function save(
     timestamp: input.timestamp,
     rawMarkdown: input.rawMarkdown,
     summary: input.summary,
-    idempotencyKey,
     definitionType: input.definitionType,
     definitionName: input.definitionName,
     definitionVersion: input.definitionVersion,
@@ -97,7 +94,79 @@ export async function save(
     definitionId: input.definitionId,
     analysisRecords: input.analysisRecords,
     analysisSummary: input.analysisSummary,
-  }, { retryMutations: true }));
+  };
+  // Default idempotency key is derived from the payload CONTENT, not random
+  // (tool-sweep T1). A random default only deduplicated retries inside this
+  // call's HTTP loop; a harness-level retry (new call, same payload) minted a
+  // new UUID and wrote a second billable run — the exact failure the key
+  // exists to prevent. Content-derived, a byte-identical resubmission maps to
+  // the same key and the server returns the original run (deduplicated:true).
+  // Callers who want two identical runs pass explicit distinct keys.
+  const idempotencyKey = input.idempotencyKey ?? deriveIdempotencyKey(payload);
+  // rawEnvelope: `analysisWrite` is a sibling of `data` (same placement as
+  // the update envelope); the default unwrap would discard it.
+  const envelope = parseSaveEnvelope(await client.request<unknown>(
+    'POST',
+    '/runs',
+    { ...payload, idempotencyKey },
+    { retryMutations: true, rawEnvelope: true }
+  ), '/runs');
+  assertSaveAnalysisWriteEcho(input, envelope);
+  return { ...envelope.data, analysisWrite: envelope.analysisWrite ?? null };
+}
+
+/** Deterministic default idempotency key: sha256 of the outgoing payload. */
+function deriveIdempotencyKey(payload: unknown): string {
+  return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+/**
+ * Envelope guard for save — same rationale as parseUpdateEnvelope below:
+ * `rawEnvelope` skips sdk-core's isDataEnvelope check, so a non-envelope 2xx
+ * body must surface as a named format error, not an anonymous ZodError.
+ */
+function parseSaveEnvelope(body: unknown, endpoint: string): z.infer<typeof SaveRunEnvelopeSchema> {
+  if (body === null || typeof body !== 'object' || !('data' in body)) {
+    // Status is 2xx by construction (non-2xx threw in sdk-core before parsing);
+    // the raw path does not surface the exact code, so report the family.
+    throw new OpsApiError(
+      200,
+      `Unexpected API response format from POST ${endpoint}: expected { data: ... } envelope but received ` +
+      (body === null ? 'null' : Array.isArray(body) ? 'array' : typeof body)
+    );
+  }
+  return SaveRunEnvelopeSchema.parse(body);
+}
+
+/**
+ * Analysis-bearing saves must carry the analysisWrite echo (tool-sweep T21)
+ * with recordMode 'initial' — except on a deduplicated replay, which wrote
+ * nothing and correctly carries no echo. Same contract and error class as
+ * the update path's assertAnalysisWriteEcho.
+ */
+function assertSaveAnalysisWriteEcho(
+  input: SaveRunInput,
+  envelope: z.infer<typeof SaveRunEnvelopeSchema>
+): void {
+  const analysisBearing = (input.analysisRecords?.length ?? 0) > 0 || input.analysisSummary !== undefined;
+  if (!analysisBearing) return;
+  if (envelope.data.deduplicated) return;
+  const echo = envelope.analysisWrite;
+  if (!echo) {
+    throw new AnalysisEchoMismatchError(
+      'analysis-bearing save returned no analysisWrite echo — the server predates the ' +
+      'save-path confirmation (tool-sweep T21); this SDK version cannot verify the analysis ' +
+      'write landed. The run WAS saved; the error carries it. Verify via get_run_analysis, do not retry.',
+      { reason: 'missing-echo', expectedRecordMode: 'initial', actualRecordMode: null, run: envelope.data, analysisWrite: null }
+    );
+  }
+  if (echo.recordMode !== 'initial') {
+    throw new AnalysisEchoMismatchError(
+      `analysisWrite.recordMode '${echo.recordMode}' on a save — the save path always writes ` +
+      "mode 'initial'. The run was saved; the error carries it. Do not retry.",
+      { reason: 'mode-mismatch', expectedRecordMode: 'initial', actualRecordMode: echo.recordMode, run: envelope.data, analysisWrite: echo }
+    );
+  }
 }
 
 /**

@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "5.20.0",
+  "version": "5.22.0",
   "description": "Track execution runs, manage issues, and query analytics against the UluOps platform API — typed TypeScript client with Zod runtime validation.",
   "type": "module",
   "main": "dist/index.js",
