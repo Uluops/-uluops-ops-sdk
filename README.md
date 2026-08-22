@@ -524,10 +524,15 @@ Create a new API key.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `name` | `string` | No | Key name/description |
+| `scope` | `'read' \| 'write'` | No | Per-key scope (v5.20.0 / platform v1.27.0). Omitted ⇒ `'write'` server-side. A `read` key gets `403 INSUFFICIENT_SCOPE` on any non-GET/HEAD request. |
 
 ```typescript
-const { id, name, key } = await client.auth.createApiKey({ name: 'CI Pipeline' });
+// A read-only key — cannot write (close/delete/merge), only read
+const { id, name, key } = await client.auth.createApiKey({ name: 'CI Pipeline', scope: 'read' });
 console.log('Save this key:', key); // Only shown once!
+// Listed keys carry their scope:
+const keys = await client.auth.listApiKeys();
+keys.forEach((k) => console.log(k.name, k.scope)); // 'CI Pipeline' 'read'
 ```
 
 #### `client.auth.revokeApiKey(keyId)`

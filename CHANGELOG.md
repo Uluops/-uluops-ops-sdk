@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added — per-key scope on API keys (platform v1.27.0)
+
+- `createApiKey` accepts `scope: 'read' | 'write'` (`CreateApiKeyInput`,
+  `CreateApiKeyInputSchema` — closed enum, validated client-side). Omitted ⇒
+  server defaults to `'write'`.
+- `PublicApiKeyResponseSchema` now carries `scope` (raw string — the platform
+  read surface is deliberately tolerant of an out-of-enum stored value, so the
+  SDK relays it rather than throwing), and is now **`.strict()`**: it was a
+  bare `z.object()` that silently stripped undeclared fields — the exact reason
+  `scope` would otherwise have been invisible to every consumer. Strict makes
+  the next undeclared field error at the boundary instead of evaporating.
+- `--json` output carries `scope` automatically (plain stringify, no re-parse).
+
 ## [5.19.0] - 2026-08-21
 
 Adopts update-run phase 1b (API live 2026-08-21, spec v0.7.0): record write

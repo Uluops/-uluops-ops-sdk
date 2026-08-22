@@ -181,7 +181,18 @@ export const PublicApiKeyResponseSchema = z.object({
   lastUsedAt: NullableDateTimeSchema,
   expiresAt: NullableDateTimeSchema,
   createdAt: DateTimeStringSchema,
-});
+  // Per-key scope (@uluops/platform v1.27.0). Raw string, not an enum: the
+  // platform read surface is deliberately tolerant of an out-of-enum stored
+  // value, and the SDK must not throw on one it faithfully relays.
+  scope: z.string().optional(),
+}).strict();
+// .strict() (per-key-scopes checklist Phase D): this schema was a bare
+// z.object() that SILENTLY STRIPPED any undeclared field — the exact reason
+// `scope` would have been invisible to every SDK consumer
+// (insight_silent_strip_and_uncounted_writers). Strict makes the NEXT
+// undeclared field error at the boundary instead of evaporating. Every field
+// the API returns for a public key is declared above (prefix is optional and
+// absent from the current platform shape; harmless under strict).
 
 export const ApiKeyCreatedResponseSchema = z.object({
   key: z.string(),

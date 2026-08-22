@@ -110,6 +110,11 @@ export const ResetPasswordInputSchema = z.object({
 export const CreateApiKeyInputSchema = z.object({
   name: z.string().max(100).optional(),
   expiresAt: z.string().datetime().optional(),
+  // Per-key scope (@uluops/platform v1.27.0). Closed enum on the MINT
+  // direction — a bad scope is rejected client-side before the request
+  // leaves. (The op sends the raw input, not this schema's output, so this
+  // gates without stripping — validateCreateApiKeyInput discards its return.)
+  scope: z.enum(['read', 'write']).optional(),
 });
 
 // ============================================

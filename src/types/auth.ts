@@ -117,6 +117,8 @@ export interface ResetPasswordInput {
 export interface CreateApiKeyInput {
   name?: string;
   expiresAt?: string;
+  /** Per-key scope (@uluops/platform v1.27.0). Defaults to `'write'` server-side when omitted. */
+  scope?: 'read' | 'write';
 }
 
 /**
