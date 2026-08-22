@@ -181,7 +181,24 @@ export const PublicApiKeyResponseSchema = z.object({
   lastUsedAt: NullableDateTimeSchema,
   expiresAt: NullableDateTimeSchema,
   createdAt: DateTimeStringSchema,
+  // Per-key scope (@uluops/platform v1.27.0). Raw string, not an enum: the
+  // platform read surface is deliberately tolerant of an out-of-enum stored
+  // value, and the SDK must not throw on one it faithfully relays.
+  scope: z.string().optional(),
 });
+// NOT .strict() — deliberately (per-key-scopes review, 2026-08-22). The real
+// silent-strip the spec worried about is fixed by DECLARING `scope` above;
+// that is the whole fix. Making this response schema strict was the wrong
+// tool: on a response PARSE, an undeclared field means the PLATFORM added one,
+// and dropping it is correct forward-compatible resilient-client behavior (see
+// this file's header). Strict would instead THROW for every consumer the first
+// time platform adds any key-response field — and worse on createApiKey, which
+// throws AFTER the key is minted, losing a returned-once secret. This exact
+// anti-pattern is scarred twice in this file: RegisterResponseSchema (threw on
+// every real 201, hidden by schema-derived mocks) and MergeConflictKindResponseSchema
+// (chose a regex over an enum precisely so a server-side success is never
+// undone by a client parse throw). Correctness of the field set is a
+// live-contract-test job, not a runtime-strict job.
 
 export const ApiKeyCreatedResponseSchema = z.object({
   key: z.string(),

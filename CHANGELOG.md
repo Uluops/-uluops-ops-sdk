@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.21.0] — 2026-08-22
+
+### Added — per-key scope on API keys (platform v1.27.0)
+
+- `createApiKey` accepts `scope: 'read' | 'write'` (`CreateApiKeyInput`,
+  `CreateApiKeyInputSchema` — closed enum, validated client-side). Omitted ⇒
+  server defaults to `'write'`.
+- `PublicApiKeyResponseSchema` now declares `scope` (raw string — the platform
+  read surface is deliberately tolerant of an out-of-enum stored value, so the
+  SDK relays it rather than throwing). Declaring the field is the whole fix for
+  the prior silent strip. The schema stays **strip-by-default (NOT `.strict()`)**
+  so an additive platform field stays forward-compatible instead of throwing for
+  every consumer — and, on `createApiKey`, throwing *after* the key is minted
+  would lose a returned-once secret. See the RegisterResponseSchema and
+  MergeConflictKind scars in `response-schemas.ts` for why response-parse
+  strictness is the wrong tool; field-set correctness is a live-contract-test
+  job. (A `.strict()` was tried and reverted after review, 2026-08-22.)
+- `--json` output carries `scope` automatically (plain stringify, no re-parse).
+
 ## [5.20.0] — 2026-08-21
 
 ### Changed

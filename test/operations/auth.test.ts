@@ -275,6 +275,61 @@ describe('Auth Operations', () => {
 
       expect(result.key).toBe('ulr_unnamed-key');
     });
+
+    it('passes scope through on create and surfaces it on the response (per-key-scopes)', async () => {
+      const mockResponse = createMockApiKeyCreated({
+        key: 'ulr_readonly-briefing',
+        apiKey: createMockPublicApiKey({ name: 'readonly-briefing', scope: 'read' }),
+      });
+
+      nock(BASE_URL)
+        .post('/auth/keys', { name: 'readonly-briefing', scope: 'read' })
+        .reply(201, { data: mockResponse });
+
+      const result = await authOps.createApiKey(client, { name: 'readonly-briefing', scope: 'read' });
+
+      expect(result.apiKey.scope).toBe('read');
+    });
+
+    it('resilient-client: an undeclared response field is stripped, not thrown on (createApiKey still returns the minted key)', async () => {
+      // The response schema is deliberately NOT .strict(): a field the platform
+      // adds must not throw — least of all here, where the key is already minted
+      // and returned once. Strip-and-continue is the correct resilient-client
+      // behavior; scope survives because it is declared.
+      nock(BASE_URL)
+        .post('/auth/keys', { name: 'x' })
+        .reply(201, {
+          data: {
+            key: 'ulr_x',
+            apiKey: {
+              id: '550e8400-e29b-41d4-a716-446655440000',
+              name: 'x',
+              lastUsedAt: null,
+              expiresAt: null,
+              createdAt: new Date().toISOString(),
+              scope: 'write',
+              somethingUndeclared: 'a future platform field — must not break the client',
+            },
+          },
+        });
+
+      const result = await authOps.createApiKey(client, { name: 'x' });
+      expect(result.key).toBe('ulr_x');       // secret delivered, not lost to a parse throw
+      expect(result.apiKey.scope).toBe('write');
+      expect('somethingUndeclared' in result.apiKey).toBe(false); // unknown field stripped
+    });
+
+    it('backward-compat: a response with scope absent (pre-migration) still parses', async () => {
+      const mockResponse = createMockApiKeyCreated({
+        key: 'ulr_noscope',
+        apiKey: createMockPublicApiKey({ name: 'legacy', scope: undefined }),
+      });
+      nock(BASE_URL).post('/auth/keys', { name: 'legacy' }).reply(201, { data: mockResponse });
+
+      const result = await authOps.createApiKey(client, { name: 'legacy' });
+      expect(result.key).toBe('ulr_noscope');
+      expect(result.apiKey.scope).toBeUndefined();
+    });
   });
 
   describe('revokeApiKey', () => {
