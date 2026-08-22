@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [5.21.0] — 2026-08-22
+
 ### Added — per-key scope on API keys (platform v1.27.0)
 
 - `createApiKey` accepts `scope: 'read' | 'write'` (`CreateApiKeyInput`,
