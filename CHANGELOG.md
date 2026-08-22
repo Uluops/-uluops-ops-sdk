@@ -19,6 +19,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the next undeclared field error at the boundary instead of evaporating.
 - `--json` output carries `scope` automatically (plain stringify, no re-parse).
 
+## [5.20.0] — 2026-08-21
+
+### Changed
+
+- **`@uluops/sdk-core` 0.16.0 → 0.17.0** — `ForbiddenError` now retains the API's structured
+  `code` and `details` (RE-PROBE-02 N1). Tier-gate denials surface as `code: 'TIER_REQUIRED'`
+  with `details {required, current, feature, hint?, upgradeUrl?}`; role denials as
+  `ROLE_REQUIRED`/`INSUFFICIENT_ROLE`. Generic 403s keep `code: 'FORBIDDEN'`. No signature
+  changes; consumers branching on `code === 'FORBIDDEN'` would no longer match tier/role
+  denials (workspace census found none).
+
 ## [5.19.0] - 2026-08-21
 
 Adopts update-run phase 1b (API live 2026-08-21, spec v0.7.0): record write
