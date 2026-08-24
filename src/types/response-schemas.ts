@@ -517,7 +517,14 @@ export const StatusUpdateResultResponseSchema = z.object({
 export const RunResponseSchema = z.object({
   id: z.string().uuid(),
   projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
-  authorId: z.string().uuid().nullable(),      // User who created the run; null for system/API-key runs
+  // ─── Tolerance window (tool-sweep breaking train, Train A) ───────────────
+  // The ten fields marked .optional() below are REMOVED from run READ
+  // responses at API 2.0.0 (T10: raw-row trim; save_run/update_run echoes
+  // keep the full row). Optional-not-required lets this SDK parse both the
+  // pre-flip and post-flip wire. SDK 6.0.0 splits read/write schemas and
+  // re-pins each side strictly. Do NOT mark new response fields required
+  // while the window is open.
+  authorId: z.string().uuid().nullable().optional(),  // User who created the run; null for system/API-key runs
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -526,17 +533,17 @@ export const RunResponseSchema = z.object({
   // save-run-decision-semantics spec v0.2.1 (D1/D5).
   allGatesPassed: z.boolean().nullable(),
   averageScore: z.number().nullable(),
-  rawMarkdown: z.string().nullable(),
+  rawMarkdown: z.string().nullable().optional(),
   archivedAt: NullableDateTimeSchema,
   archiveReason: z.string().nullable(),
-  idempotencyKey: z.string().nullable(),
-  payloadHash: z.string().nullable(),          // SHA-256 of save_run payload, used for idempotency dedup
-  definitionType: z.string().nullable(),       // Nullable in DB
-  definitionName: z.string().nullable(),       // Nullable in DB
-  definitionVersion: z.string().nullable(),    // Nullable in DB
-  definitionHash: z.string().nullable(),       // Nullable in DB
-  definitionId: z.string().uuid().nullable(),  // Registry definition UUID — direct identity linkage
-  registrySyncedAt: NullableDateTimeSchema,    // Nullable in DB
+  idempotencyKey: z.string().nullable().optional(),
+  payloadHash: z.string().nullable().optional(),      // SHA-256 of save_run payload, used for idempotency dedup
+  definitionType: z.string().nullable().optional(),   // Nullable in DB
+  definitionName: z.string().nullable().optional(),   // Nullable in DB
+  definitionVersion: z.string().nullable().optional(), // Nullable in DB
+  definitionHash: z.string().nullable().optional(),   // Nullable in DB
+  definitionId: z.string().uuid().nullable().optional(), // Registry definition UUID — direct identity linkage
+  registrySyncedAt: NullableDateTimeSchema.optional(), // Nullable in DB
   // Merge provenance (merge-projects v0.3.4, ops-api mig 069). Optional so
   // responses from pre-merge-feature API versions still parse; null = never merged.
   mergedFromProjectId: z.string().uuid().nullable().optional(),
@@ -844,11 +851,19 @@ export const AnalysisSummaryResponseSchema = z.object({
   createdAt: DateTimeStringSchema,
 });
 
-/** Full analysis response for a single run */
+/** Full analysis response for a single run.
+ *
+ * Tolerance window (Train A): pre-flip APIs send `total` (which counted
+ * RECORDS only — the T22 gotcha); API 2.0.0 replaces it with the split
+ * `recordsTotal`/`summariesTotal`. Exactly one of the two sets is present
+ * depending on API version; all three are optional until SDK 6.0.0 pins the
+ * split pair required and drops `total`. */
 export const RunAnalysisResponseSchema = z.object({
   records: z.array(AnalysisRecordResponseSchema),
   summaries: z.array(AnalysisSummaryResponseSchema),
-  total: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative().optional(),
+  recordsTotal: z.number().int().nonnegative().optional(),
+  summariesTotal: z.number().int().nonnegative().optional(),
 });
 
 /** Paginated analysis summaries response (getProjectAnalysis) */
@@ -871,11 +886,33 @@ export const AgentRunSummaryResponseSchema = AnalysisSummaryResponseSchema.exten
   snapshotScore: z.number().nullable(),
 });
 
-/** Agent runs analysis response (after SDK envelope unwrap) */
+/** Agent runs analysis response (after SDK envelope unwrap).
+ *
+ * Tolerance window (Train A): pre-flip wire nests `{data: {items, total}}`;
+ * API 2.0.0 flattens to `{data: [...], total}` (family consistency with its
+ * siblings). getAgentRunsAnalysis reads the raw envelope, accepts either, and
+ * normalizes to `{items, total}` so the 5.x return type is unchanged. SDK
+ * 6.0.0 drops the old arm and flips the return type to `{data, total}`. */
 export const AgentRunsAnalysisResponseSchema = z.object({
   items: z.array(AgentRunSummaryResponseSchema),
   total: z.number().int().nonnegative(),
 });
+
+/** Raw-envelope union for getAgentRunsAnalysis (see tolerance note above). */
+export const AgentRunsAnalysisEnvelopeSchema = z.union([
+  // New wire (API >= 2.0.0): flat list envelope
+  z.object({
+    data: z.array(AgentRunSummaryResponseSchema),
+    total: z.number().int().nonnegative(),
+  }),
+  // Old wire (API < 2.0.0): nested under data
+  z.object({
+    data: z.object({
+      items: z.array(AgentRunSummaryResponseSchema),
+      total: z.number().int().nonnegative(),
+    }),
+  }),
+]);
 
 // ============================================
 // MERGE ISSUES RESPONSE SCHEMA
@@ -899,7 +936,14 @@ export const MergeIssuesResultResponseSchema = z.object({
  * authoritative HTTP surface (error-code stability policy), unlike the
  * camelCase business-object responses elsewhere in this API.
  */
-export const MergeProjectsResultResponseSchema = z.object({
+/**
+ * Tolerance window (Train A): API < 2.0.0 sends the spec-§5 snake_case shape;
+ * API 2.0.0 (spec 0.3.5) renames to camelCase. The union accepts either wire;
+ * `normalizeMergeProjectsResult` in operations/projects.ts maps camel → snake
+ * so the 5.x return type is unchanged. SDK 6.0.0 drops the snake arm and
+ * flips the return type to camelCase.
+ */
+export const MergeProjectsResultSnakeSchema = z.object({
   source: z.object({
     id: z.string().uuid(),
     name: z.string(),
@@ -938,6 +982,49 @@ export const MergeProjectsResultResponseSchema = z.object({
     dry_run: z.boolean(),
   }),
 });
+
+export const MergeProjectsResultCamelSchema = z.object({
+  source: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    runCount: z.number().int().nonnegative(),
+    issueCount: z.number().int().nonnegative(),
+    statusAfter: z.enum(['soft-deleted', 'retained', 'dry-run']),
+  }),
+  target: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    runCountBefore: z.number().int().nonnegative(),
+    issueCountBefore: z.number().int().nonnegative(),
+    runCountAfter: z.number().int().nonnegative(),
+    issueCountAfter: z.number().int().nonnegative(),
+  }),
+  moved: z.object({
+    runs: z.number().int().nonnegative(),
+    issues: z.number().int().nonnegative(),
+    issueDedupes: z.number().int().nonnegative(),
+    occurrencesReparented: z.number().int().nonnegative(),
+    issueNotesReparented: z.number().int().nonnegative(),
+    statusHistoryReparented: z.number().int().nonnegative(),
+  }),
+  conflicts: z.array(z.object({
+    kind: MergeConflictKindResponseSchema,
+    sourceId: z.string().uuid(),
+    targetId: z.string().uuid(),
+    resolution: z.string(),
+  })),
+  audit: z.object({
+    mergeId: z.string(),
+    timestamp: DateTimeStringSchema,
+    actorId: z.string(),
+    dryRun: z.boolean(),
+  }),
+});
+
+export const MergeProjectsResultResponseSchema = z.union([
+  MergeProjectsResultSnakeSchema,
+  MergeProjectsResultCamelSchema,
+]);
 
 // ============================================
 // BULK UPDATE RESPONSE SCHEMAS

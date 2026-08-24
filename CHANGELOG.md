@@ -4,6 +4,36 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [5.23.0] - 2026-08-24
+
+### Changed — breaking-train Train A: the TOLERANT release (tool-sweep T10/T11/T13/T22/T23)
+
+Zero signature changes. Every schema below now parses BOTH the current API
+wire and the upcoming API 2.0.0 wire, so consumers on this release survive
+the flip in either order. Consumers MUST be on >= 5.23.0 before API 2.0.0
+deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
+
+- `RunResponseSchema`: ten fields become optional (`authorId, rawMarkdown,
+  idempotencyKey, payloadHash, definitionType/Name/Version, definitionHash,
+  definitionId, registrySyncedAt`) — API 2.0.0 removes them from run READ
+  responses (T10); save/update echoes keep the full row. Tolerance flows to
+  every embedding schema (diff, details, save, update).
+- `RunAnalysisResponseSchema`: `total` optional; optional `recordsTotal`/
+  `summariesTotal` added (T22 — exactly one set present per API version).
+- `getAgentRunsAnalysis`: reads the raw envelope and accepts the old nested
+  `{data: {items, total}}` or the new flat `{data: [...], total}`,
+  normalizing to `{items, total}` (return type unchanged).
+- `mergeProjects`: response schema is a snake|camel union; camel wire is
+  normalized back to the spec-§5 snake_case shape (return type unchanged —
+  spec 0.3.5 renames the wire at API 2.0.0, T23).
+- Semantics-without-signature notice: `analytics.getByMetric` returns
+  `unknown`; at API 2.0.0 the `taxonomy_distribution` metric's runtime shape
+  changes from a bare array to `{data, total}`. Callers with `Array.isArray`
+  branching are unaffected.
+- New `test/types/tolerance-window.test.ts`: paired old-wire/new-wire
+  fixtures per surface — in 6.0.0 the old-wire assertions flip to must-FAIL
+  and become the strict pins.
+
 ## [Unreleased]
 
 ## [5.22.0] — 2026-08-21

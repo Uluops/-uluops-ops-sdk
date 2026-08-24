@@ -1204,6 +1204,20 @@ describe('Run Operations', () => {
       expect(result.total).toBe(0);
       expect(result.items).toHaveLength(0);
     });
+
+    it('tolerance window (Train A): parses the post-flip flat {data, total} wire and still returns {items, total}', async () => {
+      nock(BASE_URL)
+        .get('/agents/code-validator/runs-analysis')
+        .query({ project: 'my-project' })
+        .reply(200, { data: [], total: 4 });
+
+      const result = await runOps.getAgentRunsAnalysis(client, 'code-validator', {
+        project: 'my-project',
+      });
+
+      expect(result.total).toBe(4);
+      expect(result.items).toHaveLength(0);
+    });
   });
 
   describe('archive invalid input', () => {

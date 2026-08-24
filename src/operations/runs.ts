@@ -39,6 +39,7 @@ import {
   ProjectAnalysisListResponseSchema,
   AnalysisRecordsListResponseSchema,
   AgentRunsAnalysisResponseSchema,
+  AgentRunsAnalysisEnvelopeSchema,
 } from '../types/response-schemas.js';
 import {
   validateSaveRunInput,
@@ -747,8 +748,19 @@ export async function getAgentRunsAnalysis(
   agentName: string,
   query: AgentRunsAnalysisQuery
 ): Promise<z.infer<typeof AgentRunsAnalysisResponseSchema>> {
-  return AgentRunsAnalysisResponseSchema.parse(await client.get<unknown>(
+  // Tolerance window (Train A): read the RAW envelope — the old wire nests
+  // {data: {items, total}} while API 2.0.0 flattens to {data: [...], total};
+  // the default unwrap would strip the flat wire's sibling `total`. Accept
+  // either arm and normalize to {items, total} so the 5.x return type is
+  // unchanged. SDK 6.0.0 drops the old arm and returns {data, total}.
+  const envelope = AgentRunsAnalysisEnvelopeSchema.parse(await client.request<unknown>(
+    'GET',
     `/agents/${encodeURIComponent(agentName)}/runs-analysis`,
     toApiQuery(query),
+    { rawEnvelope: true },
   ));
+  if (Array.isArray(envelope.data)) {
+    return { items: envelope.data, total: (envelope as { data: unknown[]; total: number }).total };
+  }
+  return envelope.data as z.infer<typeof AgentRunsAnalysisResponseSchema>;
 }
