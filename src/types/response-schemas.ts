@@ -1042,8 +1042,14 @@ export const BulkStatusUpdateResultResponseSchema = z.object({
 export const AgentPerformanceResponseSchema = z.object({
   name: z.string(),
   totalRuns: z.number().int().nonnegative(),
-  averageScore: z.number(),
-  passRate: z.number(),
+  // Nullable: an agent whose runs carry no scores (lens/explorer runs, or no
+  // gate-bearing snapshots) aggregates to NULL server-side — the API's own
+  // type declares `avgScore: number | null` (agent-analytics.ts). Asserting
+  // non-null here made list_agents/get_analytics throw on real prod rows
+  // (found live 2026-08-24; the nullable-score class one ring out from the
+  // run schemas, which were fixed earlier).
+  averageScore: z.number().nullable(),
+  passRate: z.number().nullable(),
   totalIssuesFound: z.number().int().nonnegative(),
 });
 
@@ -1052,8 +1058,9 @@ export const AgentLifecycleEntryResponseSchema = z.object({
   definitionVersion: z.string(),
   firstSeenAt: z.string(),
   runs: z.number().int().nonnegative(),
-  avgScore: z.number(),
-  passRate: z.number(),
+  // Same nullable-aggregate class as AgentPerformanceResponseSchema above.
+  avgScore: z.number().nullable(),
+  passRate: z.number().nullable(),
 });
 
 export const AgentReliabilityResponseSchema = z.object({

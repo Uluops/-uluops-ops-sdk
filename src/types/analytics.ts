@@ -67,8 +67,9 @@ export type Period = z.infer<typeof PeriodResponseSchema>;
 export interface AgentInfo {
   name: string;
   totalRuns: number;
-  averageScore: number;
-  passRate: number;
+  /** Null when the agent has no scored runs (nullable-aggregate class). */
+  averageScore: number | null;
+  passRate: number | null;
 }
 
 /** Agent performance metrics — derived from `AgentPerformanceResponseSchema`. */

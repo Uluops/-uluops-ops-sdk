@@ -14,6 +14,8 @@ import {
   RunAnalysisResponseSchema,
   AgentRunsAnalysisEnvelopeSchema,
   MergeProjectsResultResponseSchema,
+  AgentPerformanceResponseSchema,
+  AgentLifecycleEntryResponseSchema,
 } from '../../src/types/response-schemas.js';
 
 // ── Run reads (T10/T11) ─────────────────────────────────────────────────────
@@ -146,5 +148,37 @@ describe('tolerance window: MergeProjectsResultResponseSchema (T23)', () => {
   it('control: rejects a mixed-case body missing either arm', () => {
     const mixed = { ...MERGE_CAMEL, moved: MERGE_SNAKE.moved };
     expect(MergeProjectsResultResponseSchema.safeParse(mixed).success).toBe(false);
+  });
+});
+
+// ── Nullable aggregate scores (found live, Train A E2E) ─────────────────────
+// An agent with no scored runs aggregates averageScore/passRate to NULL —
+// the API's own types say `number | null`; the SDK asserted non-null and
+// threw on real prod rows (list_agents was broken in prod when found).
+
+describe('nullable aggregate scores (agent analytics)', () => {
+  it('AgentPerformanceResponseSchema parses null score/passRate rows', () => {
+    expect(
+      AgentPerformanceResponseSchema.safeParse({
+        name: 'foucault-explorer', totalRuns: 3, averageScore: null, passRate: null, totalIssuesFound: 0,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('AgentLifecycleEntryResponseSchema parses null avgScore/passRate rows', () => {
+    expect(
+      AgentLifecycleEntryResponseSchema.safeParse({
+        name: 'foucault-explorer', definitionVersion: '1.0.0', firstSeenAt: '2026-08-19T00:00:00.000Z',
+        runs: 3, avgScore: null, passRate: null,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('control: non-numeric junk still rejects', () => {
+    expect(
+      AgentPerformanceResponseSchema.safeParse({
+        name: 'x', totalRuns: 1, averageScore: 'high', passRate: null, totalIssuesFound: 0,
+      }).success,
+    ).toBe(false);
   });
 });

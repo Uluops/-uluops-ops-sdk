@@ -34,6 +34,20 @@ deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
   fixtures per surface — in 6.0.0 the old-wire assertions flip to must-FAIL
   and become the strict pins.
 
+### Fixed
+
+- **`AgentPerformanceResponseSchema.averageScore/passRate` and
+  `AgentLifecycleEntryResponseSchema.avgScore/passRate` are nullable** — an
+  agent with no scored runs aggregates to NULL server-side (the API's own
+  types declare `number | null`), and the non-null assertion made
+  `list_agents` / `get_analytics(agent_performance)` / `analytics.listAgents`
+  throw on real rows. Found live during Train A validation: **`list_agents`
+  was broken in production** for any catalog containing unscored agents (e.g.
+  explorer/lens agents). `AgentInfo.averageScore/passRate` widen to
+  `number | null` accordingly — a type-level change that reflects what the
+  wire always carried. This is the nullable-score class one ring out from the
+  run schemas, which were fixed earlier (fix the pattern, not the citation).
+
 ## [Unreleased]
 
 ## [5.22.0] — 2026-08-21
