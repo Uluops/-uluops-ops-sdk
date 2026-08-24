@@ -1,18 +1,17 @@
 /**
- * Tolerance-window fixtures (tool-sweep breaking train, Train A).
+ * Strict wire pins (tool-sweep breaking train, Train C / SDK 6.0.0).
  *
- * SDK 5.23.0 must parse BOTH the pre-flip (API < 2.0.0) and post-flip
- * (API 2.0.0) wire shapes for every surface the flip changes. Each fixture
- * pair below is the contract:
- *   - in 5.23.x: OLD and NEW must both parse (this file).
- *   - in 6.0.0: NEW must parse, OLD must FAIL — flip the old-wire
- *     assertions to `safeParse(...).success === false` and keep the file.
+ * In 5.23.x these fixtures proved BOTH wires parsed (the tolerance window).
+ * 6.0.0 closes the window: the new wire must parse and the OLD wire must
+ * FAIL — a strict schema that still accepted the old shape would silently
+ * re-open the window, so the old-wire fixtures assert failure.
  */
 import { describe, it, expect } from 'vitest';
 import {
-  RunResponseSchema,
+  RunReadResponseSchema,
+  RunWriteEchoResponseSchema,
   RunAnalysisResponseSchema,
-  AgentRunsAnalysisEnvelopeSchema,
+  AgentRunsAnalysisResponseSchema,
   MergeProjectsResultResponseSchema,
   AgentPerformanceResponseSchema,
   AgentLifecycleEntryResponseSchema,
@@ -60,28 +59,39 @@ const RUN_NEW_WIRE = {
   mergedFromIdempotencyKey: null,
 };
 
-describe('tolerance window: RunResponseSchema (T10)', () => {
-  it('parses the pre-flip full raw row (old wire)', () => {
-    expect(RunResponseSchema.safeParse(RUN_OLD_WIRE).success).toBe(true);
+describe('strict pins: run read/write split (T10)', () => {
+  it('read schema parses the slim projection (new wire)', () => {
+    expect(RunReadResponseSchema.safeParse(RUN_NEW_WIRE).success).toBe(true);
   });
 
-  it('parses the post-flip slim read projection (new wire)', () => {
-    expect(RunResponseSchema.safeParse(RUN_NEW_WIRE).success).toBe(true);
+  it('read schema parses the raw row too (extra keys strip — Zod objects are non-strict)', () => {
+    // The old wire is a SUPERSET of the read projection, so it still parses
+    // (extras strip). The strictness that matters is the other way: the read
+    // projection must NOT satisfy the write-echo schema.
+    expect(RunReadResponseSchema.safeParse(RUN_OLD_WIRE).success).toBe(true);
   });
 
-  it('control: still rejects a row missing a genuinely required field', () => {
+  it('write-echo schema REJECTS the slim read projection (the split is real)', () => {
+    expect(RunWriteEchoResponseSchema.safeParse(RUN_NEW_WIRE).success).toBe(false);
+  });
+
+  it('write-echo schema parses the full row', () => {
+    expect(RunWriteEchoResponseSchema.safeParse(RUN_OLD_WIRE).success).toBe(true);
+  });
+
+  it('control: read schema rejects a row missing a required field', () => {
     const { runNumber: _dropped, ...broken } = RUN_NEW_WIRE;
-    expect(RunResponseSchema.safeParse(broken).success).toBe(false);
+    expect(RunReadResponseSchema.safeParse(broken).success).toBe(false);
   });
 });
 
 // ── Run analysis totals (T22) ───────────────────────────────────────────────
 
-describe('tolerance window: RunAnalysisResponseSchema (T22)', () => {
-  it('parses the pre-flip {records, summaries, total} (old wire)', () => {
+describe('strict pins: RunAnalysisResponseSchema (T22)', () => {
+  it('REJECTS the pre-flip {records, summaries, total} (window closed)', () => {
     expect(
       RunAnalysisResponseSchema.safeParse({ records: [], summaries: [], total: 0 }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('parses the post-flip split totals (new wire)', () => {
@@ -98,16 +108,16 @@ describe('tolerance window: RunAnalysisResponseSchema (T22)', () => {
 
 // ── Agent runs analysis envelope (T22) ──────────────────────────────────────
 
-describe('tolerance window: AgentRunsAnalysisEnvelopeSchema (T22)', () => {
-  it('parses the pre-flip nested {data: {items, total}} (old wire)', () => {
+describe('strict pins: AgentRunsAnalysisResponseSchema (T22)', () => {
+  it('REJECTS the pre-flip nested {data: {items, total}} (window closed)', () => {
     expect(
-      AgentRunsAnalysisEnvelopeSchema.safeParse({ data: { items: [], total: 0 } }).success,
-    ).toBe(true);
+      AgentRunsAnalysisResponseSchema.safeParse({ data: { items: [], total: 0 } }).success,
+    ).toBe(false);
   });
 
   it('parses the post-flip flat {data: [...], total} (new wire)', () => {
     expect(
-      AgentRunsAnalysisEnvelopeSchema.safeParse({ data: [], total: 0 }).success,
+      AgentRunsAnalysisResponseSchema.safeParse({ data: [], total: 0 }).success,
     ).toBe(true);
   });
 });
@@ -136,16 +146,16 @@ const MERGE_CAMEL = {
   audit: { mergeId: 'm1', timestamp: '2026-08-24T00:00:00.000Z', actorId: 'system', dryRun: false },
 };
 
-describe('tolerance window: MergeProjectsResultResponseSchema (T23)', () => {
-  it('parses the pre-flip spec-§5 snake_case (old wire)', () => {
-    expect(MergeProjectsResultResponseSchema.safeParse(MERGE_SNAKE).success).toBe(true);
+describe('strict pins: MergeProjectsResultResponseSchema (T23)', () => {
+  it('REJECTS the pre-flip spec-§5 snake_case (window closed)', () => {
+    expect(MergeProjectsResultResponseSchema.safeParse(MERGE_SNAKE).success).toBe(false);
   });
 
   it('parses the post-flip spec-0.3.5 camelCase (new wire)', () => {
     expect(MergeProjectsResultResponseSchema.safeParse(MERGE_CAMEL).success).toBe(true);
   });
 
-  it('control: rejects a mixed-case body missing either arm', () => {
+  it('control: rejects a camel body with a snake sub-object', () => {
     const mixed = { ...MERGE_CAMEL, moved: MERGE_SNAKE.moved };
     expect(MergeProjectsResultResponseSchema.safeParse(mixed).success).toBe(false);
   });

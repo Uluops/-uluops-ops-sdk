@@ -126,10 +126,12 @@ describe('OpsClient', () => {
             createMockProject({ name: 'Project A' }),
             createMockProject({ name: 'Project B' }),
           ],
+          total: 2,
         });
 
-      const projects = await client.projects.list();
+      const { data: projects, total } = await client.projects.list();
 
+      expect(total).toBe(2);
       expect(projects).toHaveLength(2);
       expect(projects[0].name).toBe('Project A');
     });
@@ -236,10 +238,12 @@ describe('OpsClient', () => {
             createMockRunSummary({ runNumber: 1 }),
             createMockRunSummary({ runNumber: 2 }),
           ],
+          total: 2,
         });
 
-      const runs = await client.runs.listByProject('proj-1');
+      const { data: runs, total } = await client.runs.listByProject('proj-1');
 
+      expect(total).toBe(2);
       expect(runs).toHaveLength(2);
     });
 
@@ -538,10 +542,11 @@ describe('OpsClient', () => {
 
   describe('pagination boundary tests', () => {
     it('should handle empty results', async () => {
-      nock(BASE_URL).get('/projects').reply(200, { data: [] });
+      nock(BASE_URL).get('/projects').reply(200, { data: [], total: 0 });
 
-      const projects = await client.projects.list();
+      const { data: projects, total } = await client.projects.list();
 
+      expect(total).toBe(0);
       expect(projects).toEqual([]);
       expect(projects).toHaveLength(0);
     });
@@ -560,9 +565,10 @@ describe('OpsClient', () => {
         })
         .reply(200, {
           data: [createMockIssue({ title: 'Critical issue', status: 'open', priority: 'critical' })],
+          total: 1,
         });
 
-      const issues = await client.projects.listIssues('proj-1', {
+      const { data: issues } = await client.projects.listIssues('proj-1', {
         status: 'open',
         priority: 'critical',
         severity: 'high',
@@ -585,9 +591,10 @@ describe('OpsClient', () => {
             createMockRunSummary({ runNumber: 1, workflowType: 'ship' }),
             createMockRunSummary({ runNumber: 2, workflowType: 'ship' }),
           ],
+          total: 2,
         });
 
-      const runs = await client.runs.listByProject('proj-1', {
+      const { data: runs } = await client.runs.listByProject('proj-1', {
         workflowType: 'ship',
         limit: 5,
       });

@@ -8,7 +8,7 @@ import {
   DailyIssueCountsResponseSchema,
   TrendsSummaryResponseSchema,
   MergeIssuesResultResponseSchema,
-  MergeProjectsResultSnakeSchema,
+  MergeProjectsResultResponseSchema,
   BulkStatusUpdateResultResponseSchema,
 } from './response-schemas.js';
 import type { Issue } from './issues.js';
@@ -38,12 +38,8 @@ export type ProjectTrends = z.infer<typeof ProjectTrendsResponseSchema>;
 /** Merge issues result */
 export type MergeIssuesResult = z.infer<typeof MergeIssuesResultResponseSchema>;
 
-/** Merge projects result (merge-projects spec v0.3.4 §5 — snake_case by contract) */
-// 5.x return type stays the spec-§5 snake_case shape during the tolerance
-// window — the union schema accepts camel wire too, but mergeProjects
-// normalizes camel → snake before returning. SDK 6.0.0 flips this to the
-// camel schema's type.
-export type MergeProjectsResult = z.infer<typeof MergeProjectsResultSnakeSchema>;
+/** Merge projects result (spec 0.3.5 — camelCase; 6.0.0/T23). */
+export type MergeProjectsResult = z.infer<typeof MergeProjectsResultResponseSchema>;
 
 /** Bulk issue status update result */
 export type BulkIssueStatusResult = z.infer<typeof BulkStatusUpdateResultResponseSchema>;

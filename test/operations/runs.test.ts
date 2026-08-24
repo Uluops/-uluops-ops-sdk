@@ -342,10 +342,13 @@ describe('Run Operations', () => {
         .get(`/runs/project/${TEST_IDS.proj1}`)
         .reply(200, {
           data: [run1, run2],
+          total: 2,
         });
 
-      const runs = await runOps.listByProject(client, TEST_IDS.proj1);
+      const result = await runOps.listByProject(client, TEST_IDS.proj1);
 
+      expect(result.total).toBe(2);
+      const runs = result.data;
       expect(runs).toHaveLength(2);
       expect(runs[0].runNumber).toBe(1);
       expect(runs[1].runNumber).toBe(2);
@@ -359,9 +362,10 @@ describe('Run Operations', () => {
         .query({ limit: 5, offset: 10 })
         .reply(200, {
           data: [run],
+          total: 1,
         });
 
-      const runs = await runOps.listByProject(client, TEST_IDS.proj1, {
+      const { data: runs } = await runOps.listByProject(client, TEST_IDS.proj1, {
         limit: 5,
         offset: 10,
       });
@@ -383,9 +387,10 @@ describe('Run Operations', () => {
         .get(`/runs/project/${TEST_IDS.proj1}`)
         .reply(200, {
           data: [run],
+          total: 1,
         });
 
-      const runs = await runOps.listByProject(client, TEST_IDS.proj1);
+      const { data: runs } = await runOps.listByProject(client, TEST_IDS.proj1);
 
       expect(runs).toHaveLength(1);
       expect(runs[0].totalRecommendations).toBe(5);
@@ -973,7 +978,8 @@ describe('Run Operations', () => {
           data: {
             records: [mockRecord],
             summaries: [mockSummary],
-            total: 1,
+            recordsTotal: 1,
+            summariesTotal: 1,
           },
         });
 
@@ -1153,8 +1159,7 @@ describe('Run Operations', () => {
         .get('/agents/epictetus-validator/runs-analysis')
         .query({ project: 'my-project' })
         .reply(200, {
-          data: {
-            items: [
+          data: [
               {
                 id: TEST_IDS.run1,
                 runId: TEST_IDS.run2,
@@ -1174,9 +1179,8 @@ describe('Run Operations', () => {
                 workflowType: 'post-implementation',
                 snapshotScore: 82,
               },
-            ],
-            total: 1,
-          },
+          ],
+          total: 1,
         });
 
       const result = await runOps.getAgentRunsAnalysis(client, 'epictetus-validator', {
@@ -1184,17 +1188,17 @@ describe('Run Operations', () => {
       });
 
       expect(result.total).toBe(1);
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0].decision).toBe('FACTUAL');
-      expect(result.items[0].runNumber).toBe(5);
-      expect(result.items[0].workflowType).toBe('post-implementation');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].decision).toBe('FACTUAL');
+      expect(result.data[0].runNumber).toBe(5);
+      expect(result.data[0].workflowType).toBe('post-implementation');
     });
 
     it('should filter by decision', async () => {
       nock(BASE_URL)
         .get('/agents/code-validator/runs-analysis')
         .query({ project: 'my-project', decision: 'PASS' })
-        .reply(200, { data: { items: [], total: 0 } });
+        .reply(200, { data: [], total: 0 });
 
       const result = await runOps.getAgentRunsAnalysis(client, 'code-validator', {
         project: 'my-project',
@@ -1202,21 +1206,18 @@ describe('Run Operations', () => {
       });
 
       expect(result.total).toBe(0);
-      expect(result.items).toHaveLength(0);
+      expect(result.data).toHaveLength(0);
     });
 
-    it('tolerance window (Train A): parses the post-flip flat {data, total} wire and still returns {items, total}', async () => {
+    it('strict pin (6.0.0): the pre-flip nested wire REJECTS — the tolerance window is closed', async () => {
       nock(BASE_URL)
         .get('/agents/code-validator/runs-analysis')
         .query({ project: 'my-project' })
-        .reply(200, { data: [], total: 4 });
+        .reply(200, { data: { items: [], total: 4 } });
 
-      const result = await runOps.getAgentRunsAnalysis(client, 'code-validator', {
+      await expect(runOps.getAgentRunsAnalysis(client, 'code-validator', {
         project: 'my-project',
-      });
-
-      expect(result.total).toBe(4);
-      expect(result.items).toHaveLength(0);
+      })).rejects.toThrow();
     });
   });
 
