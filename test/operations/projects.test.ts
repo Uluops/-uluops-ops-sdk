@@ -516,6 +516,30 @@ describe('Project Operations', () => {
       expect(result.conflicts[0]?.kind).toBe('fingerprint_dedup');
     });
 
+    it('tolerance window (Train A): normalizes the post-flip camelCase wire back to the 5.x snake_case shape', async () => {
+      nock(BASE_URL)
+        .post('/projects/merge')
+        .reply(200, { data: {
+          source: { id: TEST_IDS.proj1, name: 'merge-source', runCount: 2, issueCount: 3, statusAfter: 'soft-deleted' },
+          target: { id: TEST_IDS.proj2, name: 'merge-target', runCountBefore: 5, issueCountBefore: 4, runCountAfter: 7, issueCountAfter: 6 },
+          moved: { runs: 2, issues: 2, issueDedupes: 1, occurrencesReparented: 0, issueNotesReparented: 0, statusHistoryReparented: 0 },
+          conflicts: [{ kind: 'fingerprint_dedup', sourceId: TEST_IDS.proj1, targetId: TEST_IDS.proj2, resolution: 'merged' }],
+          audit: { mergeId: 'm1', timestamp: '2026-08-24T00:00:00.000Z', actorId: 'system', dryRun: false },
+        } });
+
+      const result = await projectOps.mergeProjects(client, {
+        source: 'merge-source',
+        target: 'merge-target',
+      });
+
+      // 5.x return type is unchanged: snake_case out, whatever the wire casing.
+      expect(result.moved.issue_dedupes).toBe(1);
+      expect(result.source.status_after).toBe('soft-deleted');
+      expect(result.target.run_count_after).toBe(7);
+      expect(result.conflicts[0]?.source_id).toBe(TEST_IDS.proj1);
+      expect(result.audit.dry_run).toBe(false);
+    });
+
     it('parses fingerprint_blocked_by_deleted, and any future conflict kind, without throwing', async () => {
       // `kind` is server-controlled and additive. It used to be a `z.enum`, and
       // `mergeProjects` parses via `.parse()` — so every conflict kind the API added
