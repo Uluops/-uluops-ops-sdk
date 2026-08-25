@@ -32,7 +32,6 @@ import type {
   DeleteProjectInput,
   RenameProjectInput,
   ProjectSummaryResponse,
-  PaginatedIssues,
   ProjectTrends,
   ProjectTrendsQuery,
   ListProjectIssuesQuery,
@@ -69,6 +68,7 @@ import type {
   ProjectAnalysisQuery,
   AnalysisRecordsQuery,
   AgentRunsAnalysisQuery,
+  RunWriteEcho,
 } from './types/runs.js';
 
 import type {
@@ -309,8 +309,8 @@ export class OpsClient {
 
   /** Project CRUD, summaries, trends, issue listing, and bulk operations */
   readonly projects = {
-    /** List all projects visible to the caller. */
-    list: (): Promise<Project[]> =>
+    /** List all projects visible to the caller — {data, total} (6.0.0, T13). */
+    list: (): Promise<{ data: Project[]; total: number }> =>
       projectOps.list(this.httpClient),
 
     /** Get a project by id or name. */
@@ -349,13 +349,11 @@ export class OpsClient {
     getTrends: (idOrName: string, query?: ProjectTrendsQuery): Promise<ProjectTrends> =>
       projectOps.getTrends(this.httpClient, idOrName, query),
 
-    /** List a project's issues (filtered). */
-    listIssues: (idOrName: string, query?: ListProjectIssuesQuery): Promise<Issue[]> =>
+    /** List a project's issues (filtered) — {data, total} (6.0.0, T13).
+     * Replaces listIssuesWithCount, which existed only to recover the count
+     * the old array return dropped. */
+    listIssues: (idOrName: string, query?: ListProjectIssuesQuery): Promise<{ data: Issue[]; total: number }> =>
       projectOps.listIssues(this.httpClient, idOrName, query),
-
-    /** List a project's issues with a total count for pagination. */
-    listIssuesWithCount: (idOrName: string, query?: ListProjectIssuesQuery): Promise<PaginatedIssues> =>
-      projectOps.listIssuesWithCount(this.httpClient, idOrName, query),
 
     /** Bulk-update the status of many issues in a project. */
     bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[]): Promise<BulkIssueStatusResult> =>
@@ -398,7 +396,7 @@ export class OpsClient {
       runOps.archive(this.httpClient, input),
 
     /** Update a run (project + run number). Discards the analysis-write echo (use updateWithEcho); on analysis-bearing calls can throw AnalysisEchoMismatchError AFTER the write landed. */
-    update: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
+    update: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<RunWriteEcho> =>
       runOps.update(this.httpClient, input, options),
 
     /** Read-only preview of an analysis-bearing update (project + run number): what a write under the requested record_write_mode would supersede, create, and retire. */
@@ -409,8 +407,8 @@ export class OpsClient {
     updateWithEcho: (input: UpdateRunByNumberInput, options?: { _skipClientValidation?: boolean }): Promise<UpdateRunWithEchoResult> =>
       runOps.updateWithEcho(this.httpClient, input, options),
 
-    /** List run summaries for a project. */
-    listByProject: (projectId: string, query?: ListRunsQuery): Promise<RunSummary[]> =>
+    /** List run summaries for a project — {data, total} (6.0.0, T13). */
+    listByProject: (projectId: string, query?: ListRunsQuery): Promise<{ data: RunSummary[]; total: number }> =>
       runOps.listByProject(this.httpClient, projectId, query),
 
     /** Get the latest run for a project (optionally by workflow type). */
@@ -426,7 +424,7 @@ export class OpsClient {
       runOps.get(this.httpClient, runId),
 
     /** Update a run by id. Discards the analysis-write echo (use updateByIdWithEcho); on analysis-bearing calls can throw AnalysisEchoMismatchError AFTER the write landed. */
-    updateById: (runId: string, input: UpdateRunInput, options?: { _skipClientValidation?: boolean }): Promise<Run> =>
+    updateById: (runId: string, input: UpdateRunInput, options?: { _skipClientValidation?: boolean }): Promise<RunWriteEcho> =>
       runOps.updateById(this.httpClient, runId, input, options),
 
     /** Read-only preview of an analysis-bearing update, by run id. See previewUpdate. */

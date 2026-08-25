@@ -44,16 +44,13 @@ describe('Project Operations', () => {
         createMockProject({ name: 'Project B' }),
       ];
 
-      mockValidatedListEndpoint(
-        BASE_URL,
-        'get',
-        '/projects',
-        mockProjects,
-        ProjectResponseSchema
-      );
+      nock(BASE_URL)
+        .get('/projects')
+        .reply(200, { data: mockProjects, total: 2, count: 2 });
 
-      const projects = await projectOps.list(client);
+      const { data: projects, total } = await projectOps.list(client);
 
+      expect(total).toBe(2);
       expect(projects).toHaveLength(2);
       expect(projects[0].name).toBe('Project A');
       expect(projects[0].id).toBeDefined();
@@ -315,16 +312,13 @@ describe('Project Operations', () => {
         createMockIssue({ title: 'Bug 2', priority: 'suggested' }),
       ];
 
-      mockValidatedListEndpoint(
-        BASE_URL,
-        'get',
-        `/projects/${TEST_IDS.proj1}/issues`,
-        mockIssues,
-        IssueResponseSchema
-      );
+      nock(BASE_URL)
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
+        .reply(200, { data: mockIssues, total: 2, count: 2 });
 
-      const issues = await projectOps.listIssues(client, TEST_IDS.proj1);
+      const { data: issues, total } = await projectOps.listIssues(client, TEST_IDS.proj1);
 
+      expect(total).toBe(2);
       expect(issues).toHaveLength(2);
       expect(issues[0].title).toBe('Bug 1');
       expect(issues[0].priority).toBe('critical');
@@ -342,9 +336,9 @@ describe('Project Operations', () => {
           priority: 'critical',
           limit: 10,
         })
-        .reply(200, { data: mockIssues });
+        .reply(200, { data: mockIssues, total: 1 });
 
-      const issues = await projectOps.listIssues(client, TEST_IDS.proj1, {
+      const { data: issues } = await projectOps.listIssues(client, TEST_IDS.proj1, {
         status: 'open',
         priority: 'critical',
         limit: 10,
@@ -355,8 +349,8 @@ describe('Project Operations', () => {
     });
   });
 
-  describe('listIssuesWithCount', () => {
-    it('should return issues with count from API envelope', async () => {
+  describe('listIssues pagination envelope (6.0.0, T13)', () => {
+    it('returns {data, total} from the API envelope (replaces listIssuesWithCount)', async () => {
       const mockIssues = [
         createMockIssue({ title: 'Bug 1', priority: 'critical' }),
         createMockIssue({ title: 'Bug 2', priority: 'suggested' }),
@@ -364,44 +358,22 @@ describe('Project Operations', () => {
 
       nock(BASE_URL)
         .get(`/projects/${TEST_IDS.proj1}/issues`)
-        .reply(200, { data: mockIssues, count: 42 });
+        .reply(200, { data: mockIssues, total: 42, count: 2 });
 
-      const result = await projectOps.listIssuesWithCount(client, TEST_IDS.proj1);
+      const result = await projectOps.listIssues(client, TEST_IDS.proj1);
 
-      expect(result.issues).toHaveLength(2);
-      expect(result.count).toBe(42);
-      expect(result.issues[0].title).toBe('Bug 1');
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(42);
+      expect(result.data[0].title).toBe('Bug 1');
     });
 
-    it('should pass through query filters', async () => {
-      const mockIssues = [createMockIssue({ title: 'Critical Bug' })];
-
+    it('strict pin: rejects a response missing total', async () => {
       nock(BASE_URL)
         .get(`/projects/${TEST_IDS.proj1}/issues`)
-        .query({ status: 'open', priority: 'critical' })
-        .reply(200, { data: mockIssues, count: 1 });
-
-      const result = await projectOps.listIssuesWithCount(client, TEST_IDS.proj1, {
-        status: 'open',
-        priority: 'critical',
-      });
-
-      expect(result.issues).toHaveLength(1);
-      expect(result.count).toBe(1);
-    });
-
-    it('should reject response missing count field', async () => {
-      const mockIssues = [
-        createMockIssue({ title: 'Bug 1' }),
-        createMockIssue({ title: 'Bug 2' }),
-      ];
-
-      nock(BASE_URL)
-        .get(`/projects/${TEST_IDS.proj1}/issues`)
-        .reply(200, { data: mockIssues });
+        .reply(200, { data: [createMockIssue({ title: 'Bug 1' })] });
 
       await expect(
-        projectOps.listIssuesWithCount(client, TEST_IDS.proj1)
+        projectOps.listIssues(client, TEST_IDS.proj1)
       ).rejects.toThrow(ZodError);
     });
   });
@@ -460,43 +432,43 @@ describe('Project Operations', () => {
       source: {
         id: TEST_IDS.proj1,
         name: 'merge-source',
-        run_count: 2,
-        issue_count: 3,
-        status_after: 'soft-deleted',
+        runCount: 2,
+        issueCount: 3,
+        statusAfter: 'soft-deleted',
       },
       target: {
         id: TEST_IDS.proj2,
         name: 'merge-target',
-        run_count_before: 5,
-        issue_count_before: 4,
-        run_count_after: 7,
-        issue_count_after: 6,
+        runCountBefore: 5,
+        issueCountBefore: 4,
+        runCountAfter: 7,
+        issueCountAfter: 6,
       },
       moved: {
         runs: 2,
         issues: 2,
-        issue_dedupes: 1,
-        occurrences_reparented: 3,
-        issue_notes_reparented: 1,
-        status_history_reparented: 2,
+        issueDedupes: 1,
+        occurrencesReparented: 3,
+        issueNotesReparented: 1,
+        statusHistoryReparented: 2,
       },
       conflicts: [
         {
           kind: 'fingerprint_dedup',
-          source_id: TEST_IDS.issue1,
-          target_id: TEST_IDS.issue2,
+          sourceId: TEST_IDS.issue1,
+          targetId: TEST_IDS.issue2,
           resolution: 'target_survives_source_absorbed',
         },
       ],
       audit: {
-        merge_id: TEST_IDS.issue3,
+        mergeId: TEST_IDS.issue3,
         timestamp: '2026-07-10T12:00:00.000Z',
-        actor_id: TEST_IDS.user1,
-        dry_run: false,
+        actorId: TEST_IDS.user1,
+        dryRun: false,
       },
     };
 
-    it('should merge projects (response conforms to the spec §5 snake_case contract)', async () => {
+    it('should merge projects (response conforms to the spec 0.3.5 camelCase contract)', async () => {
       nock(BASE_URL)
         .post('/projects/merge', {
           source: 'merge-source',
@@ -510,34 +482,27 @@ describe('Project Operations', () => {
       });
 
       expect(result.moved.runs).toBe(2);
-      expect(result.moved.issue_dedupes).toBe(1);
-      expect(result.source.status_after).toBe('soft-deleted');
-      expect(result.target.run_count_after).toBe(7);
+      expect(result.moved.issueDedupes).toBe(1);
+      expect(result.source.statusAfter).toBe('soft-deleted');
+      expect(result.target.runCountAfter).toBe(7);
       expect(result.conflicts[0]?.kind).toBe('fingerprint_dedup');
     });
 
-    it('tolerance window (Train A): normalizes the post-flip camelCase wire back to the 5.x snake_case shape', async () => {
+    it('strict pin (6.0.0): the pre-flip snake_case wire REJECTS — the tolerance window is closed', async () => {
       nock(BASE_URL)
         .post('/projects/merge')
         .reply(200, { data: {
-          source: { id: TEST_IDS.proj1, name: 'merge-source', runCount: 2, issueCount: 3, statusAfter: 'soft-deleted' },
-          target: { id: TEST_IDS.proj2, name: 'merge-target', runCountBefore: 5, issueCountBefore: 4, runCountAfter: 7, issueCountAfter: 6 },
-          moved: { runs: 2, issues: 2, issueDedupes: 1, occurrencesReparented: 0, issueNotesReparented: 0, statusHistoryReparented: 0 },
-          conflicts: [{ kind: 'fingerprint_dedup', sourceId: TEST_IDS.proj1, targetId: TEST_IDS.proj2, resolution: 'merged' }],
-          audit: { mergeId: 'm1', timestamp: '2026-08-24T00:00:00.000Z', actorId: 'system', dryRun: false },
+          source: { id: TEST_IDS.proj1, name: 'merge-source', run_count: 2, issue_count: 3, status_after: 'soft-deleted' },
+          target: { id: TEST_IDS.proj2, name: 'merge-target', run_count_before: 5, issue_count_before: 4, run_count_after: 7, issue_count_after: 6 },
+          moved: { runs: 2, issues: 2, issue_dedupes: 1, occurrences_reparented: 0, issue_notes_reparented: 0, status_history_reparented: 0 },
+          conflicts: [{ kind: 'fingerprint_dedup', source_id: TEST_IDS.proj1, target_id: TEST_IDS.proj2, resolution: 'merged' }],
+          audit: { merge_id: 'm1', timestamp: '2026-08-24T00:00:00.000Z', actor_id: 'system', dry_run: false },
         } });
 
-      const result = await projectOps.mergeProjects(client, {
+      await expect(projectOps.mergeProjects(client, {
         source: 'merge-source',
         target: 'merge-target',
-      });
-
-      // 5.x return type is unchanged: snake_case out, whatever the wire casing.
-      expect(result.moved.issue_dedupes).toBe(1);
-      expect(result.source.status_after).toBe('soft-deleted');
-      expect(result.target.run_count_after).toBe(7);
-      expect(result.conflicts[0]?.source_id).toBe(TEST_IDS.proj1);
-      expect(result.audit.dry_run).toBe(false);
+      })).rejects.toThrow();
     });
 
     it('parses fingerprint_blocked_by_deleted, and any future conflict kind, without throwing', async () => {
@@ -597,8 +562,8 @@ describe('Project Operations', () => {
         .reply(200, {
           data: {
             ...mockMergeResult,
-            source: { ...mockMergeResult.source, status_after: 'dry-run' },
-            audit: { ...mockMergeResult.audit, dry_run: true },
+            source: { ...mockMergeResult.source, statusAfter: 'dry-run' },
+            audit: { ...mockMergeResult.audit, dryRun: true },
           },
         });
 
@@ -610,8 +575,8 @@ describe('Project Operations', () => {
         confirmCrossOrg: false,
       });
 
-      expect(result.audit.dry_run).toBe(true);
-      expect(result.source.status_after).toBe('dry-run');
+      expect(result.audit.dryRun).toBe(true);
+      expect(result.source.statusAfter).toBe('dry-run');
     });
 
     it('should surface 409 ALREADY_MERGED with details.audit_id on the typed error', async () => {

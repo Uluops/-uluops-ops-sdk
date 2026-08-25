@@ -514,17 +514,16 @@ export const StatusUpdateResultResponseSchema = z.object({
 // RUN RESPONSE SCHEMAS
 // ============================================
 
-export const RunResponseSchema = z.object({
+/**
+ * Run READ projection (API 2.0.0, tool-sweep T10) — the 14-key shape
+ * `GET /runs/:id` and `GET /runs/project/:id/latest` return, and the shape
+ * embedded as diff refs (T11). Strictly pinned: SDK 6.0.0 closed the Train A
+ * tolerance window; pre-2.0.0 raw rows no longer parse (see
+ * test/types/tolerance-window.test.ts).
+ */
+export const RunReadResponseSchema = z.object({
   id: z.string().uuid(),
-  projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
-  // ─── Tolerance window (tool-sweep breaking train, Train A) ───────────────
-  // The ten fields marked .optional() below are REMOVED from run READ
-  // responses at API 2.0.0 (T10: raw-row trim; save_run/update_run echoes
-  // keep the full row). Optional-not-required lets this SDK parse both the
-  // pre-flip and post-flip wire. SDK 6.0.0 splits read/write schemas and
-  // re-pins each side strictly. Do NOT mark new response fields required
-  // while the window is open.
-  authorId: z.string().uuid().nullable().optional(),  // User who created the run; null for system/API-key runs
+  projectId: z.string().uuid(),
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -533,27 +532,60 @@ export const RunResponseSchema = z.object({
   // save-run-decision-semantics spec v0.2.1 (D1/D5).
   allGatesPassed: z.boolean().nullable(),
   averageScore: z.number().nullable(),
-  rawMarkdown: z.string().nullable().optional(),
   archivedAt: NullableDateTimeSchema,
   archiveReason: z.string().nullable(),
-  idempotencyKey: z.string().nullable().optional(),
-  payloadHash: z.string().nullable().optional(),      // SHA-256 of save_run payload, used for idempotency dedup
-  definitionType: z.string().nullable().optional(),   // Nullable in DB
-  definitionName: z.string().nullable().optional(),   // Nullable in DB
-  definitionVersion: z.string().nullable().optional(), // Nullable in DB
-  definitionHash: z.string().nullable().optional(),   // Nullable in DB
-  definitionId: z.string().uuid().nullable().optional(), // Registry definition UUID — direct identity linkage
-  registrySyncedAt: NullableDateTimeSchema.optional(), // Nullable in DB
-  // Merge provenance (merge-projects v0.3.4, ops-api mig 069). Optional so
-  // responses from pre-merge-feature API versions still parse; null = never merged.
+  // Merge provenance (merge-projects v0.3.4, ops-api mig 069); null = never merged.
+  mergedFromProjectId: z.string().uuid().nullable(),
+  mergedFromRunNumber: z.number().int().nullable(),
+  mergedFromIdempotencyKey: z.string().nullable(),
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
+  // Dashboard URL slugs — included on get_run (context join); optional
+  // because get_latest_run and diff refs do not carry them.
+  projectSlug: z.string().optional(),
+  orgSlug: z.string().nullable().optional(),
+});
+
+/** Details-surface run (get_run_details): read projection + rawMarkdown + the
+ * definition trio — human provenance stays on the details surface (T10). */
+export const RunDetailRunResponseSchema = RunReadResponseSchema.extend({
+  rawMarkdown: z.string().nullable(),
+  definitionType: z.string().nullable(),
+  definitionName: z.string().nullable(),
+  definitionVersion: z.string().nullable(),
+});
+
+/**
+ * Full run row as echoed by the WRITE surfaces (save_run / update_run) —
+ * unchanged by T10: the write echo confirms exactly what was persisted.
+ * Split from the read schemas in 6.0.0 so slimming the reads could not
+ * silently slim the echoes.
+ */
+export const RunWriteEchoResponseSchema = z.object({
+  id: z.string().uuid(),
+  projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
+  authorId: z.string().uuid().nullable(),      // User who created the run; null for system/API-key runs
+  runNumber: z.number().int().positive(),
+  workflowType: z.string(),
+  timestamp: DateTimeStringSchema,
+  allGatesPassed: z.boolean().nullable(),
+  averageScore: z.number().nullable(),
+  rawMarkdown: z.string().nullable(),
+  archivedAt: NullableDateTimeSchema,
+  archiveReason: z.string().nullable(),
+  idempotencyKey: z.string().nullable(),
+  payloadHash: z.string().nullable(),
+  definitionType: z.string().nullable(),
+  definitionName: z.string().nullable(),
+  definitionVersion: z.string().nullable(),
+  definitionHash: z.string().nullable(),
+  definitionId: z.string().uuid().nullable(),
+  registrySyncedAt: NullableDateTimeSchema,
   mergedFromProjectId: z.string().uuid().nullable().optional(),
   mergedFromRunNumber: z.number().int().nullable().optional(),
   mergedFromIdempotencyKey: z.string().nullable().optional(),
-  createdAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
-  updatedAt: DateTimeStringSchema,             // Always present (NOT NULL in DB)
-  // Dashboard URL slugs — included on save_run and get_run responses.
-  // Clients build /orgs/<orgSlug>/<projectSlug>/runs/<id>. Optional so older
-  // API responses that predate the field still parse cleanly.
+  createdAt: DateTimeStringSchema,
+  updatedAt: DateTimeStringSchema,
   projectSlug: z.string().optional(),
   orgSlug: z.string().nullable().optional(),
 });
@@ -582,7 +614,7 @@ export const AnalysisWriteEchoSchema = z.object({
  * pinned to sdk-core ≤0.15.0).
  */
 export const UpdateRunEnvelopeSchema = z.object({
-  data: RunResponseSchema,
+  data: RunWriteEchoResponseSchema,
   analysisWrite: AnalysisWriteEchoSchema.optional(),
 });
 
@@ -614,7 +646,7 @@ export const RunSummaryResponseSchema = z.object({
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
-  // Nullable: null = NOT_A_GATE (no gate-bearing agents on the run) — see RunResponseSchema.
+  // Nullable: null = NOT_A_GATE (no gate-bearing agents on the run) — see RunReadResponseSchema.
   allGatesPassed: z.boolean().nullable(),
   averageScore: z.number().nullable().optional(),
   rawMarkdown: z.string().nullable().optional(),
@@ -688,7 +720,7 @@ export const CorrelationResultResponseSchema = z.object({
 });
 
 export const SaveRunResponseSchema = z.object({
-  run: RunResponseSchema,
+  run: RunWriteEchoResponseSchema,
   agents: z.array(AgentSnapshotResponseSchema),
   // Nullable: on an idempotent replay of a pre-correlation-persistence run the
   // API returns `correlation: null` (the original counts were never stored, and
@@ -727,8 +759,10 @@ export const AgentChangeResponseSchema = z.object({
 });
 
 export const RunDiffResultResponseSchema = z.object({
-  baseRun: RunResponseSchema,
-  compareRun: RunResponseSchema,
+  // T11 (API 2.0.0): diff sides are the READ projection — a diff identifies
+  // its runs, it does not carry them.
+  baseRun: RunReadResponseSchema,
+  compareRun: RunReadResponseSchema,
   fixed: z.array(DiffIssueRefResponseSchema),
   new: z.array(DiffIssueRefResponseSchema),
   unchanged: z.array(DiffIssueRefResponseSchema),
@@ -736,7 +770,7 @@ export const RunDiffResultResponseSchema = z.object({
 });
 
 export const RunDetailsResponseSchema = z.object({
-  run: RunResponseSchema,
+  run: RunDetailRunResponseSchema,
   agents: z.array(AgentSnapshotResponseSchema),
   recommendations: z.array(z.object({
     issueId: z.string().uuid(),
@@ -851,19 +885,14 @@ export const AnalysisSummaryResponseSchema = z.object({
   createdAt: DateTimeStringSchema,
 });
 
-/** Full analysis response for a single run.
- *
- * Tolerance window (Train A): pre-flip APIs send `total` (which counted
- * RECORDS only — the T22 gotcha); API 2.0.0 replaces it with the split
- * `recordsTotal`/`summariesTotal`. Exactly one of the two sets is present
- * depending on API version; all three are optional until SDK 6.0.0 pins the
- * split pair required and drops `total`. */
+/** Full analysis response for a single run (API 2.0.0, T22): split totals —
+ * `recordsTotal`/`summariesTotal` replaced the records-only `total` that made
+ * summaries-only runs read as empty. Strictly pinned since 6.0.0. */
 export const RunAnalysisResponseSchema = z.object({
   records: z.array(AnalysisRecordResponseSchema),
   summaries: z.array(AnalysisSummaryResponseSchema),
-  total: z.number().int().nonnegative().optional(),
-  recordsTotal: z.number().int().nonnegative().optional(),
-  summariesTotal: z.number().int().nonnegative().optional(),
+  recordsTotal: z.number().int().nonnegative(),
+  summariesTotal: z.number().int().nonnegative(),
 });
 
 /** Paginated analysis summaries response (getProjectAnalysis) */
@@ -886,33 +915,13 @@ export const AgentRunSummaryResponseSchema = AnalysisSummaryResponseSchema.exten
   snapshotScore: z.number().nullable(),
 });
 
-/** Agent runs analysis response (after SDK envelope unwrap).
- *
- * Tolerance window (Train A): pre-flip wire nests `{data: {items, total}}`;
- * API 2.0.0 flattens to `{data: [...], total}` (family consistency with its
- * siblings). getAgentRunsAnalysis reads the raw envelope, accepts either, and
- * normalizes to `{items, total}` so the 5.x return type is unchanged. SDK
- * 6.0.0 drops the old arm and flips the return type to `{data, total}`. */
+/** Agent runs analysis response (API 2.0.0, T22): the family list envelope
+ * `{data, total}` — the pre-2.0.0 nested `{data: {items, total}}` wire no
+ * longer parses (tolerance window closed in 6.0.0). */
 export const AgentRunsAnalysisResponseSchema = z.object({
-  items: z.array(AgentRunSummaryResponseSchema),
+  data: z.array(AgentRunSummaryResponseSchema),
   total: z.number().int().nonnegative(),
 });
-
-/** Raw-envelope union for getAgentRunsAnalysis (see tolerance note above). */
-export const AgentRunsAnalysisEnvelopeSchema = z.union([
-  // New wire (API >= 2.0.0): flat list envelope
-  z.object({
-    data: z.array(AgentRunSummaryResponseSchema),
-    total: z.number().int().nonnegative(),
-  }),
-  // Old wire (API < 2.0.0): nested under data
-  z.object({
-    data: z.object({
-      items: z.array(AgentRunSummaryResponseSchema),
-      total: z.number().int().nonnegative(),
-    }),
-  }),
-]);
 
 // ============================================
 // MERGE ISSUES RESPONSE SCHEMA
@@ -937,53 +946,10 @@ export const MergeIssuesResultResponseSchema = z.object({
  * camelCase business-object responses elsewhere in this API.
  */
 /**
- * Tolerance window (Train A): API < 2.0.0 sends the spec-§5 snake_case shape;
- * API 2.0.0 (spec 0.3.5) renames to camelCase. The union accepts either wire;
- * `normalizeMergeProjectsResult` in operations/projects.ts maps camel → snake
- * so the 5.x return type is unchanged. SDK 6.0.0 drops the snake arm and
- * flips the return type to camelCase.
+ * Merge result (spec 0.3.5 — camelCase; API 2.0.0, T23). The pre-flip
+ * snake_case wire no longer parses: the tolerance window closed in 6.0.0.
  */
-export const MergeProjectsResultSnakeSchema = z.object({
-  source: z.object({
-    id: z.string().uuid(),
-    name: z.string(),
-    run_count: z.number().int().nonnegative(),
-    issue_count: z.number().int().nonnegative(),
-    status_after: z.enum(['soft-deleted', 'retained', 'dry-run']),
-  }),
-  target: z.object({
-    id: z.string().uuid(),
-    name: z.string(),
-    run_count_before: z.number().int().nonnegative(),
-    issue_count_before: z.number().int().nonnegative(),
-    run_count_after: z.number().int().nonnegative(),
-    issue_count_after: z.number().int().nonnegative(),
-  }),
-  moved: z.object({
-    runs: z.number().int().nonnegative(),
-    issues: z.number().int().nonnegative(),
-    issue_dedupes: z.number().int().nonnegative(),
-    occurrences_reparented: z.number().int().nonnegative(),
-    issue_notes_reparented: z.number().int().nonnegative(),
-    status_history_reparented: z.number().int().nonnegative(),
-  }),
-  conflicts: z.array(z.object({
-    kind: MergeConflictKindResponseSchema,
-    source_id: z.string().uuid(),
-    target_id: z.string().uuid(),
-    resolution: z.string(),
-  })),
-  audit: z.object({
-    // Empty string for the P5 idempotent no-op; unpersisted UUID for dry-run.
-    merge_id: z.string(),
-    timestamp: DateTimeStringSchema,
-    // User UUID, or the literal 'system' for system-actor merges.
-    actor_id: z.string(),
-    dry_run: z.boolean(),
-  }),
-});
-
-export const MergeProjectsResultCamelSchema = z.object({
+export const MergeProjectsResultResponseSchema = z.object({
   source: z.object({
     id: z.string().uuid(),
     name: z.string(),
@@ -1014,17 +980,14 @@ export const MergeProjectsResultCamelSchema = z.object({
     resolution: z.string(),
   })),
   audit: z.object({
+    // Empty string for the P5 idempotent no-op; unpersisted UUID for dry-run.
     mergeId: z.string(),
     timestamp: DateTimeStringSchema,
+    // User UUID, or the literal 'system' for system-actor merges.
     actorId: z.string(),
     dryRun: z.boolean(),
   }),
 });
-
-export const MergeProjectsResultResponseSchema = z.union([
-  MergeProjectsResultSnakeSchema,
-  MergeProjectsResultCamelSchema,
-]);
 
 // ============================================
 // BULK UPDATE RESPONSE SCHEMAS
@@ -1410,7 +1373,8 @@ export const TaxonomyResponseSchema = z.object({
 export type TaxonomyResponse = z.infer<typeof TaxonomyResponseSchema>;
 export type ProjectResponse = z.infer<typeof ProjectResponseSchema>;
 export type IssueResponse = z.infer<typeof IssueResponseSchema>;
-export type RunResponse = z.infer<typeof RunResponseSchema>;
+export type RunResponse = z.infer<typeof RunReadResponseSchema>;
+export type RunWriteEchoResponse = z.infer<typeof RunWriteEchoResponseSchema>;
 export type AgentSnapshotResponse = z.infer<typeof AgentSnapshotResponseSchema>;
 export type OccurrenceResponse = z.infer<typeof OccurrenceResponseSchema>;
 export type IssueNoteResponse = z.infer<typeof IssueNoteResponseSchema>;

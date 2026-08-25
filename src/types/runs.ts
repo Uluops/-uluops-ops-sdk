@@ -6,7 +6,8 @@ import type {
 } from './enums.js';
 import type { IssueFieldsBase } from './issues.js';
 import {
-  RunResponseSchema,
+  RunReadResponseSchema,
+  RunWriteEchoResponseSchema,
   AgentSnapshotResponseSchema,
   CorrelationResultResponseSchema,
   SaveRunResponseSchema,
@@ -32,7 +33,14 @@ import {
 // ─────────────────────────────────────────────────────────────────
 
 /** Run entity — an execution record from any agent, workflow, or pipeline */
-export type Run = z.infer<typeof RunResponseSchema>;
+/** Run as returned by the READ surfaces (get/getLatest, diff refs) — the
+ * 14-key projection (API 2.0.0, T10). Write echoes carry the full row: see
+ * RunWriteEcho. In 5.x this type was the full row; consumers reading dropped
+ * fields must switch to getDetails (rawMarkdown, definition trio) or stop
+ * (internals). */
+export type Run = z.infer<typeof RunReadResponseSchema>;
+/** Full run row echoed by save_run/update_run (unchanged by T10). */
+export type RunWriteEcho = z.infer<typeof RunWriteEchoResponseSchema>;
 
 /** Enriched run for list endpoints (aggregate fields, no detail-only fields) */
 export type RunSummary = z.infer<typeof RunSummaryResponseSchema>;
@@ -376,7 +384,8 @@ export interface RunUpdatePreview {
  * concerns (the server emits no echo for those).
  */
 export interface UpdateRunWithEchoResult {
-  run: Run;
+  /** Full write echo (6.0.0: distinct from the slim read `Run`). */
+  run: RunWriteEcho;
   analysisWrite: AnalysisWriteEcho | null;
 }
 

@@ -17,7 +17,6 @@ import type {
   MergeIssuesResult,
   MergeProjectsInput,
   MergeProjectsResult,
-  PaginatedIssues,
 } from '../types/projects.js';
 import type { Issue } from '../types/issues.js';
 import type { DeleteResult } from '../types/responses.js';
@@ -29,7 +28,6 @@ import {
   BulkStatusUpdateResultResponseSchema,
   MergeIssuesResultResponseSchema,
   MergeProjectsResultResponseSchema,
-  MergeProjectsResultCamelSchema,
   DeleteResultResponseSchema,
 } from '../types/response-schemas.js';
 import {
@@ -47,8 +45,13 @@ import { buildIssueListParams } from './query-utils.js';
  * @param client - HTTP client instance
  * @returns Array of projects with metadata (runCount, issueCount, etc.)
  */
-export async function list(client: OpsHttpClient): Promise<Project[]> {
-  return (z.array(ProjectResponseSchema)).parse(await client.get<unknown>('/projects', undefined));
+export async function list(client: OpsHttpClient): Promise<{ data: Project[]; total: number }> {
+  // 6.0.0 (T13): the API always sent {data, total, count}; the default
+  // envelope unwrap silently discarded total. Surface the list envelope.
+  return z.object({
+    data: z.array(ProjectResponseSchema),
+    total: z.number().int().nonnegative(),
+  }).parse(await client.request<unknown>('GET', '/projects', undefined, { rawEnvelope: true }));
 }
 
 /**
@@ -237,45 +240,23 @@ export async function listIssues(
   client: OpsHttpClient,
   idOrName: string,
   query?: ListProjectIssuesQuery
-): Promise<Issue[]> {
-  return (z.array(IssueResponseSchema)).parse(await client.get<unknown>(
-    `/projects/${encodeURIComponent(idOrName)}/issues`,
-    buildIssueListParams(query)
-  ));
-}
-
-/** Schema for the paginated issues envelope returned by the API */
-const PaginatedIssuesEnvelopeSchema = z.object({
-  data: z.array(IssueResponseSchema),
-  count: z.number().int().nonnegative(),
-});
-
-/**
- * List issues in a project with count (preserves pagination count from API envelope).
- *
- * @remarks
- * Uses `rawEnvelope` to access the `count` field outside the `data` envelope
- * while retaining automatic retry and token refresh.
- * For access without count, use {@link listIssues}.
- *
- * @param client - HTTP client instance
- * @param idOrName - Project UUID or name
- * @param query - Optional filters: status, priority, agent, limit, offset
- * @returns `{ issues, count }` — count reflects total matching issues for pagination
- */
-export async function listIssuesWithCount(
-  client: OpsHttpClient,
-  idOrName: string,
-  query?: ListProjectIssuesQuery
-): Promise<PaginatedIssues> {
-  const response = PaginatedIssuesEnvelopeSchema.parse(await client.request<unknown>(
+): Promise<{ data: Issue[]; total: number }> {
+  // 6.0.0 (T13): list envelope surfaced — the wire carries {data, total,
+  // count}; `total` is the full matching count for pagination. Replaces both
+  // the array-returning listIssues and listIssuesWithCount (the sibling that
+  // existed only to recover what the unwrap dropped).
+  const response = z.object({
+    data: z.array(IssueResponseSchema),
+    total: z.number().int().nonnegative(),
+  }).parse(await client.request<unknown>(
     'GET',
     `/projects/${encodeURIComponent(idOrName)}/issues`,
     buildIssueListParams(query),
     { rawEnvelope: true }
   ));
-  return { issues: response.data, count: response.count };
+  return response;
 }
+
 
 /**
  * Bulk update issue statuses within a project. Each item may succeed or fail independently.
@@ -336,71 +317,13 @@ export async function mergeIssues(
  * @returns Merge result (spec §5 shape — snake_case fields by contract)
  */
 
-/**
- * Tolerance window (Train A): map the API-2.0.0 camelCase merge result back
- * to the spec-§5 snake_case shape so the 5.x return type is unchanged.
- * Discriminated on `runCount` in `source` — present only on the camel wire.
- * SDK 6.0.0 removes this and returns camelCase directly.
- */
-type MergeResultCamel = z.infer<typeof MergeProjectsResultCamelSchema>;
-
-function isCamelMergeResult(
-  r: z.infer<typeof MergeProjectsResultResponseSchema>,
-): r is MergeResultCamel {
-  return 'runCount' in r.source;
-}
-
-function normalizeMergeProjectsResult(
-  parsed: z.infer<typeof MergeProjectsResultResponseSchema>,
-): MergeProjectsResult {
-  if (!isCamelMergeResult(parsed)) {
-    return parsed;
-  }
-  return {
-    source: {
-      id: parsed.source.id,
-      name: parsed.source.name,
-      run_count: parsed.source.runCount,
-      issue_count: parsed.source.issueCount,
-      status_after: parsed.source.statusAfter,
-    },
-    target: {
-      id: parsed.target.id,
-      name: parsed.target.name,
-      run_count_before: parsed.target.runCountBefore,
-      issue_count_before: parsed.target.issueCountBefore,
-      run_count_after: parsed.target.runCountAfter,
-      issue_count_after: parsed.target.issueCountAfter,
-    },
-    moved: {
-      runs: parsed.moved.runs,
-      issues: parsed.moved.issues,
-      issue_dedupes: parsed.moved.issueDedupes,
-      occurrences_reparented: parsed.moved.occurrencesReparented,
-      issue_notes_reparented: parsed.moved.issueNotesReparented,
-      status_history_reparented: parsed.moved.statusHistoryReparented,
-    },
-    conflicts: parsed.conflicts.map((c) => ({
-      kind: c.kind,
-      source_id: c.sourceId,
-      target_id: c.targetId,
-      resolution: c.resolution,
-    })),
-    audit: {
-      merge_id: parsed.audit.mergeId,
-      timestamp: parsed.audit.timestamp,
-      actor_id: parsed.audit.actorId,
-      dry_run: parsed.audit.dryRun,
-    },
-  };
-}
 
 export async function mergeProjects(
   client: OpsHttpClient,
   input: MergeProjectsInput
 ): Promise<MergeProjectsResult> {
   validateMergeProjectsInput(input);
-  return normalizeMergeProjectsResult(MergeProjectsResultResponseSchema.parse(await client.post<unknown>(
+  return MergeProjectsResultResponseSchema.parse(await client.post<unknown>(
     '/projects/merge',
     {
       source: input.source,
@@ -409,5 +332,5 @@ export async function mergeProjects(
       deleteSource: input.deleteSource,
       confirmCrossOrg: input.confirmCrossOrg,
     }
-  )));
+  ));
 }

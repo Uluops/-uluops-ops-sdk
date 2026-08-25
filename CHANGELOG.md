@@ -4,6 +4,36 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.0.0] - 2026-08-24
+
+### BREAKING — breaking-train Train C: the STRICT release (tool-sweep T10/T11/T13/T22/T23)
+
+Closes the 5.23.0 tolerance window: the new API-2.0.0 shapes are pinned
+strictly and the pre-flip wire NO LONGER PARSES (the tolerance fixtures now
+assert old-wire failure). Requires API >= 2.0.0 (deployed). Migration table:
+
+| Method | 5.x returned | 6.0 returns | Migration |
+|---|---|---|---|
+| `projects.list()` | `Project[]` | `{data, total}` | read `.data`; `total` is new signal |
+| `runs.listByProject()` | `RunSummary[]` | `{data, total}` | read `.data` |
+| `projects.listIssues()` | `Issue[]` | `{data, total}` | read `.data`; replaces `listIssuesWithCount` (removed — `count` is now `total`) |
+| `runs.get()` / `getLatest()` | full row (`Run`) | 14-key read projection (`Run` narrowed) | dropped fields: use `getDetails` for rawMarkdown/definition trio; internals are gone by design |
+| `runs.getDetails().run` | full row | read projection + rawMarkdown + definition trio | — |
+| `runs.diff()` `baseRun`/`compareRun` | full rows | read projections | — |
+| `runs.update()` / `updateById()` | `Run` | `RunWriteEcho` (full row — unchanged shape, new name) | type-only |
+| `runs.getAnalysis()` | `{records, summaries, total}` | `{records, summaries, recordsTotal, summariesTotal}` | `total` is gone; it counted records only |
+| `runs.getAgentRunsAnalysis()` | `{items, total}` | `{data, total}` | rename `items` → `data` |
+| `projects.mergeProjects()` | spec-§5 snake_case | spec-0.3.5 camelCase | rename keys (runCount, statusAfter, issueDedupes, ..., audit.dryRun) |
+
+- Schema split: `RunReadResponseSchema` / `RunDetailRunResponseSchema` /
+  `RunWriteEchoResponseSchema` replace the single `RunResponseSchema` — the
+  write echo confirms exactly what was persisted and could not be silently
+  slimmed by the read trim. `Run` (type) is now the read projection;
+  `RunWriteEcho` is the echo.
+- `test/types/tolerance-window.test.ts` flipped to strict pins: new wire must
+  parse, old wire must FAIL (a strict schema that still accepted the old
+  shape would silently re-open the window).
+
 ## [5.23.0] - 2026-08-24
 
 ### Changed — breaking-train Train A: the TOLERANT release (tool-sweep T10/T11/T13/T22/T23)

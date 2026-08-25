@@ -14,7 +14,7 @@ import nock from 'nock';
 import {
   ProjectResponseSchema,
   IssueResponseSchema,
-  RunResponseSchema,
+  RunWriteEchoResponseSchema,
   RunSummaryResponseSchema,
   AgentSnapshotResponseSchema,
   AnalysisRecordResponseSchema,
@@ -198,7 +198,7 @@ export function createMockIssue(overrides: Partial<z.infer<typeof IssueResponseS
 /**
  * Factory for creating valid Run response data
  */
-export function createMockRun(overrides: Partial<z.infer<typeof RunResponseSchema>> = {}) {
+export function createMockRun(overrides: Partial<z.infer<typeof RunWriteEchoResponseSchema>> = {}) {
   const data = {
     id: generateId(),
     projectId: generateId(),
@@ -219,13 +219,16 @@ export function createMockRun(overrides: Partial<z.infer<typeof RunResponseSchem
     definitionHash: null,
     definitionId: null,
     registrySyncedAt: null,
+    mergedFromProjectId: null,
+    mergedFromRunNumber: null,
+    mergedFromIdempotencyKey: null,
     createdAt: isoDate(1),
     updatedAt: isoDate(1),
     ...overrides,
   };
 
   if (STRICT_CONTRACTS) {
-    const result = RunResponseSchema.safeParse(data);
+    const result = RunWriteEchoResponseSchema.safeParse(data);
     if (!result.success) {
       throw new Error(`Invalid mock run data: ${result.error.message}`);
     }

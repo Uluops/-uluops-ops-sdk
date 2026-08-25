@@ -4,6 +4,7 @@ import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import type {
   Run,
+  RunWriteEcho,
   SaveRunInput,
   SaveRunResponseWithEcho,
   ValidateRunResponse,
@@ -25,7 +26,7 @@ import type {
 } from '../types/runs.js';
 import type { DeleteResult } from '../types/responses.js';
 import {
-  RunResponseSchema,
+  RunReadResponseSchema,
   UpdateRunEnvelopeSchema,
   RunUpdatePreviewResponseSchema,
   RunSummaryResponseSchema,
@@ -39,7 +40,6 @@ import {
   ProjectAnalysisListResponseSchema,
   AnalysisRecordsListResponseSchema,
   AgentRunsAnalysisResponseSchema,
-  AgentRunsAnalysisEnvelopeSchema,
 } from '../types/response-schemas.js';
 import {
   validateSaveRunInput,
@@ -441,7 +441,7 @@ export async function update(
   client: OpsHttpClient,
   input: UpdateRunByNumberInput,
   options?: { _skipClientValidation?: boolean }
-): Promise<Run> {
+): Promise<RunWriteEcho> {
   return (await updateEnvelope(client, input, options)).data;
 }
 
@@ -475,10 +475,16 @@ export async function listByProject(
   client: OpsHttpClient,
   projectId: string,
   query?: ListRunsQuery
-): Promise<z.infer<typeof RunSummaryResponseSchema>[]> {
-  return (z.array(RunSummaryResponseSchema)).parse(await client.get<unknown>(
+): Promise<{ data: z.infer<typeof RunSummaryResponseSchema>[]; total: number }> {
+  // 6.0.0 (T13): list envelope surfaced — total is the full matching count.
+  return z.object({
+    data: z.array(RunSummaryResponseSchema),
+    total: z.number().int().nonnegative(),
+  }).parse(await client.request<unknown>(
+    'GET',
     `/runs/project/${encodeURIComponent(projectId)}`,
-    toApiQuery(query)
+    toApiQuery(query),
+    { rawEnvelope: true }
   ));
 }
 
@@ -496,7 +502,7 @@ export async function getLatest(
   projectId: string,
   workflowType?: string
 ): Promise<Run> {
-  return RunResponseSchema.parse(await client.get<unknown>(
+  return RunReadResponseSchema.parse(await client.get<unknown>(
     `/runs/project/${encodeURIComponent(projectId)}/latest`,
     workflowType ? toApiQuery({ workflowType }) : undefined
   ));
@@ -530,7 +536,7 @@ export async function getDetails(
  * @throws {NotFoundError} If run does not exist
  */
 export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
-  return RunResponseSchema.parse(await client.get<unknown>(`/runs/${encodeURIComponent(runId)}`, undefined));
+  return RunReadResponseSchema.parse(await client.get<unknown>(`/runs/${encodeURIComponent(runId)}`, undefined));
 }
 
 /**
@@ -579,7 +585,7 @@ export async function updateById(
   runId: string,
   input: UpdateRunInput,
   options?: { _skipClientValidation?: boolean }
-): Promise<Run> {
+): Promise<RunWriteEcho> {
   return (await updateByIdEnvelope(client, runId, input, options)).data;
 }
 
@@ -748,19 +754,13 @@ export async function getAgentRunsAnalysis(
   agentName: string,
   query: AgentRunsAnalysisQuery
 ): Promise<z.infer<typeof AgentRunsAnalysisResponseSchema>> {
-  // Tolerance window (Train A): read the RAW envelope — the old wire nests
-  // {data: {items, total}} while API 2.0.0 flattens to {data: [...], total};
-  // the default unwrap would strip the flat wire's sibling `total`. Accept
-  // either arm and normalize to {items, total} so the 5.x return type is
-  // unchanged. SDK 6.0.0 drops the old arm and returns {data, total}.
-  const envelope = AgentRunsAnalysisEnvelopeSchema.parse(await client.request<unknown>(
+  // Raw envelope: the pagination shape {data, total, limit, offset} carries
+  // `data` directly — the default unwrap would discard the siblings (T22).
+  return AgentRunsAnalysisResponseSchema.parse(await client.request<unknown>(
     'GET',
     `/agents/${encodeURIComponent(agentName)}/runs-analysis`,
     toApiQuery(query),
     { rawEnvelope: true },
   ));
-  if (Array.isArray(envelope.data)) {
-    return { items: envelope.data, total: (envelope as { data: unknown[]; total: number }).total };
-  }
-  return envelope.data as z.infer<typeof AgentRunsAnalysisResponseSchema>;
 }
+
