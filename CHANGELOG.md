@@ -4,6 +4,20 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.1.0] - 2026-09-10
+
+### Added
+
+- **`description` on `IssueResponseSchema` and on `RunDetailsResponseSchema`'s `recommendations[]`** — the occurrence's own account of a sighting, as opposed to the issue's `title`. Both `.nullable().optional()`.
+
+  **Why it needed declaring at all, and why the failure was invisible.** `z.object()` strips undeclared keys and returns a clean 200. So a listing that omitted `description` was indistinguishable from findings that genuinely had none, and every consumer reasonably read the omission as an absence. Nothing errored; nothing logged. This is the same mechanism, on the same file, as `issueStatus` / `659d061d` — the third field to go missing this way, which is why each now carries its own test suite asserting the **value survives the parse**, not merely that parsing succeeds. `success: true` passes against the broken state.
+
+  The cost was real: a remediation pass over `ops-uluops-api` spent a full iteration re-investigating seven findings whose descriptions each said "FIXED IN RUN" — one call away on `get_issue_details`, which does return the field (tracker `fc862289`).
+
+  **Optional in both directions, deliberately.** A required key makes `.parse()` throw on every issue read against an API that predates the change, and the SDK and API deploy independently. Absent means "this read path does not supply it"; `null` means "the latest occurrence has no description". Same reasoning already recorded on `mergedIntoIssueId`.
+
+  **Not a column on `issues`.** It lives on `occurrences`. `GET /projects/:id/issues` derives it per issue via a correlated subquery (ops-uluops-api); the by-id and by-fingerprint lookups do not supply it and will report `undefined`. Requires ops-uluops-api with the matching change deployed — against an older API this parses cleanly and yields `undefined`, which is the intended degradation, not a silent one: the field's absence is now expressible, where before it was indistinguishable from a finding having no description.
+
 ## [6.0.0] - 2026-08-24
 
 ### BREAKING — breaking-train Train C: the STRICT release (tool-sweep T10/T11/T13/T22/T23)

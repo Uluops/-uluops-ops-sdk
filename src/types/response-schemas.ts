@@ -363,6 +363,30 @@ export const IssueResponseSchema = z.object({
    * not. Read-only — the API refuses to set it through any update path.
    */
   mergedIntoIssueId: z.string().uuid().nullable().optional(),
+  /**
+   * The latest occurrence's description — the agent's account of the sighting,
+   * as opposed to the issue's `title`.
+   *
+   * **Not a column on `issues`.** It lives on `occurrences`; the API derives it
+   * per issue with a correlated subquery, and only on the read paths that ask
+   * for it. `GET /projects/:id/issues` carries it; the by-id and by-fingerprint
+   * lookups do not.
+   *
+   * **Optional, and that is load-bearing in both directions.** A required key
+   * makes `.parse()` throw on every issue read against an API that predates it,
+   * and this SDK deploys independently of the API — the same reasoning recorded
+   * on `mergedIntoIssueId` above. Absent means "this read path does not supply
+   * it"; `null` means "this issue's latest occurrence has no description".
+   *
+   * **Why it is worth carrying.** `z.object()` strips undeclared keys and
+   * returns a clean 200, so before this field existed the listing was
+   * indistinguishable from findings that genuinely had no description — and
+   * consumers read the omission as an absence. A remediation pass over
+   * ops-uluops-api spent a full iteration re-investigating seven findings whose
+   * descriptions each said "FIXED IN RUN", one call away on get_issue_details
+   * (tracker `fc862289`). Same mechanism as `issueStatus` / `659d061d` below.
+   */
+  description: z.string().max(MAX_DESCRIPTION).nullable().optional(),
   deletedAt: NullableDateTimeSchema.optional(),  // Stripped by issueToPublic
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
@@ -790,6 +814,17 @@ export const RunDetailsResponseSchema = z.object({
      * to survive the SDK boundary (issue 659d061d).
      */
     issueStatus: z.string().optional(),
+    /**
+     * The occurrence's own description for this sighting. Optional for the same
+     * reason as `issueStatus`: absent when talking to an API that predates it,
+     * and `z.object()` strips unknown keys on parse, so it MUST be declared
+     * here to survive the SDK boundary at all.
+     *
+     * Cheap on the API side — `findByRun` already selects full occurrence rows,
+     * so this was fetched and discarded at the response-building step rather
+     * than being missing from the query (tracker `fc862289`).
+     */
+    description: z.string().max(MAX_DESCRIPTION).nullable().optional(),
   })),
 });
 
