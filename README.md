@@ -1243,6 +1243,30 @@ Track and manage validation issues.
 > is soft-deleted, and the API refuses to set it through any update path. Correlation
 > follows it; the by-fingerprint endpoints deliberately do not.
 
+> **`description` is available on issue listings and run recommendations (since v6.1.0).**
+> This is the occurrence's own account of a sighting — what the agent actually wrote —
+> as opposed to the issue's `title`. It is what tells you a finding was already resolved:
+> agents routinely end a description with *"FIXED IN RUN"*, and the title alone states
+> the defect in the present tense regardless.
+>
+> **It is not a column on `issues`.** It lives on `occurrences`, and only the read paths
+> that derive it carry it: `listIssues` (the API computes the latest occurrence's
+> description per issue) and `runs.getDetails`'s `recommendations[]`. The by-id and
+> by-fingerprint lookups do not supply it and report `undefined`. `get_issue_details`
+> on the API side has always returned it via the occurrence record.
+>
+> The same silent-strip applies as above, and it has now cost real work: before v6.1.0
+> the field was undeclared, so `z.object()` dropped it and a listing was
+> **indistinguishable from findings that genuinely had no description**. A remediation
+> pass read the omission as an absence and spent an entire iteration re-investigating
+> seven findings whose descriptions each said they were already fixed. If you are on an
+> older SDK you are not seeing `null` — you are seeing nothing.
+>
+> Requires a matching `ops-uluops-api`. Against an older API this parses cleanly and
+> yields `undefined`; the field being *expressible* is the point, since `undefined`
+> ("this path did not supply it") and `null` ("this occurrence recorded none") are now
+> distinguishable where before neither was.
+
 #### `client.issues.create(input)`
 
 Create a user-submitted issue.
