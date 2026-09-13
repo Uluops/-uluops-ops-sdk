@@ -5,6 +5,7 @@ export * from './enums.js';
 export * from './auth.js';
 
 // Domain types
+export * from './org.js';
 export * from './projects.js';
 export * from './runs.js';
 export * from './issues.js';

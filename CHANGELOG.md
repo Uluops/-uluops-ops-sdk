@@ -4,6 +4,22 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.2.0] - 2026-09-13
+
+### Added
+
+- **Per-call `org` on every project, run, issue and analytics operation** (project-org-routing-and-rehome spec §3.2, D12). Each method on `client.projects`, `client.runs`, `client.issues` and `client.analytics` takes a trailing `options?: { org?: string }` (run writes: `RunCallOptions`, which also carries the existing `_skipClientValidation`). `org` is the target org's slug and becomes `X-Org-Slug` on that one request, overriding the constructor-level `orgSlug`. **Precedence on the wire, lowest to highest: personal org (no header) < constructor `orgSlug` < per-call `org`; an API key BOUND to an org ignores both headers and returns `403 ORG_ACCESS_DENIED` if they name a different org** — the platform's rule, surfaced verbatim. The API never infers an org from a project name (spec D2): a call that names no org creates or targets the *personal* project of that name even when a work org has one by the same name.
+
+  **Mechanism, because it differs from the spec's plan and the difference is worth knowing.** The spec (§3.2) said every operation would migrate from sdk-core's verb helpers to `client.request(..., { headers })`. sdk-core's `get/post/patch/put/delete` all delegate to `this.request`, so instead `OpsHttpClient` overrides `request` and exposes `withOrg(slug)`, a prototype-chained VIEW of the client that merges the header on every request it makes. One seam, zero operation rewrites, and the view shares the root's auth strategy, so a session installed on the root is honoured. `OpsClient` mints the view per call. Same wire contract; the test file asserts on the outgoing request as nock sees it, including a `badheaders` control proving the root client sends no header and that minting a view does not mutate the root.
+
+- **`OpsHttpClient.withOrg(slug)`** and **`scopedOrg`** (read-only, for diagnostics) on the low-level client; `ORG_SLUG_PATTERN` and `ORG_SLUG_HEADER` exported. `withOrg` validates the slug with the same pattern as `orgSlug` and throws `InputValidationError` — it is a header value, so CRLF and whitespace can never reach the wire.
+
+- **Org-routing error codes and type guards**: `INSUFFICIENT_ORG_ROLE` / `isInsufficientOrgRoleError` (403 — below the org's write floor; on tracker writes the API's body carries `details.applied: false` and forbids retrying without `org`: **do not retry the same call org-less — that is not a fallback, it files the work in the caller's personal org**), `ORG_ACCESS_DENIED` / `isOrgAccessDeniedError` (403 — not a member, or a bound key naming another org), and `PROJECT_REHOMED` / `isProjectRehomedError` with `ProjectRehomedDetails` (410 — spec D14: the project this name once denoted in this org now lives in `details.target_org.slug`; pass it as `org` and the same call succeeds). The rehomed guard requires the details shape it promises, not only the code, so a narrowed error is safe to dereference. `InsufficientOrgRoleDetails` declared.
+
+### Changed
+
+- `client.runs.*` write and preview options are typed `RunCallOptions` (`OrgScopedOptions & { _skipClientValidation? }`) instead of the inline `{ _skipClientValidation?: boolean }`. Structurally compatible; nothing a caller wrote breaks.
+
 ## [6.1.0] - 2026-09-10
 
 ### Added

@@ -93,3 +93,66 @@ export class AnalysisEchoMismatchError extends Error {
     this.analysisWrite = details.analysisWrite;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Org routing (project-org-routing-and-rehome spec, 6.2.0)
+// ---------------------------------------------------------------------------
+
+import { SdkApiError as _SdkApiError } from '@uluops/sdk-core/errors';
+
+/**
+ * 403 — the caller is a member of the org but below the write floor
+ * (`publisher`). On tracker writes the API rewrites the body: `details.applied`
+ * is `false` and the message forbids retrying without `org`. DO NOT retry the
+ * same call without an org: an org-less retry does not "fall back", it files
+ * the work in the caller's PERSONAL org (spec §3.1, S6).
+ */
+export const INSUFFICIENT_ORG_ROLE = 'INSUFFICIENT_ORG_ROLE' as const;
+/** 403 — the caller is not a member of the org named by `org` / `orgSlug`, or the key is bound to a different org. */
+export const ORG_ACCESS_DENIED = 'ORG_ACCESS_DENIED' as const;
+/**
+ * 410 — the project this name once denoted in this org has been RE-HOMED to
+ * another org (spec D14). `details.target_org.slug` is where it lives now:
+ * pass it as `org` and the same call succeeds. Do not create a new project
+ * at the old address — the tombstone exists precisely to refuse that fork.
+ */
+export const PROJECT_REHOMED = 'PROJECT_REHOMED' as const;
+
+/** `details` on an `INSUFFICIENT_ORG_ROLE` rejection from a tracker write. */
+export interface InsufficientOrgRoleDetails {
+  currentRole?: string;
+  requiredRole?: string;
+  /** Present on tracker writes: the org the write was refused in. */
+  orgSlug?: string | null;
+  /** Present on tracker writes: always `false` — nothing was applied. */
+  applied?: boolean;
+}
+
+/** `details` on a `PROJECT_REHOMED` rejection (spec §4.4a). */
+export interface ProjectRehomedDetails {
+  project_id: string;
+  target_org: { id: string; slug: string };
+  rehomed_at?: string;
+  reason?: string | null;
+}
+
+function hasCode(err: unknown, code: string): err is _SdkApiError {
+  return err instanceof _SdkApiError && err.code === code;
+}
+
+/** Type guard: the org write floor refused this call (403 `INSUFFICIENT_ORG_ROLE`). Terminal — do not retry without `org`. */
+export function isInsufficientOrgRoleError(err: unknown): err is _SdkApiError & { details?: InsufficientOrgRoleDetails } {
+  return hasCode(err, INSUFFICIENT_ORG_ROLE);
+}
+
+/** Type guard: not a member of the named org, or the key is bound elsewhere (403 `ORG_ACCESS_DENIED`). Terminal. */
+export function isOrgAccessDeniedError(err: unknown): err is _SdkApiError {
+  return hasCode(err, ORG_ACCESS_DENIED);
+}
+
+/** Type guard: the project was re-homed; `err.details.target_org.slug` is the org to pass (410 `PROJECT_REHOMED`). */
+export function isProjectRehomedError(err: unknown): err is _SdkApiError & { details: ProjectRehomedDetails } {
+  if (!hasCode(err, PROJECT_REHOMED)) return false;
+  const d = err.details as Partial<ProjectRehomedDetails> | undefined;
+  return typeof d?.target_org?.slug === 'string' && typeof d.project_id === 'string';
+}

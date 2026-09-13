@@ -104,7 +104,19 @@ export interface HttpClientConfig {
 }
 
 /** Alphanumeric + hyphens/underscores, 1–100 chars */
-const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
+export const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
+
+/** The header the tracker's org-context middleware reads (after `:slug` and `X-Org-Id`). */
+export const ORG_SLUG_HEADER = 'X-Org-Slug';
+
+function assertOrgSlug(value: string, path: string): void {
+  if (!ORG_SLUG_PATTERN.test(value)) {
+    throw new InputValidationError(
+      `Invalid ${path}: must be 1-100 alphanumeric characters, hyphens, or underscores`,
+      [{ code: 'custom', path: [path], message: 'must be 1-100 alphanumeric characters, hyphens, or underscores' }]
+    );
+  }
+}
 
 /**
  * HTTP client for ops-uluops-api using native fetch
@@ -120,13 +132,21 @@ export class OpsHttpClient extends HttpClient {
    * @throws {InputValidationError} If `orgSlug` is present but not 1–100
    *   alphanumeric characters, hyphens, or underscores.
    */
+  /**
+   * Per-call org override (project-org-routing-and-rehome spec §3.2, 6.2.0).
+   * Set only on views minted by {@link withOrg}; the root client never has one.
+   */
+  private orgOverride?: string;
+  /**
+   * Set instead of throwing when `withOrg` is handed an invalid slug: every
+   * method on OpsClient returns a Promise, so the caller's `.catch`/`await`
+   * must see the error — a synchronous throw from inside a non-async arrow
+   * would escape both. Surfaced as a rejection of the view's first request.
+   */
+  private orgInvalid?: InputValidationError;
+
   constructor(config: HttpClientConfig = {}) {
-    if (config.orgSlug && !ORG_SLUG_PATTERN.test(config.orgSlug)) {
-      throw new InputValidationError(
-        'Invalid orgSlug: must be 1-100 alphanumeric characters, hyphens, or underscores',
-        [{ code: 'custom', path: ['orgSlug'], message: 'must be 1-100 alphanumeric characters, hyphens, or underscores' }]
-      );
-    }
+    if (config.orgSlug) assertOrgSlug(config.orgSlug, 'orgSlug');
     super({
       ...config,
       baseUrl: config.baseUrl ?? DEFAULT_BASE_URL,
@@ -134,8 +154,68 @@ export class OpsHttpClient extends HttpClient {
       sdkVersion: SDK_VERSION,
       loggerPrefix: '[ops-sdk:http]',
       defaultHeaders: {
-        ...(config.orgSlug ? { 'X-Org-Slug': config.orgSlug } : {}),
+        ...(config.orgSlug ? { [ORG_SLUG_HEADER]: config.orgSlug } : {}),
       },
+    });
+  }
+
+  /**
+   * A view of this client whose every request carries `X-Org-Slug: <org>`,
+   * overriding the constructor-level `orgSlug` (per-request headers win over
+   * `defaultHeaders` in sdk-core). The view shares this client's auth
+   * strategy, fetch adapter and configuration — it is the same client, seen
+   * through one org — so a session installed on the root is honoured here.
+   *
+   * Precedence on the wire, lowest to highest: personal org (no header) <
+   * constructor `orgSlug` < this per-call `org`. An API key BOUND to an org
+   * ignores both headers and 403s (`ORG_ACCESS_DENIED`) if they name a
+   * different org — that is the platform's rule, surfaced verbatim.
+   *
+   * An invalid `org` (not 1–100 alphanumeric characters, hyphens, or
+   * underscores — the same pattern as `orgSlug`; it is a header value, so
+   * CRLF/whitespace can never reach the wire) does not throw here: the view's
+   * requests REJECT with `InputValidationError` before anything is sent, so
+   * `await client.projects.list({ org })` fails the way every other input
+   * error does.
+   */
+  withOrg(org: string): OpsHttpClient {
+    // Prototype-chained view: reads (auth strategy, adapter, config) fall
+    // through to this instance; only the override fields are set on the view.
+    // sdk-core's verbs (get/post/patch/put/delete) all delegate to `request`,
+    // so the override below covers every operation without touching them.
+    const view: OpsHttpClient = Object.create(this) as OpsHttpClient;
+    try {
+      assertOrgSlug(org, 'org');
+      view.orgOverride = org;
+    } catch (err) {
+      view.orgInvalid = err as InputValidationError;
+    }
+    return view;
+  }
+
+  /** The org this view is scoped to, or `undefined` on the root client. */
+  get scopedOrg(): string | undefined {
+    return this.orgOverride;
+  }
+
+  override request<T>(
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
+    endpoint: string,
+    data?: object,
+    options?: {
+      params?: object;
+      retries?: number;
+      retryMutations?: boolean;
+      headers?: Record<string, string>;
+      skipAuth?: boolean;
+      rawEnvelope?: boolean;
+    }
+  ): Promise<T> {
+    if (this.orgInvalid) return Promise.reject(this.orgInvalid);
+    if (this.orgOverride === undefined) return super.request<T>(method, endpoint, data, options);
+    return super.request<T>(method, endpoint, data, {
+      ...options,
+      headers: { [ORG_SLUG_HEADER]: this.orgOverride, ...(options?.headers ?? {}) },
     });
   }
 }

@@ -12,6 +12,9 @@ import {
   TimeoutError,
   createErrorFromStatus,
   isOpsApiError,
+  isInsufficientOrgRoleError,
+  isOrgAccessDeniedError,
+  isProjectRehomedError,
 } from '../../src/errors/errors.js';
 import { HTTP_STATUS, ERROR_CODES } from '@uluops/sdk-core/config';
 
@@ -355,6 +358,32 @@ describe('Error Classes', () => {
       expect(isOpsApiError('string')).toBe(false);
       expect(isOpsApiError(42)).toBe(false);
       expect(isOpsApiError({})).toBe(false);
+    });
+  });
+
+  describe('org-routing guards (6.2.0)', () => {
+    const make = (status: number, code: string, details?: Record<string, unknown>): unknown =>
+      createErrorFromStatus(status, 'msg', code, details);
+
+    it('isInsufficientOrgRoleError matches only the floor code', () => {
+      expect(isInsufficientOrgRoleError(make(403, 'INSUFFICIENT_ORG_ROLE', { currentRole: 'viewer', requiredRole: 'publisher', orgSlug: 'acme', applied: false }))).toBe(true);
+      expect(isInsufficientOrgRoleError(make(403, 'ORG_ACCESS_DENIED'))).toBe(false);
+      expect(isInsufficientOrgRoleError(new Error('INSUFFICIENT_ORG_ROLE'))).toBe(false);
+    });
+
+    it('isOrgAccessDeniedError matches only the membership code', () => {
+      expect(isOrgAccessDeniedError(make(403, 'ORG_ACCESS_DENIED'))).toBe(true);
+      expect(isOrgAccessDeniedError(make(403, 'INSUFFICIENT_ORG_ROLE'))).toBe(false);
+    });
+
+    it('isProjectRehomedError requires the code AND the target_org.slug it promises', () => {
+      const good = make(410, 'PROJECT_REHOMED', { project_id: 'p1', target_org: { id: 'o2', slug: 'ulu-labs' } });
+      expect(isProjectRehomedError(good)).toBe(true);
+      if (isProjectRehomedError(good)) expect(good.details.target_org.slug).toBe('ulu-labs');
+      // Control: right code, malformed details → false (the guard must not
+      // narrow to a shape the caller then dereferences).
+      expect(isProjectRehomedError(make(410, 'PROJECT_REHOMED', { project_id: 'p1' }))).toBe(false);
+      expect(isProjectRehomedError(make(410, 'PROJECT_MERGED', { project_id: 'p1', target_org: { id: 'o2', slug: 'x' } }))).toBe(false);
     });
   });
 });

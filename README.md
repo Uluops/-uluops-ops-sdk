@@ -307,7 +307,8 @@ const client = new OpsClient({
   debug: false,                // Enable debug logging
 
   // Multi-tenancy
-  orgSlug: 'my-org',           // Org slug (sets X-Org-Slug header on all requests)
+  orgSlug: 'my-org',           // Org slug (sets X-Org-Slug header on all requests);
+                               // any method's trailing `{ org }` overrides it per call
 
   // Callbacks
   onTokenRefresh: (token) => { /* handle token refresh */ },
@@ -320,6 +321,34 @@ const client = new OpsClient({
   onSecurityEvent: (event) => { /* route to telemetry — see "Security Events" */ },
 });
 ```
+
+#### Org routing — which org a call lands in
+
+Every project, run, issue and analytics method takes a trailing `options` with `org?: string`
+(run writes: `RunCallOptions`, which also carries `_skipClientValidation`). It becomes the
+`X-Org-Slug` header on that one request.
+
+```typescript
+await client.runs.save(input, { org: 'ulu-labs' });          // this call → ulu-labs
+await client.projects.list({ org: 'ulu-labs' });               // reads take it too
+await client.projects.list();                                  // → constructor orgSlug, else your personal org
+```
+
+**Precedence on the wire, lowest to highest:** personal org (no header) < constructor `orgSlug`
+< per-call `org`. An API key **bound** to an org ignores both headers and answers
+`403 ORG_ACCESS_DENIED` if they name a different org. The API never infers an org from a project
+name: a call that names no org creates or targets the *personal* project of that name, even when
+a work org has one by the same name (spec D2). Name the org.
+
+Three org-routing errors are worth branching on (all exported with type guards):
+
+| Code | Status | Guard | What to do |
+|---|---|---|---|
+| `INSUFFICIENT_ORG_ROLE` | 403 | `isInsufficientOrgRoleError` | Your role in that org is below `publisher`. **Do not retry without `org`** — an org-less retry files the work in your personal org; the API says so in the body (`details.applied: false`). |
+| `ORG_ACCESS_DENIED` | 403 | `isOrgAccessDeniedError` | Not a member of that org, or your key is bound to a different one. Terminal. |
+| `PROJECT_REHOMED` | 410 | `isProjectRehomedError` | The project moved orgs. `err.details.target_org.slug` is where it lives — pass it as `org` and retry the same call. |
+
+Low-level: `new OpsHttpClient(cfg).withOrg('acme')` returns a view of the client scoped to that org.
 
 ---
 
