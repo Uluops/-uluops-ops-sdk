@@ -4,6 +4,16 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.3.0] - 2026-09-13
+
+### Added
+
+- **`resolveWorkspaceOrg()` — the D13 workspace default** (project-org-routing-and-rehome spec D13, §2.0). Walks upward from `cwd` to the nearest `.uluops.json` and honours only its `org`; the reserved value `"personal"` stops the walk and means "no org" (a personal repo cloned under a work tree carries it so the outer file does not win). Precedence: `explicit` (a `--org` flag, an MCP tool's `org` argument) > nearest workspace file > `ULUOPS_ORG_SLUG` (kept as the lowest fall-through for headless environments) > personal. Returns `{ org, source, path }` so a caller can print *why* a call landed where it did.
+
+  **The file may carry only `org`.** `apiKey`, `baseUrl`, `profile`, `credentials`, `sessionToken`, `email`, `password` are refused with `InputValidationError`, not ignored — a `.env` in cwd once retargeted the CLI's base URL, and the one guard that keeps that footgun from transferring is that this file cannot name a target or an identity. Malformed JSON and invalid slugs are refused loudly for the same reason: a silently ignored file is a silently wrong org. The slug is server-relative, so "where it landed" output should print the base URL beside the org.
+
+  Lives here, not in each consumer: the CLI and the tracker MCP both need it, and two copies of a walk-up function in two repos are the drift class the spec exists to remove. `findWorkspaceOrgFile` and `readWorkspaceOrgFile` are exported for tooling that wants to explain the answer. `ENV_VARS.ORG_SLUG` added. Tests build their own temp trees and pass `stopAt` so a real `.uluops.json` above the temp dir cannot leak in — this workspace will carry one.
+
 ## [6.2.0] - 2026-09-13
 
 ### Added

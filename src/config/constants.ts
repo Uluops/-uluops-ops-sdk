@@ -38,6 +38,8 @@ export const ENV_VARS = {
   SESSION_TOKEN: 'ULUOPS_SESSION_TOKEN',
   BASE_URL: 'ULUOPS_BASE_URL',
   DEBUG: 'ULUOPS_DEBUG',
+  /** Lowest-precedence org default (D13): the checkout's .uluops.json wins over it. */
+  ORG_SLUG: 'ULUOPS_ORG_SLUG',
 } as const;
 
 // Re-export version from build-generated file (no manual sync needed)

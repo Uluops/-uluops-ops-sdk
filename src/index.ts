@@ -37,3 +37,13 @@ export { isValidMetric, ANALYTICS_METRICS, type AnalyticsMetric } from './operat
 // Config — credential loading from env vars, .env files, and ~/.uluops/credentials.json
 export { loadCredentials, loadConfig, loadEnvFiles, type Credentials, type SdkConfig } from './config/loaders.js';
 export { DEFAULT_BASE_URL, API_KEY_PREFIX, ENV_VARS } from './config/constants.js';
+export {
+  resolveWorkspaceOrg,
+  findWorkspaceOrgFile,
+  readWorkspaceOrgFile,
+  WORKSPACE_ORG_FILE,
+  PERSONAL_ORG_SENTINEL,
+  type WorkspaceOrgResolution,
+  type WorkspaceOrgSource,
+  type ResolveWorkspaceOrgOptions,
+} from './config/workspace-org.js';

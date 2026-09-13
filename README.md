@@ -350,6 +350,13 @@ Three org-routing errors are worth branching on (all exported with type guards):
 
 Low-level: `new OpsHttpClient(cfg).withOrg('acme')` returns a view of the client scoped to that org.
 
+**Where does the default come from?** For tools that run inside a checkout (the CLI, the tracker
+MCP), `resolveWorkspaceOrg({ explicit, cwd })` implements the spec's D13 rule: an explicit value
+wins; else the nearest `.uluops.json` above `cwd` (`{ "org": "ulu-labs" }`, or `{ "org": "personal" }`
+to stop the walk in a personal repo nested under a work tree); else `ULUOPS_ORG_SLUG`; else your
+personal org. The file may carry only `org` — anything that could retarget or re-identify the
+caller is refused.
+
 ---
 
 ### Security Events
