@@ -354,8 +354,12 @@ Low-level: `new OpsHttpClient(cfg).withOrg('acme')` returns a view of the client
 MCP), `resolveWorkspaceOrg({ explicit, cwd })` implements the spec's D13 rule: an explicit value
 wins; else the nearest `.uluops.json` above `cwd` (`{ "org": "ulu-labs" }`, or `{ "org": "personal" }`
 to stop the walk in a personal repo nested under a work tree); else `ULUOPS_ORG_SLUG`; else your
-personal org. The file may carry only `org` — anything that could retarget or re-identify the
-caller is refused.
+personal org. The file may carry only `org` (and `$schema`) — any other key is refused, not ignored.
+Two more refusals since 6.3.1 (security audit run #187): the walk never rises above your home
+directory (a file at `/` or `/Users` cannot become everyone's default), and a file owned by another
+user is refused (a shared parent directory is the planting vector). `"personal"` is also honoured as
+an explicit value — `{ org: 'personal' }` sends no header. On a scoped call the per-call org header
+is set last and an `X-Org-Slug`/`X-Org-Id` in `options.headers` is refused.
 
 ---
 
