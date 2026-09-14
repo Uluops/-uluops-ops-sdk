@@ -76,6 +76,23 @@ describe('per-call org scope', () => {
       nock.cleanAll();
     });
 
+    it('6.3.1: the per-call org is set LAST — a caller-supplied unrelated header survives, an org header is refused before any request', async () => {
+      nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'acme').matchHeader('X-Trace', 't1').get('/projects').reply(200, list());
+      await root.withOrg('acme').request('GET', '/projects', undefined, { headers: { 'X-Trace': 't1' } });
+      nock(BASE_URL).get('/projects').reply(200, list()); // must stay pending
+      for (const h of ['X-Org-Slug', 'x-org-id']) {
+        await expect(root.withOrg('acme').request('GET', '/projects', undefined, { headers: { [h]: 'other' } }), h).rejects.toThrow(InputValidationError);
+      }
+      expect(nock.isDone()).toBe(false);
+      nock.cleanAll();
+    });
+
+    it('6.3.1: withOrg("personal") is the root client — no header on the wire (badheaders control)', async () => {
+      nock(BASE_URL, { badheaders: [ORG_SLUG_HEADER] }).get('/projects').reply(200, list());
+      await projectOps.list(root.withOrg('personal'));
+      expect(root.withOrg('personal').scopedOrg).toBeUndefined();
+    });
+
     it('exposes the scoped org for diagnostics', () => {
       expect(root.scopedOrg).toBeUndefined();
       expect(root.withOrg('acme').scopedOrg).toBe('acme');

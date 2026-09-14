@@ -179,6 +179,12 @@ export class OpsHttpClient extends HttpClient {
    * error does.
    */
   withOrg(org: string): OpsHttpClient {
+    // `"personal"` is the reserved no-org value (the same sentinel the
+    // workspace file uses): the root client, no per-call header. It does not
+    // cancel a constructor-level `orgSlug` — that is a defaultHeader sdk-core
+    // always sends; callers that need "personal despite a constructor org"
+    // construct without one (the tracker MCP has none since 2.1.0).
+    if (org === 'personal') return this;
     // Prototype-chained view: reads (auth strategy, adapter, config) fall
     // through to this instance; only the override fields are set on the view.
     // sdk-core's verbs (get/post/patch/put/delete) all delegate to `request`,
@@ -213,9 +219,22 @@ export class OpsHttpClient extends HttpClient {
   ): Promise<T> {
     if (this.orgInvalid) return Promise.reject(this.orgInvalid);
     if (this.orgOverride === undefined) return super.request<T>(method, endpoint, data, options);
+    // The per-call org is set LAST so a caller-supplied header cannot outrank
+    // it, and an org header in `options.headers` is refused outright: until
+    // 6.3.1 the spread order let `options.headers` win, and `X-Org-Id`
+    // outranks `X-Org-Slug` on the server, so a smuggled header would have
+    // silently redirected a scoped call (run #187, circumvention A7 /
+    // trust-boundary F7 — no live caller did this; the invariant held by luck).
+    const smuggled = Object.keys(options?.headers ?? {}).find((h) => /^x-org-(slug|id)$/i.test(h));
+    if (smuggled !== undefined) {
+      return Promise.reject(new InputValidationError(
+        `Refusing request header ${smuggled} on an org-scoped call: the per-call org (${this.orgOverride}) is the only org channel`,
+        [{ code: 'custom', path: ['headers', smuggled], message: 'org headers may not be set per request on a scoped view' }]
+      ));
+    }
     return super.request<T>(method, endpoint, data, {
       ...options,
-      headers: { [ORG_SLUG_HEADER]: this.orgOverride, ...(options?.headers ?? {}) },
+      headers: { ...(options?.headers ?? {}), [ORG_SLUG_HEADER]: this.orgOverride },
     });
   }
 }

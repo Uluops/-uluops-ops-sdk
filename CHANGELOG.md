@@ -4,6 +4,18 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.3.1] - 2026-09-13
+
+### Security
+
+Security audit of the org-routing train (ops-uluops-api run #187, 2026-09-13). None of these was a bypass; each is a channel by which the wrong org could be chosen silently.
+
+- **`resolveWorkspaceOrg` walk is bounded by the home directory** when `cwd` is under it: a `.uluops.json` at `/`, `/Users` or a container root can no longer become the default for every checkout beneath it (the single-default leak D13 exists to remove, one layer down). Outside home the walk still reaches the root. New `home` option (default `os.homedir()`), injectable for tests.
+- **A workspace file owned by another user is refused**, not skipped — the planting vector is a shared parent directory. New `uid` option (default `process.getuid()`; `undefined` disables the check on platforms without uids).
+- **The workspace file's key check is an allowlist** (`org`, `$schema`). It was a ten-name denylist while the error said "may carry only org"; `baseURL`, `apikey`, `token` passed. Inert (only `org` was read), but the stated invariant is now the enforced one.
+- **`"personal"` is honoured as an explicit value** (`resolveWorkspaceOrg({ explicit: 'personal' })`, `withOrg('personal')`): no header, `source: 'explicit'`. It used to go to the wire as a slug (404 `ORG_NOT_FOUND`, or a real org if anyone registers the name). `withOrg('personal')` does not cancel a constructor `orgSlug`.
+- **Per-call org header is set last, and an org header in `options.headers` is refused** on a scoped view. The spread order let a caller header win, and `X-Org-Id` outranks `X-Org-Slug` server-side — no live caller did this; the invariant held by luck.
+
 ## [6.3.0] - 2026-09-13
 
 ### Added

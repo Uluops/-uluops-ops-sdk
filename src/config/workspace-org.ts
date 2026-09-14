@@ -31,8 +31,9 @@
  * consulted unless the caller passes none, and `env` is injectable so tests
  * never touch the real environment.
  */
-import { existsSync, readFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
+import { existsSync, readFileSync, statSync } from 'fs';
+import { homedir } from 'os';
+import { dirname, join, resolve, relative, isAbsolute } from 'path';
 import { InputValidationError } from './validators.js';
 import { ENV_VARS } from './constants.js';
 
@@ -46,11 +47,14 @@ export const PERSONAL_ORG_SENTINEL = 'personal';
 const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
 
 /**
- * Keys a workspace file may NOT carry. Their presence is an error, not a
- * warning: each one would make the file able to retarget or re-identify the
- * caller, which is the `.env`-in-cwd footgun this file must never inherit.
+ * The ONLY keys a workspace file may carry. An allowlist, not a denylist:
+ * until 6.3.1 this was a list of ten forbidden names while the error message
+ * said "may carry only org" — `baseURL`, `apikey`, `token` and anything
+ * unlisted passed (security audit run #187, agentic-security-analyst F10).
+ * Inert then (only `org` was ever read), but the stated invariant must be
+ * the enforced one. `$schema` is allowed for editor tooling.
  */
-const FORBIDDEN_KEYS = ['apiKey', 'api_key', 'baseUrl', 'base_url', 'credentials', 'profile', 'sessionToken', 'session_token', 'email', 'password'] as const;
+const ALLOWED_KEYS = new Set(['org', '$schema']);
 
 export type WorkspaceOrgSource = 'explicit' | 'workspace' | 'env' | 'personal';
 
@@ -71,10 +75,20 @@ export interface ResolveWorkspaceOrgOptions {
   /** Environment to read `ULUOPS_ORG_SLUG` from. Defaults to `process.env`. */
   env?: NodeJS.ProcessEnv;
   /**
-   * Directory at which the walk stops (inclusive). Defaults to the filesystem
-   * root. Tests pass a temp dir so a real `.uluops.json` above it cannot leak in.
+   * Directory at which the walk stops (inclusive). Defaults to the running
+   * user's home directory when `cwd` is under it (a file at `/` or `/Users`
+   * can never answer), else the filesystem root. Tests pass a temp dir so a
+   * real `.uluops.json` above it cannot leak in.
    */
   stopAt?: string;
+  /** Home directory used for the default `stopAt`. Defaults to `os.homedir()`. Injectable for tests. */
+  home?: string;
+  /**
+   * Numeric uid the answering file must be owned by. Defaults to
+   * `process.getuid()`; `undefined` on platforms without uids (Windows)
+   * disables the check. Injectable for tests (chown is not available to them).
+   */
+  uid?: number;
 }
 
 function assertSlug(value: unknown, where: string): string {
@@ -87,10 +101,26 @@ function assertSlug(value: unknown, where: string): string {
   return value;
 }
 
-/** Find the nearest `.uluops.json` at or above `cwd`, stopping at `stopAt`. */
-export function findWorkspaceOrgFile(cwd: string, stopAt?: string): string | undefined {
+/** True when `child` is `parent` or lies beneath it. */
+function isUnder(child: string, parent: string): boolean {
+  const rel = relative(parent, child);
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
+/**
+ * Find the nearest `.uluops.json` at or above `cwd`, stopping at `stopAt`.
+ * With no `stopAt`, the walk is bounded by `home` (default `os.homedir()`)
+ * when `cwd` is under it: security audit run #187 (all four agents) — an
+ * unbounded walk makes a file at `/`, `/Users` or a container image root
+ * the silent default for every checkout beneath it, which is the
+ * single-default leak D13 exists to remove, one layer down. Outside the
+ * home directory the walk still reaches the filesystem root; the ownership
+ * check in `readWorkspaceOrgFile` is the guard there.
+ */
+export function findWorkspaceOrgFile(cwd: string, stopAt?: string, home: string = homedir()): string | undefined {
   let dir = resolve(cwd);
-  const stop = stopAt ? resolve(stopAt) : undefined;
+  const homeAbs = resolve(home);
+  const stop = stopAt !== undefined ? resolve(stopAt) : isUnder(dir, homeAbs) ? homeAbs : undefined;
   for (;;) {
     const candidate = join(dir, WORKSPACE_ORG_FILE);
     if (existsSync(candidate)) return candidate;
@@ -106,10 +136,35 @@ export function findWorkspaceOrgFile(cwd: string, stopAt?: string): string | und
  * returned verbatim — the caller decides what it means), or `undefined` when
  * the file exists but declares no `org`.
  *
+ * A file not owned by `uid` (default: the running user) is REFUSED, not
+ * skipped: a shared parent directory another user can write to is the
+ * planting vector (run #187, circumvention A2), and a silently skipped file
+ * is a silently wrong org. Pass `uid: undefined` explicitly only on
+ * platforms with no uids.
+ *
  * @throws {InputValidationError} on unreadable JSON, a non-object body, a
- *   forbidden key, or an `org` that is not a valid slug (other than the sentinel).
+ *   key other than `org`/`$schema`, a file owned by another user, or an
+ *   `org` that is not a valid slug (other than the sentinel).
  */
-export function readWorkspaceOrgFile(path: string): string | undefined {
+export function readWorkspaceOrgFile(path: string, uid: number | undefined = process.getuid?.()): string | undefined {
+  if (uid !== undefined) {
+    let ownerUid: number;
+    try {
+      ownerUid = statSync(path).uid;
+    } catch (err) {
+      throw new InputValidationError(
+        `Unreadable ${WORKSPACE_ORG_FILE} at ${path}: ${err instanceof Error ? err.message : String(err)}`,
+        [{ code: 'custom', path: [], message: 'cannot stat' }]
+      );
+    }
+    if (ownerUid !== uid) {
+      throw new InputValidationError(
+        `Refusing ${WORKSPACE_ORG_FILE} at ${path}: owned by uid ${String(ownerUid)}, not you (uid ${String(uid)}). ` +
+        'A workspace file decides which org your writes land in; only your own may answer.',
+        [{ code: 'custom', path: [], message: 'not owned by the running user' }]
+      );
+    }
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown;
@@ -126,7 +181,7 @@ export function readWorkspaceOrgFile(path: string): string | undefined {
     );
   }
   const body = parsed as Record<string, unknown>;
-  const forbidden = FORBIDDEN_KEYS.filter((k) => k in body);
+  const forbidden = Object.keys(body).filter((k) => !ALLOWED_KEYS.has(k));
   if (forbidden.length > 0) {
     throw new InputValidationError(
       `Refusing ${WORKSPACE_ORG_FILE} at ${path}: it may carry only "org"; found ${forbidden.map((k) => `"${k}"`).join(', ')}. ` +
@@ -153,12 +208,17 @@ export function readWorkspaceOrgFile(path: string): string | undefined {
  */
 export function resolveWorkspaceOrg(options: ResolveWorkspaceOrgOptions = {}): WorkspaceOrgResolution {
   if (options.explicit !== undefined) {
+    // The sentinel is honoured on the explicit path too (6.3.1, run #187
+    // circumvention A3): a caller told "omit org for your personal org" will
+    // sometimes write `org: personal`, and until now that went to the wire
+    // as a slug (404, or a real org if anyone registers the name).
+    if (options.explicit === PERSONAL_ORG_SENTINEL) return { org: undefined, source: 'explicit' };
     return { org: assertSlug(options.explicit, 'explicit org'), source: 'explicit' };
   }
   const cwd = options.cwd ?? process.cwd();
-  const path = findWorkspaceOrgFile(cwd, options.stopAt);
+  const path = findWorkspaceOrgFile(cwd, options.stopAt, options.home);
   if (path !== undefined) {
-    const declared = readWorkspaceOrgFile(path);
+    const declared = readWorkspaceOrgFile(path, 'uid' in options ? options.uid : process.getuid?.());
     if (declared === PERSONAL_ORG_SENTINEL) return { org: undefined, source: 'personal', path };
     if (declared !== undefined) return { org: declared, source: 'workspace', path };
     // A file with no `org` is not an answer; keep walking would be surprising
