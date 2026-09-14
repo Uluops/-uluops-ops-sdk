@@ -153,7 +153,9 @@ deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
 
 ### Added
 
-- **`runs.save()` surfaces the `analysisWrite` confirmation** (tool-sweep T21; API ≥1.71.0).
+- **`runs.save()` surfaces the `analysisWrite` confirmation** (tool-sweep T21; API 2.0.0+, or a
+  1.70.0 deploy after 2026-08-19 — this read "≥1.71.0" until 2026-09-13; no such version was
+  ever declared, see ops-uluops-api issue `aea76608`).
   The save response envelope now carries `analysisWrite` as a sibling of `data` — the same
   placement as the update envelope — read via `rawEnvelope` and returned on the result
   (`analysisWrite: AnalysisWriteEcho | null`; `recordMode: 'initial'` on this path). Like the
