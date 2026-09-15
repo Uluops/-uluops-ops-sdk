@@ -45,6 +45,7 @@ import type {
   MergeProjectsInput,
   MergeProjectsResult,
 } from './types/projects.js';
+import type { ProjectLogQuery, ProjectLogPage, LogStatQuery, ProjectLogStat, OrgLogStat, OrgListEntry } from './types/log.js';
 
 import type {
   Run,
@@ -465,6 +466,23 @@ export class OpsClient {
      */
     rehome: (idOrName: string, input: RehomeProjectInput, options?: OrgScopedOptions): Promise<RehomeResponse> =>
       projectOps.rehome(this.scope(options), idOrName, input),
+
+    /**
+     * The project log (ulu log spec §3.2) — runs, decisions and regressions
+     * interleaved newest first, keyset-paged; pass `nextCursor` back verbatim.
+     * A `regression` is a row a run re-detected; a `resolved → open` decision
+     * with no run is *reopened by decision* (D12) — keep them apart.
+     */
+    getLog: (idOrName: string, query?: ProjectLogQuery, options?: OrgScopedOptions): Promise<ProjectLogPage> =>
+      projectOps.getLog(this.scope(options), idOrName, query),
+
+    /**
+     * The log's rollup (§3.3): examined / found / decided / cameBack /
+     * activity — a cohort frame on run timestamps and an activity frame on
+     * ledger timestamps; `decided` is the CURRENT status of the found issues.
+     */
+    getLogStat: (idOrName: string, query?: LogStatQuery, options?: OrgScopedOptions): Promise<ProjectLogStat> =>
+      projectOps.getLogStat(this.scope(options), idOrName, query),
   };
 
   // ============================================
@@ -481,6 +499,19 @@ export class OpsClient {
      */
     getVisibleAuditLog: (slug: string, query?: OrgAuditFeedQuery): Promise<OrgAuditFeed> =>
       orgOps.getVisibleAuditLog(this.httpClient, slug, query),
+
+    /** The orgs the caller belongs to (personal included) — what `ulu log --orgs` iterates. */
+    list: (): Promise<OrgListEntry[]> => orgOps.list(this.httpClient),
+
+    /**
+     * The org rollup (ulu log §3.6): the §3.3 body over the org's live projects
+     * plus a per-project table (`projects[]`, capped at 100). Any member reads;
+     * cached 60 s server-side — `computedAt` says how old. The slug in the
+     * path is the org; no `OrgScopedOptions` here for the same reason as
+     * `getVisibleAuditLog`.
+     */
+    getLogStat: (slug: string, query?: LogStatQuery): Promise<OrgLogStat> =>
+      orgOps.getLogStat(this.httpClient, slug, query),
   };
 
   // ============================================

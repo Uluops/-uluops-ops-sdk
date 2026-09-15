@@ -8,6 +8,7 @@ export * from './auth.js';
 export * from './org.js';
 export * from './rehome.js';
 export * from './projects.js';
+export * from './log.js';
 export * from './runs.js';
 export * from './issues.js';
 export * from './analytics.js';

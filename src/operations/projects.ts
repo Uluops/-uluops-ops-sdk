@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
+import {
+  ProjectLogPageSchema,
+  ProjectLogStatSchema,
+  type LogStatQuery,
+  type ProjectLogPage,
+  type ProjectLogQuery,
+  type ProjectLogStat,
+} from '../types/log.js';
 import type {
   Project,
   CreateProjectInput,
@@ -395,4 +403,75 @@ export async function rehome(
     // rather than sent as undefined/null.
     { target_org: valid.targetOrg, ...(valid.reason !== undefined ? { reason: valid.reason } : {}) },
   ));
+}
+
+// ============================================
+// ulu log (spec v0.1.13 §3.2 / §3.3)
+// ============================================
+
+/**
+ * The stream — `GET /projects/:id/log`: `run`, `decision` and `regression`
+ * events interleaved newest first, keyset-paged. `nextCursor` is opaque; pass
+ * it back verbatim in `query.cursor`. The envelope IS the page (`data[]`,
+ * `count`, `hasMore`, `nextCursor?`), so this reads the raw envelope rather
+ * than the SDK's `{data}` unwrap.
+ *
+ * Query keys go to the wire as named — `workflowType`, `includeArchived` —
+ * because the API's schema is camelCase and a snake_cased key is silently
+ * ignored (the filter would just vanish with a 200); this is why `toApiQuery`
+ * is not used here.
+ *
+ * @param client - HTTP client instance
+ * @param idOrName - Project id or name (resolved in the call's org)
+ * @param query - Window, paging and filters (see {@link ProjectLogQuery})
+ */
+export async function getLog(
+  client: OpsHttpClient,
+  idOrName: string,
+  query: ProjectLogQuery = {}
+): Promise<ProjectLogPage> {
+  return ProjectLogPageSchema.parse(await client.request<unknown>(
+    'GET',
+    `/projects/${encodeURIComponent(idOrName)}/log`,
+    logQueryParams(query),
+    { rawEnvelope: true },
+  ));
+}
+
+/**
+ * The rollup — `GET /projects/:id/log/stat`: examined / found / decided /
+ * cameBack / activity, two frames on two clocks (see {@link ProjectLogStat}).
+ * Not cached server-side.
+ */
+export async function getLogStat(
+  client: OpsHttpClient,
+  idOrName: string,
+  query: LogStatQuery = {}
+): Promise<ProjectLogStat> {
+  return ProjectLogStatSchema.parse(await client.get<unknown>(
+    `/projects/${encodeURIComponent(idOrName)}/log/stat`,
+    logStatQueryParams(query)
+  ));
+}
+
+/** Wire form of {@link ProjectLogQuery} — camelCase preserved, arrays comma-joined, booleans as strings. */
+export function logQueryParams(query: ProjectLogQuery): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (query.since !== undefined) params['since'] = query.since;
+  if (query.until !== undefined) params['until'] = query.until;
+  if (query.limit !== undefined) params['limit'] = String(query.limit);
+  if (query.cursor !== undefined) params['cursor'] = query.cursor;
+  if (query.kind !== undefined && query.kind.length > 0) params['kind'] = query.kind.join(',');
+  if (query.workflowType !== undefined) params['workflowType'] = query.workflowType;
+  if (query.agent !== undefined) params['agent'] = query.agent;
+  if (query.includeArchived !== undefined) params['includeArchived'] = query.includeArchived ? 'true' : 'false';
+  return params;
+}
+
+/** Wire form of {@link LogStatQuery}. */
+export function logStatQueryParams(query: LogStatQuery): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (query.since !== undefined) params['since'] = query.since;
+  if (query.until !== undefined) params['until'] = query.until;
+  return params;
 }

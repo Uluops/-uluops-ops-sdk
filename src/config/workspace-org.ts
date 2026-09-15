@@ -19,13 +19,24 @@
  *                    headless environments with no checkout;
  *   4. undefined     — no header; the API key holder's personal org.
  *
- * The file may carry ONLY `org`. Credentials, base URLs and profiles are
- * refused, not ignored: a `.env` in cwd once retargeted the CLI's base URL,
- * and the one thing that keeps that footgun from transferring is that this
- * file cannot name a target or an identity. An org slug is server-relative —
- * the same file against a different base URL names a different org or none —
- * so callers that print "where it landed" should print the base URL beside
- * the org.
+ * The file may carry ONLY `org` and `project` (and `$schema` for editors).
+ * Credentials, base URLs and profiles are refused, not ignored: a `.env` in
+ * cwd once retargeted the CLI's base URL, and the one thing that keeps that
+ * footgun from transferring is that this file cannot name a target or an
+ * identity. An org slug is server-relative — the same file against a
+ * different base URL names a different org or none — so callers that print
+ * "where it landed" should print the base URL beside the org.
+ *
+ * `project` (ulu log spec v0.1.13 §3.5, D5; 6.5.0) is the project name a READ
+ * command resolves when given none — `ulu log` today. It governs reads only:
+ * no write path consumes it (`ulu exec` keeps flag → env → inferred basename),
+ * so a walked file can never choose where a run LANDS, only what is shown. A
+ * file carrying `project` MUST carry `org` (`"personal"` allowed) — the reader
+ * throws otherwise — so a project-only file can never shadow an outer org.
+ * This module resolves `org` (`resolveWorkspaceOrg`) and READS `project`
+ * (`readWorkspaceFile`); it has no project resolver — the ladder
+ * (`--project` → file → `ULUOPS_PROJECT` → error) lives in the one command
+ * that reads it, unexported, which is what keeps it read-only structurally.
  *
  * Runtime-agnostic: reads are synchronous `fs` calls, no `process.cwd()` is
  * consulted unless the caller passes none, and `env` is injectable so tests
@@ -52,9 +63,22 @@ const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
  * said "may carry only org" — `baseURL`, `apikey`, `token` and anything
  * unlisted passed (security audit run #187, agentic-security-analyst F10).
  * Inert then (only `org` was ever read), but the stated invariant must be
- * the enforced one. `$schema` is allowed for editor tooling.
+ * the enforced one. `$schema` is allowed for editor tooling. `project` since
+ * 6.5.0 (ulu log D5) — and because every OLDER reader throws on it, the key
+ * may not be written into any checkout until every installed copy of this
+ * package carries this line (spec §3.5 "Rollout", by provenance).
  */
-const ALLOWED_KEYS = new Set(['org', '$schema']);
+const ALLOWED_KEYS = new Set(['org', 'project', '$schema']);
+
+/** Same rule as the API's `ProjectNameSchema`: 1–200 chars, no control characters. Not trimmed — a name is matched exactly. */
+// eslint-disable-next-line no-control-regex
+const PROJECT_NAME_PATTERN = /^[^\u0000-\u001F\u007F]{1,200}$/;
+
+/** What a workspace file declares — `org` is returned verbatim, so it may be the `"personal"` sentinel. */
+export interface WorkspaceFile {
+  org?: string;
+  project?: string;
+}
 
 export type WorkspaceOrgSource = 'explicit' | 'workspace' | 'env' | 'personal';
 
@@ -134,7 +158,24 @@ export function findWorkspaceOrgFile(cwd: string, stopAt?: string, home: string 
 /**
  * Read one workspace file. Returns the `org` it declares (`"personal"` is
  * returned verbatim — the caller decides what it means), or `undefined` when
- * the file exists but declares no `org`.
+ * the file exists but declares no `org`. Delegates to {@link readWorkspaceFile};
+ * the signature is unchanged from 6.3.1 (AF-006, additive). Since 6.5.0 a file
+ * that also carries `project` no longer throws here — the org is returned and
+ * the project is simply not this function's to report.
+ *
+ * @throws {InputValidationError} everything {@link readWorkspaceFile} throws.
+ */
+export function readWorkspaceOrgFile(path: string, uid: number | undefined = process.getuid?.()): string | undefined {
+  return readWorkspaceFile(path, uid)?.org;
+}
+
+/**
+ * Read one workspace file in full: `{ org?, project? }`, or `undefined` when
+ * the file exists but declares neither. `org` is returned verbatim (so it may
+ * be `"personal"`); `project` is the name as written, validated like the API
+ * validates a project name (1–200 chars, no control characters) but never
+ * trimmed or normalised — a name is matched exactly, and a file that says
+ * `" x "` should fail to find `x` rather than quietly find it.
  *
  * A file not owned by `uid` (default: the running user) is REFUSED, not
  * skipped: a shared parent directory another user can write to is the
@@ -143,10 +184,12 @@ export function findWorkspaceOrgFile(cwd: string, stopAt?: string, home: string 
  * platforms with no uids.
  *
  * @throws {InputValidationError} on unreadable JSON, a non-object body, a
- *   key other than `org`/`$schema`, a file owned by another user, or an
- *   `org` that is not a valid slug (other than the sentinel).
+ *   key other than `org`/`project`/`$schema`, a file owned by another user,
+ *   an `org` that is not a valid slug (other than the sentinel), a `project`
+ *   that is not a valid project name, or a `project` with no `org` beside it
+ *   (`"project" requires "org"; use "personal" for no org`).
  */
-export function readWorkspaceOrgFile(path: string, uid: number | undefined = process.getuid?.()): string | undefined {
+export function readWorkspaceFile(path: string, uid: number | undefined = process.getuid?.()): WorkspaceFile | undefined {
   if (uid !== undefined) {
     let ownerUid: number;
     try {
@@ -184,14 +227,38 @@ export function readWorkspaceOrgFile(path: string, uid: number | undefined = pro
   const forbidden = Object.keys(body).filter((k) => !ALLOWED_KEYS.has(k));
   if (forbidden.length > 0) {
     throw new InputValidationError(
-      `Refusing ${WORKSPACE_ORG_FILE} at ${path}: it may carry only "org"; found ${forbidden.map((k) => `"${k}"`).join(', ')}. ` +
+      `Refusing ${WORKSPACE_ORG_FILE} at ${path}: it may carry only "org", "project" and "$schema"; found ${forbidden.map((k) => `"${k}"`).join(', ')}. ` +
       'Credentials and targets belong in ~/.uluops/credentials.json or the environment, never in the checkout.',
       forbidden.map((k) => ({ code: 'custom' as const, path: [k], message: 'forbidden in the workspace file' }))
     );
   }
-  if (!('org' in body) || body['org'] === undefined || body['org'] === null) return undefined;
-  if (body['org'] === PERSONAL_ORG_SENTINEL) return PERSONAL_ORG_SENTINEL;
-  return assertSlug(body['org'], `${WORKSPACE_ORG_FILE} at ${path}`);
+  const where = `${WORKSPACE_ORG_FILE} at ${path}`;
+  const hasOrg = 'org' in body && body['org'] !== undefined && body['org'] !== null;
+  const hasProject = 'project' in body && body['project'] !== undefined && body['project'] !== null;
+  if (hasProject && !hasOrg) {
+    // A project-only file could otherwise sit under a work tree and let the
+    // OUTER file's org win while this one names the project — two files, one
+    // answer, and the nearest-file rule (which this reader does not change)
+    // would be silently violated. Same error shape as the allowlist refusal.
+    throw new InputValidationError(
+      `Refusing ${where}: "project" requires "org"; use "personal" for no org.`,
+      [{ code: 'custom', path: ['org'], message: '"project" requires "org"; use "personal" for no org' }]
+    );
+  }
+  if (!hasOrg && !hasProject) return undefined;
+  const out: WorkspaceFile = {};
+  if (hasOrg) out.org = body['org'] === PERSONAL_ORG_SENTINEL ? PERSONAL_ORG_SENTINEL : assertSlug(body['org'], where);
+  if (hasProject) {
+    const value = body['project'];
+    if (typeof value !== 'string' || !PROJECT_NAME_PATTERN.test(value)) {
+      throw new InputValidationError(
+        `Invalid project in ${where}: must be 1-200 characters with no control characters`,
+        [{ code: 'custom', path: ['project'], message: 'must be 1-200 characters with no control characters' }]
+      );
+    }
+    out.project = value;
+  }
+  return out;
 }
 
 /**
