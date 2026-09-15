@@ -4,6 +4,23 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.5.0] - 2026-09-15
+
+ulu log, Phase 3 (spec v0.1.13 §3.2/§3.3/§3.5/§3.6; checklist Phase 3). Additive — nothing existing changes shape or signature; one existing function changes what it *accepts* (below, under Changed, because that is the kind of change a signature does not show).
+
+### Added
+
+- **`projects.getLog(idOrName, query?, options?)`** — the project log: `run`, `decision` and `regression` events interleaved newest first, keyset-paged (`{ data, count, hasMore, nextCursor? }`; pass `nextCursor` back verbatim). The event union is closed (`LogEvent`, discriminated on `type`) and parsed strictly; `counts` on a `run` is typed `... | null` and IS null on runs saved before migration 065. **Query keys go to the wire as named** (`workflowType`, `includeArchived`) — the API's log schema is camelCase and non-strict, so a snake_cased key is silently ignored with a 200 (the filter vanishes); this call therefore does not use the SDK's generic `toApiQuery`, and the test carries the control showing the generic path would have produced `workflow_type`.
+- **`projects.getLogStat(idOrName, query?, options?)`** — the rollup (`ProjectLogStat`): two frames on two clocks, `decided` = current status of the found issues (sums to `found.issues`), D12's `cameBack.detected` / `reopened` as distinct issues with row counts beside them, D13's `activity.restated`, D14's seven-key `byStatus`.
+- **`orgs.list()`** — `GET /orgs`: the orgs the key holder belongs to, personal included (`OrgListEntry`). What `ulu log --orgs` iterates.
+- **`orgs.getLogStat(slug, query?)`** — the org rollup (`OrgLogStat`): the same body over the org's live projects plus `projects[]` (D15's summary shape, capped at 100 with `hasMoreProjects`) and **`computedAt`** — the org rollup is served from a 60 s TTL cache per (org, window) (D16), and this field is required by the parse: an older API that omits it fails loudly rather than reporting numbers of unknown age.
+- **`readWorkspaceFile(path, uid?)`** → `{ org?, project? } | undefined` — the full workspace file, beside the unchanged `readWorkspaceOrgFile`, which now delegates to it. `project` is validated like the API validates a project name (1–200 chars, no control characters) and is **not** trimmed — a name is matched exactly. **A file carrying `project` without `org` throws** (`"project" requires "org"; use "personal" for no org`), so a project-only file can never shadow an outer org. No resolver is added here: the read-only ladder (`--project` → file → `ULUOPS_PROJECT` → error) belongs to the one command that reads it (D5).
+- Types: `LogEvent` / `LogRunEvent` / `LogDecisionEvent` / `LogRegressionEvent`, `ProjectLogPage`, `ProjectLogQuery`, `LogStatQuery`, `LogStatBody`, `ProjectLogStat`, `OrgLogStat`, `OrgLogProjectSummary`, `OrgListEntry`, `WorkspaceFile`; the Zod schemas beside them.
+
+### Changed
+
+- **`readWorkspaceOrgFile` no longer throws on a `.uluops.json` that carries `project`** — the allowlist is `org`, `project`, `$schema` (was `org`, `$schema`), and the refusal message now names all three. Same signature, same return; a file that was refused in 6.4.x is read in 6.5.0. This is a semantics-without-signature change and this entry is the only place it shows. **Rollout rule (spec §3.5, by provenance):** because every 6.4.x-and-older reader throws on the key — for every command, not only `ulu log` — `project` may not be written into any checkout, and no docs may describe writing it, until every *installed* copy of this package in that tree is ≥ 6.5.0. The checklist carries the enumeration (`find … -path '*/@uluops/ops-sdk/dist/config/workspace-org.js'`) and the 13-consumer census.
+
 ## [6.4.1] - 2026-09-15
 
 6.4.0 reached Verdaccio only; the review of that change set (anxiety-reader 84 / docs-validator 81 / dx-validator 83 / code-auditor 98, all on the `feat/rehome-surfaces` diff) folded into this release before npm. What changed against 6.4.0:

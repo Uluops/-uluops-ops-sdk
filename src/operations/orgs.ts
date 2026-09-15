@@ -1,6 +1,8 @@
 import type { OpsHttpClient } from '../http/http-client.js';
 import type { OrgAuditFeed, OrgAuditFeedQuery } from '../types/rehome.js';
 import { OrgAuditFeedResponseSchema } from '../types/rehome.js';
+import { OrgListResponseSchema, OrgLogStatSchema, type LogStatQuery, type OrgListEntry, type OrgLogStat } from '../types/log.js';
+import { logStatQueryParams } from './projects.js';
 
 /**
  * The org-visible audit feed (project-org-routing-and-rehome spec D19) —
@@ -39,5 +41,35 @@ export async function getVisibleAuditLog(
     `/orgs/${encodeURIComponent(slug)}/audit-log/global`,
     params,
     { rawEnvelope: true },
+  ));
+}
+
+/**
+ * The orgs the caller belongs to — `GET /orgs`. Personal org included
+ * (`isPersonal: true`). What `ulu log --orgs` iterates (spec §3.6, OQ1: API
+ * keys reach this). A key bound to one org still lists every org its holder
+ * belongs to; the binding governs what it may READ, not what it may see listed.
+ */
+export async function list(client: OpsHttpClient): Promise<OrgListEntry[]> {
+  return OrgListResponseSchema.parse(await client.get<unknown>('/orgs')).organizations;
+}
+
+/**
+ * The org rollup — `GET /orgs/:slug/log/stat` (spec §3.6 D6/D15/D16): the
+ * §3.3 body over the org's live projects plus `projects[]` (the summary shape,
+ * last run desc, capped at 100 with `hasMoreProjects`). Any member can read
+ * it. Served from a 60 s TTL cache per (org, window) — `computedAt` says how
+ * old the numbers are. Unknown slug → 404 `ORG_NOT_FOUND`; a key bound to
+ * another org → 403 `ORG_ACCESS_DENIED`. The slug in the PATH is the org; a
+ * client-level `orgSlug` does not redirect this read.
+ */
+export async function getLogStat(
+  client: OpsHttpClient,
+  slug: string,
+  query: LogStatQuery = {}
+): Promise<OrgLogStat> {
+  return OrgLogStatSchema.parse(await client.get<unknown>(
+    `/orgs/${encodeURIComponent(slug)}/log/stat`,
+    logStatQueryParams(query)
   ));
 }

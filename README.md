@@ -395,7 +395,14 @@ Low-level: `new OpsHttpClient(cfg).withOrg('acme')` returns a view of the client
 MCP), `resolveWorkspaceOrg({ explicit, cwd })` implements the spec's D13 rule: an explicit value
 wins; else the nearest `.uluops.json` above `cwd` (`{ "org": "ulu-labs" }`, or `{ "org": "personal" }`
 to stop the walk in a personal repo nested under a work tree); else `ULUOPS_ORG_SLUG`; else your
-personal org. The file may carry only `org` (and `$schema`) — any other key is refused, not ignored.
+personal org. The file may carry only `org`, `project` and `$schema` — any other key is refused, not ignored.
+**`project` (6.5.0, ulu log D5)** is the project name a *read* command resolves when given none —
+`ulu log` today; it governs reads only (no write path consumes it; `ulu exec` keeps flag → env →
+inferred basename). Read it with `readWorkspaceFile(path)` → `{ org?, project? }`; a file carrying
+`project` **must** carry `org` (`"personal"` allowed) or the reader throws, so a project-only file can
+never shadow an outer org. `readWorkspaceOrgFile(path)` keeps its signature and now returns the org
+of such a file instead of refusing it. **Do not write `project` into a checkout until every installed
+`@uluops/ops-sdk` in that tree is ≥ 6.5.0** — older readers throw on the key, for every command.
 Two more refusals since 6.3.1 (security audit run #187): the walk never rises above your home
 directory (a file at `/` or `/Users` cannot become everyone's default), and a file owned by another
 user is refused (a shared parent directory is the planting vector). `"personal"` is also honoured as
@@ -770,6 +777,58 @@ const trends = await client.projects.getTrends('my-project', { days: 30 });
 for (const point of trends) {
   console.log(point.date, point.openIssues, point.closedIssues);
 }
+```
+
+#### `client.projects.getLog(idOrName, query?, options?)` — the project log (ulu log §3.2)
+
+The project's second history: `run` events (what was examined) and `decision` / `regression`
+events (what was decided, with reasons — and what came back) interleaved newest first,
+keyset-paged. Pass `nextCursor` back verbatim. Three things to keep straight when rendering:
+`reason: null` is *no reason recorded*; `source: null` is *unattributed*, never *human*; a
+`regression` is a row a **run** re-detected, while a `resolved → open` `decision` with no run is
+*reopened by decision* (D12) — the SDK types both and does not collapse them. `counts` is `null`
+on runs saved before migration 065.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `since` / `until` | `string` | No | ISO 8601 window; `since <= until` or 400 |
+| `limit` | `number` | No | 1–500, default 50; outside the range is a 400 |
+| `cursor` | `string` | No | A `nextCursor` from the previous page, verbatim |
+| `kind` | `('run'\|'decision'\|'regression')[]` | No | Subset of event kinds |
+| `workflowType` | `string` | No | Filters `run` events only |
+| `agent` | `string` | No | Runs by snapshot agent name; ledger rows by `issues.agent` |
+| `includeArchived` | `boolean` | No | Archived runs are excluded unless `true` |
+
+Query keys go to the wire as named (`workflowType`, not `workflow_type`): the API's schema is
+camelCase and silently ignores a snake_cased key, so this call does not use the SDK's generic
+snake_casing.
+
+```typescript
+let cursor: string | undefined;
+do {
+  const page = await client.projects.getLog('my-project', { limit: 100, cursor }, { org: 'ulu-labs' });
+  for (const e of page.data) {
+    if (e.type === 'run') console.log(e.at, `run #${e.runNumber}`, e.workflowType, e.counts ?? '-');
+    else if (e.type === 'decision') console.log(e.at, e.fingerprint, `${e.from} -> ${e.to}`, e.reason ?? 'no reason recorded');
+    else console.log(e.at, e.fingerprint, 'regressed', e.viaRunNumber === null ? 'via run ?' : `via run #${e.viaRunNumber}`);
+  }
+  cursor = page.hasMore ? page.nextCursor : undefined;
+} while (cursor);
+```
+
+#### `client.projects.getLogStat(idOrName, query?, options?)` — the rollup (§3.3)
+
+`{ projectId, window, examined, found, decided, cameBack, activity }`. Two frames on two clocks:
+the **cohort** frame (`examined`, `found`, `decided`) windows on run timestamps; the **activity**
+frame (`activity`, `cameBack`) on ledger timestamps. `decided` is the *current* status of each
+found issue and sums to `found.issues` — it is not "decisions made in the window"; that is
+`activity.decisions`. `activity.byStatus.open` counts transitions **into** open (render it
+*reopened*). `cameBack.detected` / `reopened` are distinct issues with the row counts beside
+them; `lastDetectedAtAllTime` ignores the window by definition. `since` / `until` as above.
+
+```typescript
+const stat = await client.projects.getLogStat('my-project');
+console.log(`${stat.examined.runs} runs, ${stat.found.issues} findings, ${stat.decided.completed} fixed, ${stat.cameBack.detected} regressions caught by re-running`);
 ```
 
 #### `client.projects.listIssues(idOrName, query)`
@@ -1943,6 +2002,29 @@ for (const entry of feed.data.entries) {
 target's). A non-member gets `403 ORG_ACCESS_DENIED`.
 
 ---
+
+#### `client.orgs.list()` — the orgs you belong to
+
+`GET /orgs`: every org the key holder is a member of, personal org included (`isPersonal: true`),
+each with `slug`, `role`, `memberCount`, `subscriptionTier`. A key bound to one org still lists all
+of its holder's orgs; the binding governs what it may *read*.
+
+#### `client.orgs.getLogStat(slug, query?)` — the org rollup (ulu log §3.6)
+
+The same body as `projects.getLogStat` computed over the org's live projects, plus `projects[]` —
+the summary shape `{ name, runs, issues, fixed, regressions, lastRunAt }` where each column is that
+project's own rollup measure (`regressions` = `cameBack.detected`, run-caught only), ordered by last
+run desc then name, capped at 100 with `hasMoreProjects`. Any member reads. Served from a **60 s
+TTL cache** per (org, window) — `computedAt` says how old the numbers are. Unknown slug → 404
+`ORG_NOT_FOUND`; a key bound to another org → 403 `ORG_ACCESS_DENIED`. The slug in the path is the
+org — no `OrgScopedOptions` here.
+
+```typescript
+for (const org of await client.orgs.list()) {
+  const s = await client.orgs.getLogStat(org.slug);
+  console.log(org.slug, `${s.projects.length}${s.hasMoreProjects ? '+' : ''} projects`, `${s.examined.runs} runs`, `${s.found.issues} findings`, `${s.decided.completed} fixed`, `${s.cameBack.detected} regressions`, `(as of ${s.computedAt})`);
+}
+```
 
 ### Admin Operations
 

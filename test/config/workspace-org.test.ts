@@ -12,6 +12,7 @@ import {
   resolveWorkspaceOrg,
   findWorkspaceOrgFile,
   readWorkspaceOrgFile,
+  readWorkspaceFile,
   WORKSPACE_ORG_FILE,
   PERSONAL_ORG_SENTINEL,
 } from '../../src/config/workspace-org.js';
@@ -155,5 +156,76 @@ describe('resolveWorkspaceOrg (D13)', () => {
     expect(readWorkspaceOrgFile(p)).toBe('ws');
     write(root, { org: PERSONAL_ORG_SENTINEL });
     expect(readWorkspaceOrgFile(p)).toBe(PERSONAL_ORG_SENTINEL);
+  });
+
+  describe('the `project` key (ulu log D5, 6.5.0) — readWorkspaceFile beside readWorkspaceOrgFile', () => {
+    it('{org, project} reads both; readWorkspaceOrgFile on the same file returns the org and NO LONGER throws (semantics without signature)', () => {
+      const p = write(root, { org: 'ulu-labs', project: 'ops-uluops-api' });
+      expect(readWorkspaceFile(p, undefined)).toEqual({ org: 'ulu-labs', project: 'ops-uluops-api' });
+      expect(readWorkspaceOrgFile(p, undefined)).toBe('ulu-labs');
+      // and the resolver is unchanged: the file still answers org
+      expect(resolveWorkspaceOrg({ cwd: root, env: {}, stopAt: root, uid: undefined })).toEqual({ org: 'ulu-labs', source: 'workspace', path: p });
+    });
+
+    it('{"org":"personal","project":"y"} → org is the sentinel verbatim, project y; the resolver stops at personal', () => {
+      const p = write(root, { org: PERSONAL_ORG_SENTINEL, project: 'y' });
+      expect(readWorkspaceFile(p, undefined)).toEqual({ org: PERSONAL_ORG_SENTINEL, project: 'y' });
+      expect(resolveWorkspaceOrg({ cwd: root, env: { ULUOPS_ORG_SLUG: 'outer' }, stopAt: root, uid: undefined })).toEqual({ org: undefined, source: 'personal', path: p });
+    });
+
+    it('{"project":"y"} alone THROWS with the allowlist error\'s shape — trigger it and read the message', () => {
+      const p = write(root, { project: 'y' });
+      let caught: unknown;
+      try { readWorkspaceFile(p, undefined); } catch (err) { caught = err; }
+      expect(caught).toBeInstanceOf(InputValidationError);
+      expect((caught as Error).message).toMatch(/"project" requires "org"; use "personal" for no org/);
+      // the old reader delegates, so it refuses the same file the same way
+      expect(() => readWorkspaceOrgFile(p, undefined)).toThrow(/"project" requires "org"/);
+      // and the resolver, which reads through it, stops loudly rather than falling to env
+      expect(() => resolveWorkspaceOrg({ cwd: root, env: { ULUOPS_ORG_SLUG: 'outer' }, stopAt: root, uid: undefined })).toThrow(/"project" requires "org"/);
+    });
+
+    it('{"org":"x","project":"y","baseUrl":"http://evil"} is still refused — the allowlist message now names the three keys', () => {
+      const p = write(root, { org: 'x', project: 'y', baseUrl: 'http://evil' });
+      expect(() => readWorkspaceFile(p, undefined)).toThrow(/may carry only "org", "project" and "\$schema"; found "baseUrl"/);
+    });
+
+    it('a file with neither org nor project ({} or {$schema}) → undefined, as before', () => {
+      expect(readWorkspaceFile(write(root, {}), undefined)).toBeUndefined();
+      expect(readWorkspaceFile(write(root, { $schema: 'https://uluops.ai/schemas/workspace.json' }), undefined)).toBeUndefined();
+      expect(readWorkspaceFile(write(root, { org: null, project: null }), undefined)).toBeUndefined();
+    });
+
+    it('project is validated like the API validates a name (1–200, no control chars) and is NOT trimmed', () => {
+      expect(() => readWorkspaceFile(write(root, { org: 'x', project: '' }), undefined)).toThrow(/Invalid project/);
+      expect(() => readWorkspaceFile(write(root, { org: 'x', project: 'a\u0007b' }), undefined)).toThrow(/Invalid project/);
+      expect(() => readWorkspaceFile(write(root, { org: 'x', project: 'p'.repeat(201) }), undefined)).toThrow(/Invalid project/);
+      expect(() => readWorkspaceFile(write(root, { org: 'x', project: 42 }), undefined)).toThrow(/Invalid project/);
+      expect(readWorkspaceFile(write(root, { org: 'x', project: ' spaced ' }), undefined)?.project).toBe(' spaced ');
+    });
+
+    it('nesting: {org:a, project:y} under an outer {org:b} → the nearest file answers both (nearest-file rule unchanged)', () => {
+      write(root, { org: 'b' });
+      const inner = join(root, 'inner');
+      const p = write(inner, { org: 'a', project: 'y' });
+      expect(findWorkspaceOrgFile(inner, root)).toBe(p);
+      expect(readWorkspaceFile(p, undefined)).toEqual({ org: 'a', project: 'y' });
+      expect(resolveWorkspaceOrg({ cwd: inner, env: {}, stopAt: root, uid: undefined }).org).toBe('a');
+    });
+
+    it('nesting: {org:personal} under an outer {org:b, project:y} → nearest resolves org=personal and project UNDEFINED (the outer project does not leak in)', () => {
+      write(root, { org: 'b', project: 'y' });
+      const inner = join(root, 'inner');
+      const p = write(inner, { org: PERSONAL_ORG_SENTINEL });
+      expect(findWorkspaceOrgFile(inner, root)).toBe(p);
+      expect(readWorkspaceFile(p, undefined)).toEqual({ org: PERSONAL_ORG_SENTINEL });
+      expect(readWorkspaceFile(p, undefined)?.project).toBeUndefined();
+      expect(resolveWorkspaceOrg({ cwd: inner, env: {}, stopAt: root, uid: undefined })).toEqual({ org: undefined, source: 'personal', path: p });
+    });
+
+    it('the ownership refusal applies to reads of the full file too', () => {
+      const p = write(root, { org: 'x', project: 'y' });
+      expect(() => readWorkspaceFile(p, 424242)).toThrow(/owned by uid/);
+    });
   });
 });
