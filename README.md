@@ -95,6 +95,8 @@ for (const [domain, trend] of Object.entries(burndown.trends)) {
   - [Issue Operations](#issue-operations)
   - [Analytics Operations](#analytics-operations)
   - [Taxonomy Operations](#taxonomy-operations)
+  - [Org Operations](#org-operations)
+  - [Admin Operations](#admin-operations)
   - [Health Check](#health-check)
 - [Environment Variables](#environment-variables)
 - [Error Handling](#error-handling)
@@ -191,6 +193,26 @@ await client.logout();
 ```
 
 > **Note:** Prefer `client.login()` over `client.auth.login()`. The latter only returns the token without installing it, requiring manual client construction.
+
+**Accounts with MFA (6.4.0).** For an account with TOTP or a passkey enrolled, `POST /auth/login`
+answers a *challenge*, not a session, and `client.login()` throws `MfaRequiredError` carrying
+`mfaChallengeToken`, `expiresAt` and `mfaMethods`. Complete it with the current code:
+
+```typescript
+import { isMfaRequiredError } from '@uluops/ops-sdk';
+
+try {
+  await client.login(email, password);
+} catch (err) {
+  if (!isMfaRequiredError(err)) throw err;
+  await client.loginWithTotp(err.mfaChallengeToken, '123456'); // installs the session
+}
+```
+
+A TOTP-installed session has no password to re-login with, so it is **not** auto-refreshed: when it
+expires, requests fail `401` and you log in again. (Before 6.4.0 an MFA account could not log in
+through this SDK at all — the challenge body failed the session schema with a `ZodError`.)
+WebAuthn completion is not offered here.
 
 ### Credential Priority Chain
 
@@ -347,6 +369,7 @@ Three org-routing errors are worth branching on (all exported with type guards):
 | `INSUFFICIENT_ORG_ROLE` | 403 | `isInsufficientOrgRoleError` | Your role in that org is below `publisher`. **Do not retry without `org`** — an org-less retry files the work in your personal org; the API says so in the body (`details.applied: false`). |
 | `ORG_ACCESS_DENIED` | 403 | `isOrgAccessDeniedError` | Not a member of that org, or your key is bound to a different one. Terminal. |
 | `PROJECT_REHOMED` | 410 | `isProjectRehomedError` | The project moved orgs. `err.details.target_org.slug` is where it lives — pass it as `org` and retry the same call. |
+| `SESSION_REQUIRED` | 403 | `isSessionRequiredError` | A session-only admin route refused an API key (D20). Log in; never mint another key to get past it. |
 
 Low-level: `new OpsHttpClient(cfg).withOrg('acme')` returns a view of the client scoped to that org.
 
@@ -808,6 +831,44 @@ const result = await client.projects.mergeIssues('my-project', {
   strategy: 'keep_target',
 });
 ```
+
+#### `client.projects.rehome(idOrName, input, options?)` — move a project to another org
+
+Moves the project and its whole history (runs, issues, analytics) into another org
+(project-org-routing-and-rehome spec §4.1, D14). **The source org is this call's org scope** —
+pass `{ org: '<source>' }` (or set the client `orgSlug`) unless the project is in your personal
+org; the project is looked up *there*, and an unscoped call for a work-org project is a 404. You
+need `admin`/`owner` in both orgs; a personal org as *target* only when it is yours.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `targetOrg` | `string` | Yes | Slug of the destination org |
+| `reason` | `string` | No | ≤ 500 chars; stored on the tombstone, never rendered into an error |
+
+```typescript
+const moved = await client.projects.rehome('billing', { targetOrg: 'ulu-labs', reason: 'team took it over' }, { org: 'acme' });
+moved.orgId;               // the target org's id
+moved.rehome.from_org;     // { id, slug: 'acme' }
+moved.rehome.to_org;       // { id, slug: 'ulu-labs' }
+moved.rehome.audit_ids;    // [] today — the ledger, not this array, is the durable record
+```
+
+After the move the old `(org, name)` address is a **tombstone**: an org-less *write* naming the
+project there (a `save` or a `create`) gets `410 PROJECT_REHOMED` naming the target
+(`isProjectRehomedError`) instead of silently forking a new project. Reads at the old address 404.
+Moving back is an ordinary `rehome` the other way and annihilates the tombstone.
+
+Refusals a caller branches on — `rehomeRefusalReason(err)` reads the enumerated
+`details.reason` values and returns `null` for anything else:
+
+| Answer | Meaning | Disposition |
+|---|---|---|
+| `400` `same_org` | already there | done (idempotent re-run) |
+| `409` `moved_during_request` / `deadlock_retry` / `concurrent_modification` | lost a race | re-read, retry once |
+| `409` `name_collision` / `soft_deleted_conflict` / `rehomed_away_conflict` | the name is taken in the target (live, soft-deleted, or reserved by another move) | skip and report |
+| `409` `export_in_progress` | an export holds one of the orgs | wait, retry |
+| `403` `INSUFFICIENT_ORG_ROLE` / `ORG_ACCESS_DENIED` / `ORG_SUSPENDED` | authority (source role, target membership or a personal target, C3) | stop |
+| `402` `PROJECT_LIMIT` | target org at its project cap | stop |
 
 ---
 
@@ -1820,6 +1881,85 @@ console.log('Severities:', taxonomy.severities);
 console.log('Priorities:', taxonomy.priorities);
 // ['critical', 'high', 'suggested', 'backlog']
 ```
+
+---
+
+### Org Operations
+
+Reads any **member** of an org can make. (Org CRUD, membership and invitations are dashboard
+surfaces and are not wrapped by this SDK.)
+
+#### `client.orgs.getVisibleAuditLog(slug, query?)` — the org-visible audit feed (D19)
+
+The subset of an org's audit log that any member may read: rows whose writer marked
+`details.visibility = 'org'`. Today that is one class — a project **leaving this org for someone's
+personal org** (an org admin may do that; before D19 the org's owner could not see it). The full
+audit log stays admin+ and is not wrapped here.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cursor` | `string` | Opaque keyset cursor — pass a prior page's `nextCursor` back verbatim |
+| `limit` | `number` | Page size (API-clamped) |
+
+```typescript
+import { readRehomeAuditDetails } from '@uluops/ops-sdk';
+
+const feed = await client.orgs.getVisibleAuditLog('acme', { limit: 50 });
+for (const entry of feed.data.entries) {
+  const move = readRehomeAuditDetails(entry);      // null for rows written by anything else
+  if (move) console.log(`${move.project_name}: ${move.from_org.slug} → ${move.to_org.slug} (${move.action})`);
+}
+// feed.count is the page size, feed.hasMore / feed.nextCursor page it
+```
+
+`action` on every row is the platform's closed enum (`org.updated`); the real event is
+`details.action` (`project.rehome_out` on the source org's feed, `project.rehome_in` on the
+target's). A non-member gets `403 ORG_ACCESS_DENIED`.
+
+---
+
+### Admin Operations
+
+The **platform-admin** surface (`users.role = 'admin'` — a platform role, not an org role). The two
+writes additionally require a **login-issued session**: an API key, even an admin's, answers
+`403 SESSION_REQUIRED` (`isSessionRequiredError`) — that is D20, the compensation for a stolen
+admin key being able to move any project anywhere in one call. Log in with `client.login()` (and
+`loginWithTotp()` if challenged) and the session bearer is what these calls send. A non-admin
+principal gets `403 INSUFFICIENT_ROLE` on all four. There is deliberately no MCP tool for any of
+this.
+
+#### `client.admin.rehomeProject(projectId, { targetOrg, reason })` — session only
+
+Move **any** project between **any** two orgs by UUID; no source- or target-membership
+requirement, so `reason` is **required** (on this path the target org's only standing is the audit
+row plus that text). Resolves the project unscoped — pass the UUID, not a name. Answers the same
+refusals as the member path; `same_org` means "already done", which is what makes a scripted pass
+over a list idempotent.
+
+#### `client.admin.listProjectRehomes(query?)` — key-readable
+
+The **current redirect table**: one row per vacated `(sourceOrgId, name)` and the `targetOrgId` it
+points at. A reversal annihilates its row and a release deletes it, so this is state, not history.
+`org` takes a UUID or a slug; `total` is the matching count and `returned` the page.
+
+#### `client.admin.listProjectRehomeEvents(query?)` — key-readable
+
+The **append-only ledger** (D21): every `moved`, `repointed`, `annihilated`, `degenerate_dropped`,
+`released` and `hard_deleted` event, written in the same transaction as the change; nothing the API
+offers removes a row. Pages by `seq` (insertion order) — `nextCursor` is the `seq` to continue
+below; pass it back verbatim. **Reconcile a migration against this**, not against the reservation
+table and not against the script's own log. Unknown future event kinds parse verbatim
+(`PROJECT_REHOME_EVENT_KINDS` lists the known six).
+
+```typescript
+const page = await client.admin.listProjectRehomeEvents({ org: 'ulu-labs', event: 'moved', limit: 100 });
+page.data[0]; // { seq, event, projectId, projectName, fromOrgId, toOrgId, viaAdminPath, reason, createdAt, ... }
+```
+
+#### `client.admin.releaseProjectRehome(rehomeId)` — session only
+
+Release a vacated address so the old `(org, name)` is creatable again — a by-name writer there then
+gets a **new** project instead of a 410. Audited (a `released` ledger row); never done by time.
 
 ---
 

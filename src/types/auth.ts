@@ -76,6 +76,17 @@ export interface LoginInput {
 }
 
 /**
+ * TOTP completion of an MFA-challenged login (`POST /auth/totp/login`).
+ * `mfaChallengeToken` comes from the {@link MfaRequiredError} the first login threw.
+ */
+export interface TotpLoginInput {
+  mfaChallengeToken: string;
+  /** Six digits. */
+  code: string;
+  rememberMe?: boolean;
+}
+
+/**
  * Profile update input
  */
 export interface UpdateProfileInput {

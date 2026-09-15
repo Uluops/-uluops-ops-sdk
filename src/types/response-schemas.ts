@@ -148,6 +148,20 @@ export const LoginResponseSchema = z.object({
 });
 
 /**
+ * What `POST /auth/login` answers — with 200 — for an account that has TOTP or
+ * a passkey enrolled: a challenge, and NO session. Snake_case on the wire
+ * (`password-auth-service.ts` builds it so). The SDK turns it into an
+ * `MfaRequiredError`; until 6.4.0 it hit `LoginResponseSchema` and surfaced as
+ * a ZodError on `sessionToken`.
+ */
+export const MfaChallengeResponseSchema = z.object({
+  mfa_required: z.literal(true),
+  mfa_challenge_token: z.string().min(1),
+  expires_at: DateTimeStringSchema,
+  mfa_methods: z.array(z.string()),
+});
+
+/**
  * Register response schema — identical to {@link LoginResponseSchema}, because
  * `POST /auth/register` performs an auto-login and returns the same payload
  * (`password-auth-controller.ts` register and login return byte-identical
@@ -235,6 +249,12 @@ export const ProjectResponseSchema = z.object({
   name: z.string(),
   domain: z.string().optional(),
   ownerId: z.string().uuid(),
+  // The org the project lives in (6.4.0). The API has emitted this on every
+  // project read since org scoping landed; `z.object()` was stripping it, so a
+  // re-homed project's new org was invisible through the SDK. Nullable for
+  // legacy rows created before migration 061 seeded orgs; optional so a
+  // projection that omits it (diff refs) still parses.
+  orgId: z.string().nullable().optional(),
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
 });

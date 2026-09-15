@@ -4,6 +4,7 @@ import type {
   RegisterInput,
   LoginInput,
   LoginResponse,
+  TotpLoginInput,
   RegisterResponse,
   UpdateProfileInput,
   ChangePasswordInput,
@@ -20,6 +21,7 @@ import {
   AuthUserResponseSchema,
   PublicUserResponseSchema,
   LoginResponseSchema,
+  MfaChallengeResponseSchema,
   RegisterResponseSchema,
   PublicApiKeyResponseSchema,
   ApiKeyCreatedResponseSchema,
@@ -29,12 +31,14 @@ import {
 import {
   validateRegisterInput,
   validateLoginInput,
+  validateTotpLoginInput,
   validateUpdateProfileInput,
   validateChangePasswordInput,
   validateResetPasswordInput,
   validateSetPasswordInput,
   validateCreateApiKeyInput,
 } from '../config/validators.js';
+import { MfaRequiredError } from '../errors/errors.js';
 
 const ProfileResponseSchema = z.object({ user: PublicUserResponseSchema });
 
@@ -73,7 +77,51 @@ export async function login(
   input: LoginInput
 ): Promise<LoginResponse> {
   validateLoginInput(input);
-  return LoginResponseSchema.parse(await client.post<unknown>('/auth/login', input, { skipAuth: true }));
+  const body = await client.post<unknown>('/auth/login', input, { skipAuth: true });
+  return parseLoginOrChallenge(body);
+}
+
+/**
+ * Complete an MFA-challenged login with a TOTP code (`POST /auth/totp/login`).
+ * Returns the same `{ user, sessionToken, expiresAt }` a password login does.
+ * Like `login`, this only RETURNS the session — `OpsClient.loginWithTotp`
+ * installs it.
+ *
+ * @throws {InputValidationError} If the token is empty or the code is not six digits
+ * @throws {UnauthorizedError} If the code is wrong or the challenge expired
+ */
+export async function totpLogin(
+  client: OpsHttpClient,
+  input: TotpLoginInput
+): Promise<LoginResponse> {
+  const valid = validateTotpLoginInput(input);
+  return LoginResponseSchema.parse(await client.post<unknown>(
+    '/auth/totp/login',
+    {
+      mfa_challenge_token: valid.mfaChallengeToken,
+      code: valid.code,
+      ...(valid.rememberMe !== undefined ? { rememberMe: valid.rememberMe } : {}),
+    },
+    { skipAuth: true },
+  ));
+}
+
+/**
+ * A 200 from `/auth/login` is one of two shapes; the challenge is tried FIRST
+ * because it is the narrower literal, and a session body can never carry
+ * `mfa_required: true`. Anything else falls through to the strict session
+ * parse, whose ZodError names what was actually missing.
+ */
+function parseLoginOrChallenge(body: unknown): LoginResponse {
+  const challenge = MfaChallengeResponseSchema.safeParse(body);
+  if (challenge.success) {
+    throw new MfaRequiredError({
+      mfaChallengeToken: challenge.data.mfa_challenge_token,
+      expiresAt: challenge.data.expires_at,
+      mfaMethods: challenge.data.mfa_methods,
+    });
+  }
+  return LoginResponseSchema.parse(body);
 }
 
 /**

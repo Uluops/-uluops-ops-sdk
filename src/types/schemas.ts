@@ -150,6 +150,26 @@ export const MergeProjectsInputSchema = z.object({
   path: ['target'],
 });
 
+/**
+ * Re-home input (project-org-routing-and-rehome spec §4.1). The slug pattern
+ * is the server's (`ORG_SLUG_PATTERN`); `reason` is trimmed and bounded like
+ * the server does so a 400 is caught before the round-trip. The admin variant
+ * makes `reason` mandatory — the target org's only standing on that path.
+ */
+export const RehomeProjectInputSchema = z.object({
+  targetOrg: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/, 'targetOrg must be an org slug (1–100 chars: alphanumeric, hyphen, underscore)'),
+  reason: z.string().trim().min(1).max(500).optional(),
+});
+
+export const AdminRehomeProjectInputSchema = RehomeProjectInputSchema.required({ reason: true });
+
+/** TOTP completion of an MFA-challenged login (`POST /auth/totp/login`). */
+export const TotpLoginInputSchema = z.object({
+  mfaChallengeToken: z.string().min(1),
+  code: z.string().regex(/^\d{6}$/, 'code must be exactly 6 digits'),
+  rememberMe: z.boolean().optional(),
+});
+
 // ============================================
 // RUN SCHEMAS
 // ============================================

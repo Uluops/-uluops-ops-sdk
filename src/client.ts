@@ -9,9 +9,12 @@ import * as runOps from './operations/runs.js';
 import * as issueOps from './operations/issues.js';
 import * as analyticsOps from './operations/analytics.js';
 import * as taxonomyOps from './operations/taxonomy.js';
+import * as orgOps from './operations/orgs.js';
+import * as adminOps from './operations/admin.js';
 import type {
   RegisterInput,
   LoginInput,
+  TotpLoginInput,
   LoginResponse,
   RegisterResponse,
   UpdateProfileInput,
@@ -111,6 +114,17 @@ import type {
 
 import type { MessageResponse, DeleteResult } from './types/responses.js';
 import type { OrgScopedOptions, RunCallOptions } from './types/org.js';
+import type {
+  RehomeProjectInput,
+  AdminRehomeProjectInput,
+  RehomeResponse,
+  ProjectRehomeList,
+  ProjectRehomeListQuery,
+  ProjectRehomeEventList,
+  ProjectRehomeEventListQuery,
+  OrgAuditFeed,
+  OrgAuditFeedQuery,
+} from './types/rehome.js';
 
 /**
  * OpsClient configuration options.
@@ -199,6 +213,30 @@ export class OpsClient {
   }
 
   /**
+   * Complete an MFA-challenged login with a TOTP code and install the session.
+   *
+   * `login()` throws `MfaRequiredError` for an account with TOTP or a passkey
+   * enrolled; pass its `mfaChallengeToken` here with the current six-digit code
+   * before `expiresAt`. The installed session has NO password to re-login with
+   * (a re-login would only produce another challenge), so it is not
+   * auto-refreshed: when it expires, requests fail `401` and the caller logs in
+   * again. A Phase 4 migration script should treat that 401 as "stop", not
+   * "retry with the key" (spec §4.7).
+   */
+  async loginWithTotp(mfaChallengeToken: string, code: string, rememberMe?: boolean): Promise<LoginResponse> {
+    const response = await authOps.totpLogin(this.httpClient, { mfaChallengeToken, code, rememberMe });
+    this.httpClient.setAuthStrategy(
+      new JwtSessionAuth(
+        this.httpClient.createFetchClient(),
+        { email: '', password: '' }, // no credentials → no refresh (same shape createAuthStrategy uses for a bare sessionToken)
+        undefined,
+        response.sessionToken
+      )
+    );
+    return response;
+  }
+
+  /**
    * Logout current session (revokes all sessions for this user).
    *
    * @returns Number of sessions revoked
@@ -248,9 +286,13 @@ export class OpsClient {
     register: (input: RegisterInput): Promise<RegisterResponse> =>
       authOps.register(this.httpClient, input),
 
-    /** Log in with email + password, returning a session token. */
+    /** Log in with email + password, returning a session token. Throws `MfaRequiredError` for an MFA-enrolled account. */
     login: (input: LoginInput): Promise<LoginResponse> =>
       authOps.login(this.httpClient, input),
+
+    /** Complete an MFA challenge with a TOTP code, returning the session (not installed — see `OpsClient.loginWithTotp`). */
+    totpLogin: (input: TotpLoginInput): Promise<LoginResponse> =>
+      authOps.totpLogin(this.httpClient, input),
 
     /** Revoke all active sessions for the current user. */
     logoutAll: (): Promise<{ sessionsRevoked: number }> =>
@@ -381,6 +423,63 @@ export class OpsClient {
      */
     mergeProjects: (input: MergeProjectsInput, options?: OrgScopedOptions): Promise<MergeProjectsResult> =>
       projectOps.mergeProjects(this.scope(options), input),
+
+    /**
+     * Move a project to another org (project-org-routing-and-rehome §4.1, D14).
+     * The SOURCE is this call's org scope — pass `{ org: '<source>' }` (or set
+     * the client `orgSlug`) when the project is not in your personal org; the
+     * project is looked up THERE. Needs `admin`/`owner` in both orgs. Old
+     * address becomes a `410 PROJECT_REHOMED` tombstone, not a fork.
+     */
+    rehome: (idOrName: string, input: RehomeProjectInput, options?: OrgScopedOptions): Promise<RehomeResponse> =>
+      projectOps.rehome(this.scope(options), idOrName, input),
+  };
+
+  // ============================================
+  // ORG OPERATIONS
+  // ============================================
+
+  /** Org reads a member can make. (Org CRUD and membership are dashboard/platform surfaces, not wrapped here.) */
+  readonly orgs = {
+    /**
+     * The org-visible audit feed (D19) — rows a writer marked `visibility: 'org'`,
+     * readable by any member; today, projects leaving this org for a personal
+     * org. `nextCursor` is opaque; pass it back verbatim. Narrow entries with
+     * `readRehomeAuditDetails()`.
+     */
+    getVisibleAuditLog: (slug: string, query?: OrgAuditFeedQuery): Promise<OrgAuditFeed> =>
+      orgOps.getVisibleAuditLog(this.httpClient, slug, query),
+  };
+
+  // ============================================
+  // ADMIN OPERATIONS (platform role)
+  // ============================================
+
+  /**
+   * Platform-admin surface. Requires `users.role = 'admin'`; the writes also
+   * require a login-issued SESSION (D20) — an API key gets `403 SESSION_REQUIRED`
+   * (`isSessionRequiredError`). Log in with `login()` / `loginWithTotp()` first.
+   * Deliberately not exposed as MCP tools.
+   */
+  readonly admin = {
+    /**
+     * Move ANY project between ANY orgs by UUID — `reason` required, session
+     * only. `same_org` (via `rehomeRefusalReason`) means already done.
+     */
+    rehomeProject: (projectId: string, input: AdminRehomeProjectInput): Promise<RehomeResponse> =>
+      adminOps.rehomeProject(this.httpClient, projectId, input),
+
+    /** The current redirect table: every vacated `(org, name)` and where it points. Key-readable. */
+    listProjectRehomes: (query?: ProjectRehomeListQuery): Promise<ProjectRehomeList> =>
+      adminOps.listProjectRehomes(this.httpClient, query),
+
+    /** The append-only re-home ledger (D21), paged by `seq`. Key-readable. Reconcile migrations against THIS. */
+    listProjectRehomeEvents: (query?: ProjectRehomeEventListQuery): Promise<ProjectRehomeEventList> =>
+      adminOps.listProjectRehomeEvents(this.httpClient, query),
+
+    /** Release a vacated address so the old name is creatable again (audited; never by time). Session only. */
+    releaseProjectRehome: (rehomeId: string): Promise<{ released: true }> =>
+      adminOps.releaseProjectRehome(this.httpClient, rehomeId),
   };
 
   // ============================================

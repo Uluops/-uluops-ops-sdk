@@ -18,6 +18,8 @@ import type {
   MergeProjectsInput,
   MergeProjectsResult,
 } from '../types/projects.js';
+import type { RehomeProjectInput, RehomeResponse } from '../types/rehome.js';
+import { RehomeResponseSchema } from '../types/rehome.js';
 import type { Issue } from '../types/issues.js';
 import type { DeleteResult } from '../types/responses.js';
 import {
@@ -36,6 +38,7 @@ import {
   validateDeleteProjectInput,
   validateRenameProjectInput,
   validateMergeProjectsInput,
+  validateRehomeProjectInput,
 } from '../config/validators.js';
 import { buildIssueListParams } from './query-utils.js';
 
@@ -332,5 +335,47 @@ export async function mergeProjects(
       deleteSource: input.deleteSource,
       confirmCrossOrg: input.confirmCrossOrg,
     }
+  ));
+}
+
+/**
+ * Move a project to another org — the MEMBER path (project-org-routing-and-
+ * rehome spec §4.1, D14). The SOURCE is the caller's org context: the per-call
+ * `org` option (or the client `orgSlug`), never inferred from the project. A
+ * caller moving a project out of a work org must scope this call to that org;
+ * an unscoped call looks for the project in the caller's PERSONAL org and 404s.
+ * Authority: `admin`/`owner` in both orgs (§4.2); a personal-org TARGET only
+ * when the caller is that person (C6).
+ *
+ * After the move the old `(org, name)` address is a tombstone: an org-less
+ * write naming the project there gets `410 PROJECT_REHOMED` naming the target
+ * (`isProjectRehomedError`), not a forked new project. The move is reversible
+ * by moving back (a reversal annihilates the tombstone).
+ *
+ * Refusals (`rehomeRefusalReason(err)` reads the enumerated ones): 400
+ * `same_org` | `project_has_no_org`; 403 INSUFFICIENT_ORG_ROLE (source) |
+ * ORG_ACCESS_DENIED (target membership or personal target, C6) | ORG_SUSPENDED
+ * (C3); 402 PROJECT_LIMIT (target cap, C2); 409 `name_collision` |
+ * `soft_deleted_conflict` | `rehomed_away_conflict` (C1/C7) | `export_in_progress`
+ * (C4) | `moved_during_request` | MERGE_LOCK_UNAVAILABLE (details.retry_after_seconds;
+ * the SDK does NOT auto-retry).
+ *
+ * @param client - HTTP client instance (scope it to the source org)
+ * @param idOrName - Project UUID or name, resolved in the source org
+ * @param input - `{ targetOrg, reason? }`
+ * @returns The project after the move (`orgId` is the target) plus `rehome.{from_org,to_org,audit_ids}`
+ */
+export async function rehome(
+  client: OpsHttpClient,
+  idOrName: string,
+  input: RehomeProjectInput
+): Promise<RehomeResponse> {
+  const valid = validateRehomeProjectInput(input);
+  return RehomeResponseSchema.parse(await client.post<unknown>(
+    `/projects/${encodeURIComponent(idOrName)}/rehome`,
+    // The API body is `.strict()` (a typo'd key is a 400, not a stripped one),
+    // so only the two contract fields go on the wire, and `reason` is omitted
+    // rather than sent as undefined/null.
+    { target_org: valid.targetOrg, ...(valid.reason !== undefined ? { reason: valid.reason } : {}) },
   ));
 }

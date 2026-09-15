@@ -4,6 +4,29 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.4.0] - 2026-09-15
+
+### Added
+
+The client side of project re-home (project-org-routing-and-rehome spec §4; API deployed 2026-09-15). Three surfaces for three audiences — a member capability, a member feed, and a platform-admin namespace — plus the login branch the admin path made unavoidable.
+
+- **`projects.rehome(idOrName, { targetOrg, reason? }, options?)`** — the member path (`POST /projects/:id/rehome`). The SOURCE is the call's org scope (`options.org` / client `orgSlug`); the project is looked up there, so a work-org project moved without scope is a 404, not a silent personal-org lookup. Returns `RehomeResponse`: the project after the move plus `rehome.{from_org, to_org, audit_ids}` (snake_case by contract; `audit_ids` is `[]` today because the platform ACL returns no ids — the ledger is the durable record). Body is built as the API's `.strict()` schema wants it: `reason` is omitted, never sent as null.
+- **`rehomeRefusalReason(err)`** and `REHOME_REFUSAL_REASONS` — reads `details.reason` on the 400/409 refusals (`same_org`, `moved_during_request`, `deadlock_retry`, `concurrent_modification`, `name_collision`, `soft_deleted_conflict`, `rehomed_away_conflict`, `export_in_progress`, `project_soft_deleted`, `project_has_no_org`) and returns `null` for anything else, an unknown reason included. Enumerated because the Phase 4 runbook (spec §4.7) assigns each a disposition and a script that types the strings itself will misspell one.
+- **`orgs.getVisibleAuditLog(slug, { cursor?, limit? })`** — the D19 feed (`GET /orgs/:slug/audit-log/global`): rows a writer marked `visibility: 'org'`, readable by any member; today, projects leaving the org for a personal org. New `orgs` namespace (reads only). **`readRehomeAuditDetails(entry)`** narrows an entry's `details` to the re-home writer's shape (`RehomeAuditDetails`) or `null`, so a renderer can print a move in one line and everything else raw.
+- **`admin.*` namespace** — `rehomeProject(projectId, { targetOrg, reason })` (the D8 platform path: any project, any orgs, by UUID, `reason` REQUIRED), `listProjectRehomes(query?)` (the reservation/redirect table), `listProjectRehomeEvents(query?)` (the D21 append-only ledger, paged by `seq`; unknown event kinds parse verbatim), `releaseProjectRehome(rehomeId)`. All four need the PLATFORM admin role (`403 INSUFFICIENT_ROLE` otherwise); the two writes are session-only (D20). This is the Phase 4 migration script's substrate; no MCP tool wraps it, on purpose.
+- **`SESSION_REQUIRED`** / **`isSessionRequiredError`** and **`INSUFFICIENT_ROLE`** — the two 403 codes the admin path adds to the org-routing set.
+- **MFA login.** `login()` / `auth.login()` now throw **`MfaRequiredError`** (`mfaChallengeToken`, `expiresAt`, `mfaMethods`; guard `isMfaRequiredError`) when `POST /auth/login` answers the challenge shape, and **`OpsClient.loginWithTotp(challengeToken, code)`** / `auth.totpLogin()` complete it (`POST /auth/totp/login`) and install the session. Not a nice-to-have: D20 makes the admin re-home route session-only and the operator account may be MFA-enrolled, and the SDK could not log such an account in at all — see Fixed. A TOTP-installed session carries no password, so it is NOT auto-refreshed; on expiry requests fail 401 and the caller logs in again (a migration script treats that as "stop", never "retry with the key").
+- `ProjectResponseSchema` gains **`orgId`** (nullable, optional). The API has emitted it on every project read since org scoping landed; `z.object()` was stripping it, so a re-homed project's new org was invisible through the SDK.
+
+### Fixed
+
+- **An MFA-enrolled account could not log in through the SDK.** `LoginResponseSchema` required `sessionToken`, and the API's `200 { mfa_required: true, mfa_challenge_token, ... }` challenge body therefore surfaced as a raw `ZodError` on `sessionToken` — a parse failure on a successful request, with the challenge token discarded. The challenge is now parsed first (narrower literal) and thrown as `MfaRequiredError`; a session body still parses (tested as the control).
+
+### Notes
+
+- Live-verified 2026-09-15 against the current API build on a prod-copy database, not only against nock: member round trip personal → team → personal, `410 PROJECT_REHOMED` at the vacated address on a write (reads there 404 — D14 is a write-path check), `same_org`, the source-scope 404, C6 (owner moving into their own personal org), annihilation on reversal, the D19 feed on both orgs with a non-member `ORG_ACCESS_DENIED` control, and the key→session login ladder. The admin ledger schemas were checked against the controller and nock only — the smoke user was not a platform admin (`INSUFFICIENT_ROLE` on all four, which also fixes the middleware order: platform role before the session gate).
+- Spec §4.1 says the response carries `orgSlug`; the API emits `orgId` and the slug inside `rehome.to_org`. The schema follows the wire; the spec changelog records the drift.
+
 ## [6.3.1] - 2026-09-13
 
 ### Security

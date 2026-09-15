@@ -156,3 +156,94 @@ export function isProjectRehomedError(err: unknown): err is _SdkApiError & { det
   const d = err.details as Partial<ProjectRehomedDetails> | undefined;
   return typeof d?.target_org?.slug === 'string' && typeof d.project_id === 'string';
 }
+
+// ---------------------------------------------------------------------------
+// Re-home surfaces (spec §4, 6.4.0)
+// ---------------------------------------------------------------------------
+
+/**
+ * 403 — the route is session-only (D20): platform-admin writes that mint or
+ * re-point identity, and the two cross-tenant project moves, refuse a `ulr_`
+ * key even when its user is a platform admin. Terminal for a key-authenticated
+ * client: log in (`OpsClient.login`, completing MFA with `loginWithTotp` if
+ * challenged) and retry with the session — never by minting another key.
+ */
+export const SESSION_REQUIRED = 'SESSION_REQUIRED' as const;
+/** 403 — the caller lacks the PLATFORM role (`users.role`) the admin path requires; distinct from the org-role codes above. */
+export const INSUFFICIENT_ROLE = 'INSUFFICIENT_ROLE' as const;
+
+/** Type guard: session-only route refused an API key (403 `SESSION_REQUIRED`). Terminal for key auth. */
+export function isSessionRequiredError(err: unknown): err is _SdkApiError {
+  return hasCode(err, SESSION_REQUIRED);
+}
+
+/**
+ * The refusal reasons a re-home can answer with, as `details.reason` on a
+ * 400 (`VALIDATION_ERROR`) or 409 (`CONFLICT`). Enumerated here because the
+ * Phase 4 runbook (spec §4.7 item 3) assigns each a disposition, and a script
+ * that switches on a string it typed itself will misspell one:
+ *
+ * - `same_org` — already there. Idempotent re-run over a finished row; count as done.
+ * - `moved_during_request` / `deadlock_retry` / `concurrent_modification` — re-read and retry once.
+ * - `name_collision` / `soft_deleted_conflict` / `rehomed_away_conflict` — skip and report.
+ * - `export_in_progress` — an export job holds either org; wait, then retry.
+ * - `project_soft_deleted` / `project_has_no_org` — the source row is not movable as-is; stop and look.
+ */
+export const REHOME_REFUSAL_REASONS = [
+  'same_org',
+  'moved_during_request',
+  'deadlock_retry',
+  'concurrent_modification',
+  'name_collision',
+  'soft_deleted_conflict',
+  'rehomed_away_conflict',
+  'export_in_progress',
+  'project_soft_deleted',
+  'project_has_no_org',
+] as const;
+export type RehomeRefusalReason = (typeof REHOME_REFUSAL_REASONS)[number];
+
+/**
+ * The re-home refusal reason carried by a rejection, or `null` when the error
+ * is not one of the enumerated re-home refusals (a 403 org code, a 402
+ * `PROJECT_LIMIT`, a network failure). Reads `details.reason`; an unknown
+ * reason string returns null rather than a widened type — a new server reason
+ * should reach the caller as "not one I know", not as a silently-handled case.
+ */
+export function rehomeRefusalReason(err: unknown): RehomeRefusalReason | null {
+  if (!(err instanceof _SdkApiError)) return null;
+  const reason = (err.details as { reason?: unknown } | undefined)?.reason;
+  return typeof reason === 'string' && (REHOME_REFUSAL_REASONS as readonly string[]).includes(reason)
+    ? (reason as RehomeRefusalReason)
+    : null;
+}
+
+/**
+ * Thrown by `OpsClient.login` / `auth.login` when the account has MFA enabled:
+ * the API answers `200 { mfa_required: true, mfa_challenge_token, ... }` and no
+ * session. Until 6.4.0 this surfaced as a raw `ZodError` on `sessionToken`,
+ * which made the SDK unable to log in ANY MFA account. Complete the login with
+ * `OpsClient.loginWithTotp(err.mfaChallengeToken, code)` before the challenge
+ * expires (`expiresAt`). WebAuthn completion is not offered by this SDK.
+ */
+export class MfaRequiredError extends Error {
+  override readonly name = 'MfaRequiredError';
+  readonly mfaChallengeToken: string;
+  readonly expiresAt: string;
+  readonly mfaMethods: readonly string[];
+
+  constructor(challenge: { mfaChallengeToken: string; expiresAt: string; mfaMethods: readonly string[] }) {
+    super(
+      `Login requires a second factor (${challenge.mfaMethods.join(', ') || 'unknown method'}); ` +
+      'complete it with loginWithTotp(mfaChallengeToken, code) before the challenge expires',
+    );
+    this.mfaChallengeToken = challenge.mfaChallengeToken;
+    this.expiresAt = challenge.expiresAt;
+    this.mfaMethods = challenge.mfaMethods;
+  }
+}
+
+/** Type guard for {@link MfaRequiredError}. */
+export function isMfaRequiredError(err: unknown): err is MfaRequiredError {
+  return err instanceof MfaRequiredError;
+}
