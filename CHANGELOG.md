@@ -4,7 +4,36 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [6.4.0] - 2026-09-15
+## [6.4.1] - 2026-09-15
+
+6.4.0 reached Verdaccio only; the review of that change set (anxiety-reader 84 / docs-validator 81 / dx-validator 83 / code-auditor 98, all on the `feat/rehome-surfaces` diff) folded into this release before npm. What changed against 6.4.0:
+
+### Added
+
+- **`login(email, password, { autoRefresh })`.** The default (`true`) is unchanged; `false` installs the session without the password so a 401 surfaces untouched. Why it exists: sdk-core's refresh is a *fresh login*, and under the API's default single-session policy a login **revokes the user's other sessions**; the mutation that hit the 401 is then *not* retried, and the budget is one. A script that must treat 401 as "stop" (spec §4.7) was having the SDK act first. Tested both ways: no `/auth/login` on a 401 with the option, exactly one without.
+- **`isInsufficientRoleError`** — the fifth 403 code gains the guard every other one has.
+- `admin.rehomeProject` / `admin.releaseProjectRehome` **refuse a non-UUID client-side** (`InputValidationError`) — `validateUuid` existed and was dead code; the admin route is id-only and answers 400 to a name, and the whole `projects.*` surface trains callers to pass names.
+- TSDoc `@param`/`@returns`/`@example` on the new operations and validators; `@throws {MfaRequiredError}` on `login`.
+
+### Changed
+
+- **`admin.releaseProjectRehome` shape failure is a `ZodError`**, like every other shape failure in this SDK, not a bare `Error` — and the doc says what it means: the server answers 200 after the row is gone, so a shape failure is most likely a *completed* release.
+- The admin path's missing-`reason` message says why it is required ("the target org's only standing for the move") instead of Zod's "expected nonoptional".
+- `OrgAuditFeedQuery.limit` is documented as **1–100, not clamped** (the API answers 400) — the JSDoc said "1–200 (API-clamped)", which was false on both counts.
+
+### Fixed — documentation that overclaimed
+
+- The 6.4.0 entry said "an MFA-enrolled account could not log in through the SDK … Fixed". True for `login()`/`auth.login()` only: a client constructed with `{ email, password }` (or autoloaded credentials) logs in inside sdk-core, which cannot see the challenge and surfaces a generic `UnauthorizedError`. Documented on `OpsClientConfig`, `MfaRequiredError` and in the README; not fixable from this package without intercepting sdk-core's strategy.
+- The MFA challenge token is **single-use and consumed before the code is verified** (API `totp-service.verifyLogin`) — a mistyped code burns it. The README example read as retryable; it no longer does.
+- **`same_org` is the idempotence signal of the ADMIN path only.** The member path's lookup is source-scoped, so a re-run after the move answers 404, not `same_org`. `projects.rehome`'s doc, the README table and `rehomeRefusalReason`'s doc now say so, and the table gained the two missing reasons (`project_soft_deleted`, `project_has_no_org`) plus a row for *no HTTP answer* (`null` from `rehomeRefusalReason` is "not a refusal I can name", not "safe to retry").
+- README "automatic token refresh" is now qualified with the three properties above.
+
+### Known, not fixed here
+
+- sdk-core's 401 branch inspects the *client's* auth strategy, not the request's `skipAuth`, so a wrong TOTP code on a bare client says "Set ULUOPS_API_KEY" — the one remedy D20 forbids. Filed against sdk-core.
+- A TOTP-installed session's expiry message ("credentials were cleared after login") is sdk-core's and wrong for this path; `JwtSessionAuth` has no way to be handed `expiresAt`.
+
+## [6.4.0] - 2026-09-15 (Verdaccio only)
 
 ### Added
 

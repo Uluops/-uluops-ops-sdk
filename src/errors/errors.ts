@@ -177,6 +177,11 @@ export function isSessionRequiredError(err: unknown): err is _SdkApiError {
   return hasCode(err, SESSION_REQUIRED);
 }
 
+/** Type guard: the caller's PLATFORM role is below what the admin path requires (403 `INSUFFICIENT_ROLE`). Terminal — no org argument changes it. */
+export function isInsufficientRoleError(err: unknown): err is _SdkApiError {
+  return hasCode(err, INSUFFICIENT_ROLE);
+}
+
 /**
  * The refusal reasons a re-home can answer with, as `details.reason` on a
  * 400 (`VALIDATION_ERROR`) or 409 (`CONFLICT`). Enumerated here because the
@@ -209,6 +214,12 @@ export type RehomeRefusalReason = (typeof REHOME_REFUSAL_REASONS)[number];
  * `PROJECT_LIMIT`, a network failure). Reads `details.reason`; an unknown
  * reason string returns null rather than a widened type — a new server reason
  * should reach the caller as "not one I know", not as a silently-handled case.
+ *
+ * `null` therefore means "not a re-home refusal I can name", NOT "safe to
+ * retry": a `TimeoutError` / `NetworkError` after the server committed the
+ * move also reads `null`, and a blind retry on the admin path answers
+ * `same_org` (fine) while on the member path it answers 404 (see
+ * `projects.rehome`). Branch on `isTimeoutError` / `isNetworkError` first.
  */
 export function rehomeRefusalReason(err: unknown): RehomeRefusalReason | null {
   if (!(err instanceof _SdkApiError)) return null;
@@ -225,6 +236,14 @@ export function rehomeRefusalReason(err: unknown): RehomeRefusalReason | null {
  * which made the SDK unable to log in ANY MFA account. Complete the login with
  * `OpsClient.loginWithTotp(err.mfaChallengeToken, code)` before the challenge
  * expires (`expiresAt`). WebAuthn completion is not offered by this SDK.
+ *
+ * **The token is single-use and is consumed before the code is verified** —
+ * a mistyped code burns it; do not loop on `loginWithTotp` with the same
+ * token, call `login()` again for a new challenge. And this error is raised
+ * only by `login()` / `auth.login()`: a client constructed with
+ * `{ email, password }` (or autoloaded credentials) logs in inside sdk-core,
+ * which cannot see the challenge and surfaces a generic `UnauthorizedError`
+ * — MFA accounts must use the two-step `login()` → `loginWithTotp()` path.
  */
 export class MfaRequiredError extends Error {
   override readonly name = 'MfaRequiredError';

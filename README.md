@@ -172,7 +172,7 @@ console.log(client.getAuthType()); // 'api_key'
 
 ### Session-Based Authentication
 
-For interactive applications, use `client.login()` which automatically configures token auto-refresh:
+For interactive applications, use `client.login()` which installs the session and, by default, re-logs in on a 401:
 
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
@@ -209,10 +209,27 @@ try {
 }
 ```
 
-A TOTP-installed session has no password to re-login with, so it is **not** auto-refreshed: when it
-expires, requests fail `401` and you log in again. (Before 6.4.0 an MFA account could not log in
-through this SDK at all — the challenge body failed the session schema with a `ZodError`.)
-WebAuthn completion is not offered here.
+**The challenge token is single-use and is consumed before the code is checked** — a mistyped
+code burns it; do not loop on `loginWithTotp` with the same token, call `login()` again for a fresh
+challenge. A TOTP-installed session has no password to re-login with, so it is **not**
+auto-refreshed: when it expires, requests fail `401` and you log in again. (Before 6.4.0 an MFA
+account could not log in through `login()` at all — the challenge body failed the session schema
+with a `ZodError`.) `MfaRequiredError` is raised by `login()` / `auth.login()` **only**: a client
+constructed with `{ email, password }` (or autoloaded credentials) logs in inside sdk-core, which
+cannot see the challenge and surfaces a generic `UnauthorizedError` — MFA accounts must use the
+two-step path. WebAuthn completion is not offered here.
+
+**What "auto-refresh" does — read before scripting against a session.** With the default
+`login()`, the password is kept so sdk-core can re-login when a request answers 401. That refresh
+is a *fresh login*: under the API's default single-session policy it **revokes the user's other
+sessions** (your dashboard tab); **mutations are not retried** afterwards (the POST that hit the 401
+still throws it); and the budget is **one** (the password is cleared after the first re-login).
+For a script — the Phase 4 migration, anything that shares the account with a dashboard — pass
+`{ autoRefresh: false }` so a 401 means *stop*, untouched:
+
+```typescript
+await client.login(email, password, { autoRefresh: false }); // session without a password → no re-login
+```
 
 ### Credential Priority Chain
 
@@ -370,6 +387,7 @@ Three org-routing errors are worth branching on (all exported with type guards):
 | `ORG_ACCESS_DENIED` | 403 | `isOrgAccessDeniedError` | Not a member of that org, or your key is bound to a different one. Terminal. |
 | `PROJECT_REHOMED` | 410 | `isProjectRehomedError` | The project moved orgs. `err.details.target_org.slug` is where it lives — pass it as `org` and retry the same call. |
 | `SESSION_REQUIRED` | 403 | `isSessionRequiredError` | A session-only admin route refused an API key (D20). Log in; never mint another key to get past it. |
+| `INSUFFICIENT_ROLE` | 403 | `isInsufficientRoleError` | The admin path needs the *platform* role (`users.role = admin`); no `org` argument changes it. Terminal. |
 
 Low-level: `new OpsHttpClient(cfg).withOrg('acme')` returns a view of the client scoped to that org.
 
@@ -867,8 +885,16 @@ Refusals a caller branches on — `rehomeRefusalReason(err)` reads the enumerate
 | `409` `moved_during_request` / `deadlock_retry` / `concurrent_modification` | lost a race | re-read, retry once |
 | `409` `name_collision` / `soft_deleted_conflict` / `rehomed_away_conflict` | the name is taken in the target (live, soft-deleted, or reserved by another move) | skip and report |
 | `409` `export_in_progress` | an export holds one of the orgs | wait, retry |
+| `409` `project_soft_deleted` | the project is soft-deleted in the source | restore it there first, then move |
+| `400` `project_has_no_org` | pre-org legacy row | stop; an operator repairs the row |
 | `403` `INSUFFICIENT_ORG_ROLE` / `ORG_ACCESS_DENIED` / `ORG_SUSPENDED` | authority (source role, target membership or a personal target, C3) | stop |
 | `402` `PROJECT_LIMIT` | target org at its project cap | stop |
+| *no HTTP answer* (`isTimeoutError` / `isNetworkError`; `rehomeRefusalReason` → `null`) | the server may have committed the move before the response was lost | do **not** retry blind — read the project with `{ org: targetOrg }` (or the admin ledger); on the member path a blind retry is a 404, not `same_org` |
+
+**Re-runs.** `same_org` is the idempotence signal of the **admin** path (lookup by id, unscoped).
+On the member path the lookup is source-scoped, so the same call after the move answers **404**
+(the source address is a tombstone) — not `same_org`. A member-path script that wants "already
+done" checks the target org, not the refusal code.
 
 ---
 
@@ -1899,7 +1925,7 @@ audit log stays admin+ and is not wrapped here.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `cursor` | `string` | Opaque keyset cursor — pass a prior page's `nextCursor` back verbatim |
-| `limit` | `number` | Page size (API-clamped) |
+| `limit` | `number` | Page size, 1–100 — the API answers 400 outside that range (it does not clamp) |
 
 ```typescript
 import { readRehomeAuditDetails } from '@uluops/ops-sdk';
@@ -1932,15 +1958,32 @@ this.
 
 Move **any** project between **any** two orgs by UUID; no source- or target-membership
 requirement, so `reason` is **required** (on this path the target org's only standing is the audit
-row plus that text). Resolves the project unscoped — pass the UUID, not a name. Answers the same
-refusals as the member path; `same_org` means "already done", which is what makes a scripted pass
-over a list idempotent.
+row plus that text). Resolves the project unscoped — the route takes a UUID and the SDK refuses a
+name client-side (`InputValidationError`). Answers the same refusals as the member path; here
+`same_org` does mean "already done" (the lookup is by id, so the moved project is found wherever
+it is), which is what makes a scripted pass over a list idempotent.
+
+```typescript
+await client.login(email, password, { autoRefresh: false });   // or loginWithTotp(...) after an MfaRequiredError
+try {
+  const moved = await client.admin.rehomeProject(projectId, { targetOrg: 'ulu-labs', reason: 'OQ-4 row 7' });
+  console.log(moved.rehome.from_org.slug, '→', moved.rehome.to_org.slug);
+} catch (err) {
+  if (rehomeRefusalReason(err) === 'same_org') { /* done on a previous run */ }
+  else throw err;
+}
+```
 
 #### `client.admin.listProjectRehomes(query?)` — key-readable
 
 The **current redirect table**: one row per vacated `(sourceOrgId, name)` and the `targetOrgId` it
 points at. A reversal annihilates its row and a release deletes it, so this is state, not history.
 `org` takes a UUID or a slug; `total` is the matching count and `returned` the page.
+
+```typescript
+const { data, total } = await client.admin.listProjectRehomes({ org: 'system', limit: 100 });
+// data[0] → { id, sourceOrgId, name, projectId, targetOrgId, actorId, reason, createdAt }
+```
 
 #### `client.admin.listProjectRehomeEvents(query?)` — key-readable
 
@@ -1960,6 +2003,12 @@ page.data[0]; // { seq, event, projectId, projectName, fromOrgId, toOrgId, viaAd
 
 Release a vacated address so the old `(org, name)` is creatable again — a by-name writer there then
 gets a **new** project instead of a 410. Audited (a `released` ledger row); never done by time.
+
+```typescript
+await client.admin.releaseProjectRehome(reservationId); // → { released: true }
+```
+A `ZodError` here means the 200 body was not `{ released: true }` — and since the server answers
+after the row is gone, the release most likely happened; re-read the listing before retrying.
 
 ---
 

@@ -360,10 +360,27 @@ export async function mergeProjects(
  * (C4) | `moved_during_request` | MERGE_LOCK_UNAVAILABLE (details.retry_after_seconds;
  * the SDK does NOT auto-retry).
  *
+ * **Re-runs and lost responses.** The lookup is SOURCE-scoped, so after the
+ * move the same call (same source, same name) does not answer `same_org` — it
+ * answers 404 (by name, the address is now a tombstone; by id, the project is
+ * no longer in that org). `same_org` is the idempotence signal of the ADMIN
+ * path, whose lookup is by id and unscoped. If a member-path call times out
+ * or the response is lost, do not retry blind: read the project with
+ * `{ org: targetOrg }` (or check `admin.listProjectRehomeEvents` if you can) —
+ * a hit there means the move landed.
+ *
  * @param client - HTTP client instance (scope it to the source org)
  * @param idOrName - Project UUID or name, resolved in the source org
  * @param input - `{ targetOrg, reason? }`
  * @returns The project after the move (`orgId` is the target) plus `rehome.{from_org,to_org,audit_ids}`
+ * @throws {InputValidationError} If `targetOrg` is not a slug or `reason` is empty / over 500 chars
+ * @example
+ * ```typescript
+ * // the project lives in org "acme" → name the source; the target is the input
+ * const moved = await client.projects.rehome('billing', { targetOrg: 'ulu-labs', reason: 'team took it over' }, { org: 'acme' });
+ * moved.rehome.from_org.slug; // 'acme'
+ * moved.rehome.to_org.slug;   // 'ulu-labs'
+ * ```
  */
 export async function rehome(
   client: OpsHttpClient,

@@ -209,6 +209,8 @@ export function validateMergeProjectsInput(data: unknown): z.infer<typeof MergeP
 /**
  * Validate member-path re-home input (spec §4.1): a slug-shaped `targetOrg`
  * and an optional bounded `reason`.
+ * @param data - Raw input: `{ targetOrg, reason? }`
+ * @returns Validated `RehomeProjectInput`
  * @throws {InputValidationError} If the slug is malformed or the reason is empty/over 500 chars
  */
 export function validateRehomeProjectInput(data: unknown): z.infer<typeof RehomeProjectInputSchema> {
@@ -219,7 +221,9 @@ export function validateRehomeProjectInput(data: unknown): z.infer<typeof Rehome
  * Validate admin-path re-home input — identical to the member path except
  * `reason` is required (the server rejects a missing one with 400; catching it
  * here keeps the Phase 4 script's failure at row 0, not row 61).
- * @throws {InputValidationError} If `reason` is missing
+ * @param data - Raw input: `{ targetOrg, reason }`
+ * @returns Validated `AdminRehomeProjectInput`
+ * @throws {InputValidationError} If `reason` is missing, or the member-path rules fail
  */
 export function validateAdminRehomeProjectInput(data: unknown): z.infer<typeof AdminRehomeProjectInputSchema> {
   return validate(AdminRehomeProjectInputSchema, data, 'admin project re-home');
@@ -227,6 +231,8 @@ export function validateAdminRehomeProjectInput(data: unknown): z.infer<typeof A
 
 /**
  * Validate TOTP login completion input.
+ * @param data - Raw input: `{ mfaChallengeToken, code, rememberMe? }`
+ * @returns Validated `TotpLoginInput`
  * @throws {InputValidationError} If the challenge token is empty or the code is not six digits
  */
 export function validateTotpLoginInput(data: unknown): z.infer<typeof TotpLoginInputSchema> {

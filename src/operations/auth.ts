@@ -71,6 +71,8 @@ export async function register(
  * @returns `{ user, sessionToken }` — token must be manually installed on the client
  * @throws {InputValidationError} If email or password is missing
  * @throws {UnauthorizedError} If credentials are invalid
+ * @throws {MfaRequiredError} If the account has TOTP or a passkey enrolled — the API answered a
+ *   challenge, not a session; complete it with `totpLogin` / `OpsClient.loginWithTotp`
  */
 export async function login(
   client: OpsHttpClient,
@@ -87,8 +89,16 @@ export async function login(
  * Like `login`, this only RETURNS the session — `OpsClient.loginWithTotp`
  * installs it.
  *
+ * **The challenge is single-use and is consumed BEFORE the code is checked**
+ * (`totp-service.verifyLogin`: consume, then verify). A wrong code therefore
+ * burns the token: retrying `totpLogin` with the same `mfaChallengeToken` is a
+ * 401 every time. Recovery is a fresh `login()` for a fresh challenge.
+ *
+ * @param client - HTTP client instance
+ * @param input - `{ mfaChallengeToken, code, rememberMe? }`
+ * @returns `{ user, sessionToken, expiresAt }` — token must be manually installed on the client
  * @throws {InputValidationError} If the token is empty or the code is not six digits
- * @throws {UnauthorizedError} If the code is wrong or the challenge expired
+ * @throws {UnauthorizedError} If the code is wrong, or the challenge expired or was already consumed
  */
 export async function totpLogin(
   client: OpsHttpClient,

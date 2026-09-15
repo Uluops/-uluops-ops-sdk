@@ -9,7 +9,7 @@
  */
 
 // Main client — the primary entry point for most consumers
-export { OpsClient, type OpsClientConfig } from './client.js';
+export { OpsClient, type OpsClientConfig, type LoginOptions } from './client.js';
 
 // HTTP client — for consumers who need direct HTTP access or custom auth strategies
 export { OpsHttpClient, type HttpClientConfig, type QueryParams, type QueryParamValue } from './http/http-client.js';

@@ -64,7 +64,7 @@ export interface ProjectRehomeEventListQuery extends ProjectRehomeListQuery {
 /** D19 feed paging. `cursor` is opaque — pass a prior page's `nextCursor` back verbatim. */
 export interface OrgAuditFeedQuery {
   cursor?: string;
-  /** 1–200 (API-clamped). */
+  /** 1–100. The API does NOT clamp: a value outside the range is a 400 (`OrgVisibleAuditLogQuery`, `.min(1).max(100)`). */
   limit?: number;
 }
 

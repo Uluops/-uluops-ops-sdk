@@ -161,7 +161,12 @@ export const RehomeProjectInputSchema = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
 });
 
-export const AdminRehomeProjectInputSchema = RehomeProjectInputSchema.required({ reason: true });
+export const AdminRehomeProjectInputSchema = RehomeProjectInputSchema.extend({
+  // A hand-authored message, not `.required()`'s "expected nonoptional": on the
+  // admin path the reason is the target org's only standing, and the error
+  // should say that rather than leak Zod's vocabulary.
+  reason: z.string({ error: 'reason is required on the admin path — it is the target org\'s only standing for the move' }).trim().min(1, 'reason is required on the admin path').max(500),
+});
 
 /** TOTP completion of an MFA-challenged login (`POST /auth/totp/login`). */
 export const TotpLoginInputSchema = z.object({

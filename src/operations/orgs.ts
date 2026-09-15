@@ -21,8 +21,9 @@ import { OrgAuditFeedResponseSchema } from '../types/rehome.js';
  * redirect this read (`orgContext` resolves `:slug` first).
  *
  * @param client - HTTP client instance
- * @param slug - Org slug
- * @param query - `{ cursor?, limit? }`
+ * @param slug - Org slug (the org whose feed to read — you must be a member)
+ * @param query - `{ cursor?, limit? }`; `limit` is 1–100 and the API answers 400 outside that range (it does not clamp)
+ * @returns `{ data: { entries }, count, hasMore, nextCursor }`
  */
 export async function getVisibleAuditLog(
   client: OpsHttpClient,

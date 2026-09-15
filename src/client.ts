@@ -129,8 +129,38 @@ import type {
 /**
  * OpsClient configuration options.
  * All HTTP-level options (baseUrl, timeout, retries, debug, auth) are available.
+ *
+ * Note on `email`/`password` in the constructor: the login then happens inside
+ * sdk-core, which cannot see an MFA challenge — an MFA-enrolled account gets a
+ * generic `UnauthorizedError`, not `MfaRequiredError`. Use `login()` /
+ * `loginWithTotp()` for those accounts.
  */
 export type OpsClientConfig = HttpClientConfig;
+
+/**
+ * Options for `OpsClient.login`.
+ *
+ * `autoRefresh` (default `true`) keeps the password on the installed session
+ * so sdk-core can re-login when a request answers 401. Three properties of
+ * that refresh are not obvious from the word "automatic", and they matter for
+ * a script driving admin writes under a session (spec §4.7):
+ *
+ * - it is a **fresh login**, and under the API's default single-session
+ *   policy (`AUTH_ALLOW_CONCURRENT_SESSIONS` unset) a login **revokes the
+ *   user's other sessions** — the operator's dashboard tab dies each time;
+ * - **mutations are not retried** after a refresh: the POST/DELETE that hit
+ *   the 401 still throws it, so the caller sees the failure anyway;
+ * - the budget is **one**: the password is cleared after the first re-login,
+ *   so the second 401 is terminal with a different message.
+ *
+ * Pass `{ autoRefresh: false }` when a 401 must mean "stop" (a migration
+ * script, anything sharing the account with a dashboard). The session is
+ * then installed without credentials, exactly as `loginWithTotp` installs
+ * its session, and a 401 surfaces untouched.
+ */
+export interface LoginOptions {
+  autoRefresh?: boolean;
+}
 
 /**
  * Main SDK client for the UluOps platform API.
@@ -197,14 +227,16 @@ export class OpsClient {
    * the client for authenticated requests with token auto-refresh. `client.auth.login()`
    * only returns the token without installing it.
    */
-  async login(email: string, password: string): Promise<LoginResponse> {
+  async login(email: string, password: string, options: LoginOptions = {}): Promise<LoginResponse> {
     const response = await authOps.login(this.httpClient, { email, password });
-    // Install session auth so subsequent requests are authenticated.
-    // Pass email/password through for automatic token refresh.
+    // Install session auth so subsequent requests are authenticated. With
+    // `autoRefresh` (the default) the password is kept so sdk-core can re-login
+    // on a 401 — see LoginOptions for what that refresh actually does and when
+    // to turn it off.
     this.httpClient.setAuthStrategy(
       new JwtSessionAuth(
         this.httpClient.createFetchClient(),
-        { email, password },
+        options.autoRefresh === false ? { email: '', password: '' } : { email, password },
         undefined,
         response.sessionToken
       )

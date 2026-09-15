@@ -183,12 +183,12 @@ describe('admin.* — platform path', () => {
     expect(result.data[0]?.viaAdminPath).toBe(true);
   });
 
-  it('releaseProjectRehome DELETEs and refuses a 200 that does not say released:true', async () => {
+  it('releaseProjectRehome DELETEs and refuses a 200 that does not say released:true (ZodError, like every shape failure)', async () => {
     nock(BASE_URL).delete(`/admin/projects/rehomes/${TEST_IDS.issue1}`).reply(200, { data: { released: true }, message: 'ok' });
     await expect(adminOps.releaseProjectRehome(client, TEST_IDS.issue1)).resolves.toEqual({ released: true });
 
     nock(BASE_URL).delete(`/admin/projects/rehomes/${TEST_IDS.issue1}`).reply(200, { data: { ok: true } });
-    await expect(adminOps.releaseProjectRehome(client, TEST_IDS.issue1)).rejects.toThrow(/Unexpected release response/);
+    await expect(adminOps.releaseProjectRehome(client, TEST_IDS.issue1)).rejects.toBeInstanceOf(ZodError);
   });
 });
 
@@ -217,7 +217,7 @@ describe('orgs.getVisibleAuditLog — D19 feed', () => {
     expect(feed.nextCursor).toBeNull();
   });
 
-  it('the path slug is the org even when the client carries an orgSlug header (orgContext resolves :slug first)', async () => {
+  it('the path carries the slug and the client-level orgSlug header rides along untouched (server precedence for :slug is verified live, not here)', async () => {
     const ops = new OpsClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY, orgSlug: 'other-org' });
     nock(BASE_URL).get('/orgs/acme/audit-log/global').reply(200, { data: { entries: [] }, count: 0, hasMore: false, nextCursor: null });
     const feed = await ops.orgs.getVisibleAuditLog('acme');
@@ -271,5 +271,68 @@ describe('login — MFA branch', () => {
     expect(ops.getAuthType()).toBe('session');
     nock(BASE_URL).matchHeader('authorization', 'Bearer sess-xyz').get('/projects').reply(200, { data: [], total: 0, count: 0 });
     await expect(ops.projects.list()).resolves.toEqual({ data: [], total: 0 });
+  });
+});
+
+describe('review fixes (runs #1 on the three repos, 2026-09-15)', () => {
+  let client: OpsHttpClient;
+  beforeEach(() => { resetMockIds(); client = new OpsHttpClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY }); });
+  afterEach(() => nock.cleanAll());
+
+  it('admin.rehomeProject / releaseProjectRehome refuse a project NAME client-side — the route is UUID-only (dx-validator)', async () => {
+    const scope = nock(BASE_URL).post(/.*/).reply(200, {}).delete(/.*/).reply(200, {});
+    const err = await adminOps.rehomeProject(client, 'billing', { targetOrg: 'ulu-labs', reason: 'r' }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(InputValidationError);
+    expect(String((err as Error).message)).toMatch(/projectId.*UUID/);
+    await expect(adminOps.releaseProjectRehome(client, 'not-a-uuid')).rejects.toBeInstanceOf(InputValidationError);
+    expect(scope.isDone()).toBe(false);
+    nock.cleanAll();
+  });
+
+  it('a missing admin reason says WHY it is required, not "expected nonoptional" (dx-validator)', async () => {
+    const err = await adminOps.rehomeProject(client, TEST_IDS.proj1, { targetOrg: 'ulu-labs' } as never).catch((e: unknown) => e);
+    expect(String((err as Error).message)).toMatch(/target org's only standing/);
+    expect(String((err as Error).message)).not.toMatch(/nonoptional/);
+  });
+
+  it('releaseProjectRehome: a 200 without released:true is a ZodError like every other shape failure, not a bare Error (code-auditor)', async () => {
+    nock(BASE_URL).delete(`/admin/projects/rehomes/${TEST_IDS.issue1}`).reply(200, { data: { ok: true } });
+    const err = await adminOps.releaseProjectRehome(client, TEST_IDS.issue1).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ZodError);
+  });
+
+  it('isInsufficientRoleError pairs the fifth 403 code with a guard (docs-validator)', async () => {
+    const { isInsufficientRoleError } = await import('../../src/errors/errors.js');
+    nock(BASE_URL).get('/admin/projects/rehomes').reply(403, { error: { code: 'INSUFFICIENT_ROLE', message: 'admin required' } });
+    const err = await adminOps.listProjectRehomes(client).catch((e: unknown) => e);
+    expect(isInsufficientRoleError(err)).toBe(true);
+    expect(isSessionRequiredError(err)).toBe(false);
+  });
+
+  it('login({ autoRefresh: false }) installs a session that does NOT re-login on 401 — the 401 surfaces untouched (anxiety-reader F1)', async () => {
+    const session = { user: createMockAuthUser({ id: TEST_IDS.user1 }), sessionToken: 'sess-1', expiresAt: '2026-09-16T10:00:00.000Z' };
+    const ops = new OpsClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY });
+    nock(BASE_URL).post('/auth/login').reply(200, { data: session });
+    await ops.login('a@b.co', 'pw', { autoRefresh: false });
+    // A 401 on a write: with credentials sdk-core would POST /auth/login again (and, under a
+    // single-session API, kill the operator's other sessions). Here there must be exactly ONE
+    // request — the write — and no second login.
+    let loginAttempts = 0;
+    nock(BASE_URL).post('/auth/login').times(5).reply(200, () => { loginAttempts += 1; return { data: session }; });
+    nock(BASE_URL).post(`/admin/projects/${TEST_IDS.proj1}/rehome`).reply(401, { error: { code: 'UNAUTHORIZED', message: 'session revoked' } });
+    const err = await ops.admin.rehomeProject(TEST_IDS.proj1, { targetOrg: 'ulu-labs', reason: 'r' }).catch((e: unknown) => e);
+    expect((err as { statusCode?: number }).statusCode).toBe(401);
+    expect(loginAttempts).toBe(0);
+
+    // Control: the default (autoRefresh true) DOES re-login on the 401 — that is the behaviour the option exists to switch off.
+    nock.cleanAll();
+    const ops2 = new OpsClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY });
+    nock(BASE_URL).post('/auth/login').reply(200, { data: session });
+    await ops2.login('a@b.co', 'pw');
+    let relogins = 0;
+    nock(BASE_URL).post('/auth/login').times(5).reply(200, () => { relogins += 1; return { data: session }; });
+    nock(BASE_URL).post(`/admin/projects/${TEST_IDS.proj1}/rehome`).reply(401, { error: { code: 'UNAUTHORIZED', message: 'session revoked' } });
+    await ops2.admin.rehomeProject(TEST_IDS.proj1, { targetOrg: 'ulu-labs', reason: 'r' }).catch(() => undefined);
+    expect(relogins).toBe(1);
   });
 });
