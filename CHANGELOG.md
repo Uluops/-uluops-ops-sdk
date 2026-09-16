@@ -201,6 +201,10 @@ deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
 
 ## [Unreleased]
 
+### Changed
+
+- **README: the Quick Start's "Requires a `plus` tier subscription or higher" notice on Project Analytics is gone.** Every tracker analytics feature moved to `free` in `@uluops/tier-gate` 0.5.0/0.6.0 (2026-08-21; the API pins 0.6.0), so the notice described a `ForbiddenError` no caller has been able to receive for weeks. No SDK behavior changes — the methods, the `ForbiddenError` class and the 403 mapping are unchanged; only the claim about who gets one.
+
 ## [5.22.0] — 2026-08-21
 
 > Numbered past 5.21.0, which is reserved by the in-flight per-key-scopes train

@@ -64,12 +64,6 @@ for (const issue of issues) {
 
 ### Project Analytics
 
-> **Requires a `plus` tier subscription or higher.** Every method under
-> [Analytics Operations](#analytics-operations) is tier-gated server-side. On a `free`
-> account — which is the default for a newly registered user — these calls reject with
-> `ForbiddenError: This feature requires plus tier or higher.` The rest of this Quick Start
-> works on any tier; this section does not.
-
 ```typescript
 const burndown = await client.analytics.getBurndown({
   project: 'my-project',
