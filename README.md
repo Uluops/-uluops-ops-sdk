@@ -45,7 +45,8 @@ const result = await client.runs.save({
   ],
 });
 
-console.log(`Run #${result.run.runNumber} saved: ${result.correlation.newIssues} new issues`);
+// `correlation` is null on an idempotent replay of a run saved before correlation persistence
+console.log(`Run #${result.run.runNumber} saved: ${result.correlation?.newIssues ?? 'n/a'} new issues`);
 ```
 
 ### Search Issues
@@ -109,11 +110,11 @@ The UluOps SDK provides programmatic access to the UluOps platform API, enabling
 - **Analyze Trends**: Get burndown charts, velocity metrics, and taxonomy distribution analytics
 - **Automate Workflows**: Integrate execution tracking into CI/CD and agent pipelines
 
-The SDK covers the full platform API surface across 7 operation domains with full TypeScript support.
+The SDK covers the full platform API surface across 8 operation domains with full TypeScript support.
 
 ## Features
 
-- **Full API Coverage**: auth, projects, runs, issues, analytics, and taxonomy domains
+- **Full API Coverage**: auth, projects, runs, issues, analytics, taxonomy, orgs, and admin domains
 - **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429, network failures)
@@ -180,7 +181,7 @@ const { sessionToken, user } = await client.login(
 );
 
 // Client is now authenticated — subsequent requests use the session token
-const projects = await client.projects.list();
+const { data: projects } = await client.projects.list();
 
 // Logout when done
 await client.logout();
@@ -472,6 +473,25 @@ const { user, sessionToken } = await client.auth.login({
 });
 ```
 
+#### `client.auth.totpLogin(input)`
+
+Complete an MFA challenge with a TOTP code. Returns the session **without installing it** on the
+client — use the top-level [`client.loginWithTotp()`](#authentication) wrapper when you want the
+session installed. The challenge token is single-use and is consumed before the code is checked.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `mfaChallengeToken` | `string` | Yes | From the `MfaRequiredError` thrown by `login()` |
+| `code` | `string` | Yes | Six-digit TOTP code |
+| `rememberMe` | `boolean` | No | Long-lived session |
+
+```typescript
+const { sessionToken, expiresAt } = await client.auth.totpLogin({
+  mfaChallengeToken: err.mfaChallengeToken,
+  code: '123456',
+});
+```
+
 #### `client.auth.logoutAll()`
 
 Revoke all active sessions for the current user.
@@ -655,7 +675,7 @@ Manage projects.
 List all projects.
 
 ```typescript
-const projects = await client.projects.list();
+const { data: projects, total } = await client.projects.list();
 for (const project of projects) {
   console.log(project.id, project.name, project.createdAt);
 }
@@ -846,33 +866,20 @@ List issues for a project with filters.
 
 > **Filter convention:** Passing `'all'` for any filter (e.g., `status: 'all'`) is equivalent to omitting the parameter — the SDK strips `'all'` values before sending the request. This applies to all query methods across the SDK.
 >
-> **The table above is the canonical filter set** for `projects.listIssues`,
-> `projects.listIssuesWithCount`, and `issues.listByProject` — all three take the same
-> query shape. `issues.search` is the exception: it accepts `failureDomains` (an array)
+> **The table above is the canonical filter set** for `projects.listIssues` and
+> `issues.listByProject` — both take the same query shape. `issues.search` is the exception: it accepts `failureDomains` (an array)
 > and **does not accept `failureMode` at all**, because the server-side search path has no
-> mode predicate. If you need to filter by mode, use one of the three list methods.
+> mode predicate. If you need to filter by mode, use one of the two list methods.
 
 ```typescript
-const issues = await client.projects.listIssues('my-project', {
+// {data, total} since 6.0.0 — `total` is the full matching count, for pagination
+const { data: issues, total } = await client.projects.listIssues('my-project', {
   status: 'open',
   priority: 'critical',
   limit: 10,
 });
+console.log(`Showing ${issues.length} of ${total} open critical issues`);
 ```
-
-#### `client.projects.listIssuesWithCount(idOrName, query)`
-
-List issues with total count for pagination. Same filters as `listIssues`.
-
-```typescript
-const { issues, count } = await client.projects.listIssuesWithCount('my-project', {
-  status: 'open',
-  limit: 10,
-});
-console.log(`Showing ${issues.length} of ${count} total issues`);
-```
-
-> **Note:** Returns both the issues array and the total count for building paginated UIs.
 
 #### `client.projects.bulkUpdateIssueStatus(idOrName, updates)`
 
@@ -902,6 +909,35 @@ const result = await client.projects.mergeIssues('my-project', {
   strategy: 'keep_target',
 });
 ```
+
+#### `client.projects.mergeProjects(input)`
+
+Merge one project into another (merge-projects spec v0.3.4). The source's runs and issues are
+re-keyed into the target inside one advisory-locked transaction; the source is soft-deleted by
+default. Pairwise only — chain calls for multi-source merges. Dry-run first.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `source` | `string` | Yes | Source project name or UUID (consumed by the merge) |
+| `target` | `string` | Yes | Target project name or UUID (survives, absorbs the source) |
+| `dryRun` | `boolean` | No | Preview only — the merge transaction is rolled back (default `false`) |
+| `deleteSource` | `boolean` | No | Soft-delete the source after the merge (default `true`) |
+| `confirmCrossOrg` | `boolean` | No | Required `true` for system-actor cross-org merges; human cross-org merges are always rejected |
+
+```typescript
+const preview = await client.projects.mergeProjects({
+  source: 'old-project',
+  target: 'my-project',
+  dryRun: true,
+});
+console.log(`Would move ${preview.moved.runs} runs and ${preview.moved.issues} issues`);
+if (preview.conflicts.length === 0) {
+  const result = await client.projects.mergeProjects({ source: 'old-project', target: 'my-project' });
+  console.log(result.source.statusAfter); // 'soft-deleted'
+}
+```
+
+Returns `{ source, target, moved, conflicts }` — `source.statusAfter` is `'soft-deleted' | 'retained' | 'dry-run'`, `moved` counts runs, issues, dedupes and reparented occurrences/notes/history.
 
 #### `client.projects.rehome(idOrName, input, options?)` — move a project to another org
 
@@ -1109,7 +1145,8 @@ List runs for a project.
 | `offset` | `number` | No | Pagination offset |
 
 ```typescript
-const runs = await client.runs.listByProject('my-project', {
+// {data, total} since 6.0.0
+const { data: runs, total } = await client.runs.listByProject('my-project', {
   workflowType: 'ship',
   limit: 10,
 });
@@ -1381,11 +1418,11 @@ Get analysis summaries with run context for a specific agent. Returns analysis d
 | `query.offset` | `number` | No | Pagination offset |
 
 ```typescript
-const { items, total } = await client.runs.getAgentRunsAnalysis('epictetus-validator', {
+const { data, total } = await client.runs.getAgentRunsAnalysis('epictetus-validator', {
   project: 'my-project',
   limit: 10,
 });
-// items[0]: { decision, score, categoryScores, runNumber, runTimestamp, workflowType, snapshotScore, ... }
+// data[0]: { decision, score, categoryScores, runNumber, runTimestamp, workflowType, snapshotScore, ... }
 ```
 
 ---
@@ -2117,6 +2154,7 @@ For command-line usage, see the dedicated CLI package: [`@uluops/cli`](https://w
 | `ULUOPS_EMAIL` | Email for session auth | - |
 | `ULUOPS_PASSWORD` | Password for session auth | - |
 | `ULUOPS_SESSION_TOKEN` | Session token for auth | - |
+| `ULUOPS_ORG_SLUG` | Org slug for org-scoped requests (lowest precedence in [Org routing](#org-routing)) | personal org |
 | `ULUOPS_BASE_URL` | API base URL | `https://api.uluops.ai/api/v1` (localhost:3100 when `NODE_ENV=development`) |
 | `ULUOPS_DEBUG` | Enable debug logging | `false` |
 

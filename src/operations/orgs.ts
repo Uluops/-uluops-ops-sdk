@@ -49,6 +49,9 @@ export async function getVisibleAuditLog(
  * (`isPersonal: true`). What `ulu log --orgs` iterates (spec §3.6, OQ1: API
  * keys reach this). A key bound to one org still lists every org its holder
  * belongs to; the binding governs what it may READ, not what it may see listed.
+ *
+ * @param client - HTTP client instance
+ * @returns The caller's orgs, personal org included
  */
 export async function list(client: OpsHttpClient): Promise<OrgListEntry[]> {
   return OrgListResponseSchema.parse(await client.get<unknown>('/orgs')).organizations;
@@ -62,6 +65,11 @@ export async function list(client: OpsHttpClient): Promise<OrgListEntry[]> {
  * old the numbers are. Unknown slug → 404 `ORG_NOT_FOUND`; a key bound to
  * another org → 403 `ORG_ACCESS_DENIED`. The slug in the PATH is the org; a
  * client-level `orgSlug` does not redirect this read.
+ *
+ * @param client - HTTP client instance
+ * @param slug - Org slug (the path is the org; client-level `orgSlug` is not consulted)
+ * @param query - Window and filters, as for `projects.getLogStat`
+ * @returns The org rollup with `projects[]` and `computedAt`
  */
 export async function getLogStat(
   client: OpsHttpClient,

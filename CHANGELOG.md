@@ -4,6 +4,18 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- **README: the Quick Start's "Requires a `plus` tier subscription or higher" notice on Project Analytics is gone.** Every tracker analytics feature moved to `free` in `@uluops/tier-gate` 0.5.0/0.6.0 (2026-08-21; the API pins 0.6.0), so the notice described a `ForbiddenError` no caller has been able to receive for weeks. No SDK behavior changes — the methods, the `ForbiddenError` class and the 403 mapping are unchanged; only the claim about who gets one.
+- **The no-credentials warning now says where to get a key** — `https://app.uluops.ai` (Settings → API keys) is in the runtime message, not only in README prose. Message text only; the condition and log level are unchanged (consumer-validate run #47, dx-validator).
+
+### Fixed
+
+- **README API-reference examples caught up with the 6.0.0 envelope change** (consumer-validate run #47 — docs-validator and public-interface-validator, the latter's AF-003). `projects.list`, `projects.listIssues` and `runs.listByProject` return `{data, total}` since 6.0.0 but three examples still iterated the raw result (`TypeError: … is not iterable` on copy-paste); `runs.getAgentRunsAnalysis` was destructured as `{items}` after the 6.0.0 `items → data` rename; and `projects.listIssuesWithCount` — removed in 6.0.0 — still had a full section and a stale prose mention. The section is gone, the examples show the envelope, and the prose names the two surviving list methods. Also added the two methods that had no README presence at all — `projects.mergeProjects` (spec v0.3.4) and `auth.totpLogin` — plus `ULUOPS_ORG_SLUG` in the environment-variables table and the `orgs`/`admin` domains in the Features list (8 domains, not 7). The Quick Start guards the nullable `correlation` so it typechecks under `strict`.
+- **CHANGELOG hygiene**: the `[Unreleased]` section had drifted to the middle of the file (below six released versions) and three headers used an em dash before the date; both normalized.
+
 ## [6.5.0] - 2026-09-15
 
 ulu log, Phase 3 (spec v0.1.13 §3.2/§3.3/§3.5/§3.6; checklist Phase 3). Additive — nothing existing changes shape or signature; one existing function changes what it *accepts* (below, under Changed, because that is the kind of change a signature does not show).
@@ -199,13 +211,7 @@ deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
   wire always carried. This is the nullable-score class one ring out from the
   run schemas, which were fixed earlier (fix the pattern, not the citation).
 
-## [Unreleased]
-
-### Changed
-
-- **README: the Quick Start's "Requires a `plus` tier subscription or higher" notice on Project Analytics is gone.** Every tracker analytics feature moved to `free` in `@uluops/tier-gate` 0.5.0/0.6.0 (2026-08-21; the API pins 0.6.0), so the notice described a `ForbiddenError` no caller has been able to receive for weeks. No SDK behavior changes — the methods, the `ForbiddenError` class and the 403 mapping are unchanged; only the claim about who gets one.
-
-## [5.22.0] — 2026-08-21
+## [5.22.0] - 2026-08-21
 
 > Numbered past 5.21.0, which is reserved by the in-flight per-key-scopes train
 > (staged on Verdaccio 2026-08-21). If this train merges first, scopes rebases and
@@ -238,7 +244,7 @@ deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
   not throw (nothing was written). Return type is `SaveRunResponseWithEcho` (a superset of
   the previous `SaveRunResponse` — source-compatible).
 
-## [5.21.0] — 2026-08-22
+## [5.21.0] - 2026-08-22
 
 ### Added — per-key scope on API keys (platform v1.27.0)
 
@@ -257,7 +263,7 @@ deploys; SDK 6.0.0 (after the flip) re-pins the new shapes strictly.
   job. (A `.strict()` was tried and reverted after review, 2026-08-22.)
 - `--json` output carries `scope` automatically (plain stringify, no re-parse).
 
-## [5.20.0] — 2026-08-21
+## [5.20.0] - 2026-08-21
 
 ### Changed
 

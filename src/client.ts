@@ -212,7 +212,8 @@ export class OpsClient {
     if (!this.isAuthenticated() && !(config.email && config.password)) {
       logger.warn(
         `No credentials found (checked: constructor config, ${ENV_VARS.API_KEY} env, .env files, ~/.uluops/credentials.json). ` +
-        'Call client.login() or set ULUOPS_API_KEY before making API requests.'
+        'Call client.login() or set ULUOPS_API_KEY before making API requests. ' +
+        'Create a key at https://app.uluops.ai (Settings → API keys).'
       );
     }
   }
