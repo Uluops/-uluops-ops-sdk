@@ -1315,6 +1315,17 @@ describe('Run Operations', () => {
       expect(result.analysisWrite).toEqual(echo);
     });
 
+    it('T21 boundary: analysisSummary: [] / analysisRecords: [] are NOT analysis-bearing on save (ship #48)', async () => {
+      // The update path excludes the empty array (test-pinned above); the save
+      // path tested `!== undefined` and would have demanded an echo the server
+      // never emits, throwing "the run WAS saved, do not retry" on a healthy write.
+      nock(BASE_URL).post('/runs').times(2).reply(201, plainReply());
+      const a = await runOps.save(client, { ...plainInput(), analysisSummary: [] });
+      expect(a.analysisWrite).toBeNull();
+      const b = await runOps.save(client, { ...plainInput(), analysisRecords: [] });
+      expect(b.analysisWrite).toBeNull();
+    });
+
     it('T21: analysis-bearing save with NO echo throws AnalysisEchoMismatchError (old API)', async () => {
       nock(BASE_URL).post('/runs').reply(201, plainReply());
 

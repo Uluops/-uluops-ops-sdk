@@ -149,8 +149,11 @@ function assertSaveAnalysisWriteEcho(
   input: SaveRunInput,
   envelope: z.infer<typeof SaveRunEnvelopeSchema>
 ): void {
-  const analysisBearing = (input.analysisRecords?.length ?? 0) > 0 || input.analysisSummary !== undefined;
-  if (!analysisBearing) return;
+  // The same predicate the update path uses — until ship run #48 this tested
+  // `analysisSummary !== undefined`, so `analysisSummary: []` demanded an echo
+  // the server does not emit for an empty write and threw "the run WAS saved,
+  // do not retry" on a wholly successful save.
+  if (!isAnalysisBearing(input)) return;
   if (envelope.data.deduplicated) return;
   const echo = envelope.analysisWrite;
   if (!echo) {
@@ -289,9 +292,11 @@ const DEFAULT_RECORD_MODE = 'replace';
  * hasAnalysis minus the 400-only branch). A broader client predicate fires
  * the alarm falsely on healthy servers (`analysisRecords: []`); a narrower
  * one skips the assertion where an echo exists. Cross-boundary predicate,
- * hand-written on both sides; the empty-array boundary is test-pinned.
+ * hand-written on both sides; the empty-array boundary is test-pinned on
+ * BOTH the update and the save path (ship run #48 — save had its own,
+ * broader copy).
  */
-function isAnalysisBearing(input: UpdateRunInput): boolean {
+function isAnalysisBearing(input: Pick<UpdateRunInput, 'analysisRecords' | 'analysisSummary'> | Pick<SaveRunInput, 'analysisRecords' | 'analysisSummary'>): boolean {
   const hasRecords = (input.analysisRecords?.length ?? 0) > 0;
   const hasSummaries = input.analysisSummary !== undefined &&
     (!Array.isArray(input.analysisSummary) || input.analysisSummary.length > 0);

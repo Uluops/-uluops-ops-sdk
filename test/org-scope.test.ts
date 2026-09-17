@@ -6,7 +6,7 @@
  * when the header is present, which is how "no header" is proven rather
  * than assumed.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import nock from 'nock';
 import { OpsHttpClient, ORG_SLUG_HEADER } from '../src/http/http-client.js';
 import { OpsClient } from '../src/client.js';
@@ -28,6 +28,48 @@ describe('per-call org scope', () => {
     let root: OpsHttpClient;
     beforeEach(() => {
       root = new OpsHttpClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY });
+    });
+
+    // Ship run #48 (code-auditor): a view is Object.create(root), so sdk-core's
+    // instance fields written through `this` (refreshPromise, lastRateLimitInfo,
+    // rateLimitWarningFired) used to land on the VIEW as own properties — N
+    // concurrent scoped 401s each started a re-login, and rate-limit state
+    // recorded through a view was invisible on the root. The root-client dedup
+    // test in http-client.test.ts never went through withOrg, so this passed.
+    describe('views share the root client\'s resilience state', () => {
+      it('concurrent 401s through org-scoped views refresh ONCE', async () => {
+        const sessionClient = new OpsHttpClient({ baseUrl: BASE_URL, email: 'user@test.com', password: 'pass123', retries: 2 });
+        const refreshSpy = vi.fn().mockImplementation(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
+        sessionClient.setAuthStrategy({
+          getAuthorizationHeader: () => 'Bearer mock-token',
+          canRefresh: () => true,
+          refresh: refreshSpy,
+          isAuthenticated: () => true,
+          getType: () => 'session' as const,
+        });
+        for (const path of ['/race1', '/race2', '/race3']) {
+          nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'acme').get(path).reply(401, { error: { message: 'Token expired' } });
+          nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'acme').get(path).reply(200, { data: { ok: path } });
+        }
+        // One view per call, as OpsClient.scope() mints them.
+        await Promise.all(['/race1', '/race2', '/race3'].map((path) => sessionClient.withOrg('acme').get(path)));
+        expect(refreshSpy).toHaveBeenCalledTimes(1);
+      });
+
+      it('rate-limit info recorded through a view is visible on the root', async () => {
+        nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'acme').get('/projects')
+          .reply(200, list(), { 'x-ratelimit-limit': '100', 'x-ratelimit-remaining': '5', 'x-ratelimit-reset': '60' });
+        await projectOps.list(root.withOrg('acme'));
+        expect(root.getRateLimitInfo()?.remaining).toBe(5);
+      });
+
+      it('a view minted from a view forwards to the same root', async () => {
+        const inner = root.withOrg('a').withOrg('b');
+        nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'b').get('/projects')
+          .reply(200, list(), { 'x-ratelimit-limit': '100', 'x-ratelimit-remaining': '7', 'x-ratelimit-reset': '60' });
+        await projectOps.list(inner);
+        expect(root.getRateLimitInfo()?.remaining).toBe(7);
+      });
     });
 
     it('sets X-Org-Slug on the view\'s request', async () => {

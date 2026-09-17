@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.5.1] - 2026-09-16
+
+Patch: the ship-run-#48 fixes — three runtime defects under the org-scoped and session paths, the README/JSDoc corrections from consumer-validate run #47, and package metadata. No new surface; `client.runs.save`'s declared return type widens to what it already returned.
+
 ### Changed
 
 - **README: the Quick Start's "Requires a `plus` tier subscription or higher" notice on Project Analytics is gone.** Every tracker analytics feature moved to `free` in `@uluops/tier-gate` 0.5.0/0.6.0 (2026-08-21; the API pins 0.6.0), so the notice described a `ForbiddenError` no caller has been able to receive for weeks. No SDK behavior changes — the methods, the `ForbiddenError` class and the 403 mapping are unchanged; only the claim about who gets one.
@@ -22,14 +26,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **package.json** carries `homepage`, `bugs` and `sideEffects: false` (the npm page had no Homepage/Issues links; bundlers could not tree-shake an ESM-only package without the flag).
 - **Tests**: `issues.get(id, { org })` is now actually exercised (the previous test's name promised it and the body called only `analytics.getAgentPerformance`); the update-preview scope guard's documented explicit-`null` rejection is pinned; `validateUuid`'s version/variant nibbles are pinned against a widened regex.
 
+### Fixed (runtime — ship run #48, code-auditor; each verified against source and `dist/` before the fix, each pinned by a test written first and watched fail)
+
+- **`logout()` now clears the installed session.** It revoked every session server-side and returned, leaving the `JwtSessionAuth` — token and, with `autoRefresh` (the default), the password — in place: `isAuthenticated()` stayed true on a revoked token, and the next 401 re-logged-in and silently undid the logout. It now calls the strategy's `clearSession()` after `logoutAll` resolves; the next request fails `UnauthorizedError` before it is sent and `login()` is the only way back. An API-key strategy is left alone (keys are not sessions). Behaviour change on the auth lifecycle; test: `client.test.ts` "logout() clears the local session".
+- **Org-scoped views share the root client's resilience state.** `withOrg` returns a prototype-chained view, and sdk-core writes its token-refresh dedup gate (`refreshPromise`), the last rate-limit headers and the once-per-threshold warning latch through `this` — so each per-call view got its own copy: N concurrent scoped 401s started N re-logins (which revoke each other under the API's single-session default), and `getRateLimitInfo()` / `onRateLimitApproaching` never saw org-scoped traffic. Views now forward those fields (and `authStrategy`) to the one root by accessor; views of views chain to the root, not to each other. The field list is the census of sdk-core 0.17.0's mutable instance fields, and the new org-scope tests exercise refresh dedup and rate-limit visibility THROUGH views rather than trusting the list. The pre-existing dedup test only ever hit the root client.
+- **`save()` uses the same analysis-bearing predicate as `update()`.** Its own copy tested `analysisSummary !== undefined`, so `analysisSummary: []` demanded an echo the server does not emit for an empty write and threw `AnalysisEchoMismatchError` ("the run WAS saved, do not retry") on a wholly successful save. The empty-array boundary is now pinned on the save path too.
+
 ### Known, not fixed here
 
-Found by ship run #48 (code-auditor, 82 — every one verified against source and `dist/`), disclosed per the 6.4.1 convention rather than shipped silently. Each is a behaviour change with tests and belongs to a deliberate release, not a docs patch:
-
-- **`logout()` leaves the session strategy installed.** `authOps.logoutAll` revokes every session server-side, but `OpsClient.logout()` never calls the strategy's `clearSession()`, so `isAuthenticated()` stays `true` and — with `autoRefresh` (the default) — the next 401 re-logs-in with the retained password and undoes the logout (`src/client.ts:280`).
-- **Per-call `withOrg` views shadow sdk-core's refresh dedup and rate-limit state.** `withOrg` returns `Object.create(this)` and `scope()` mints one per call; sdk-core guards refresh with an instance field written through `this`, so N concurrent org-scoped 401s start N re-logins (which, under the API's single-session default, revoke each other), and `getRateLimitInfo()` / the `onRateLimitApproaching` latch never see org-scoped traffic (`src/http/http-client.ts:192`). The existing dedup test runs against the root client only.
-- **`save()`'s analysis-bearing predicate is broader than `update()`'s.** `analysisSummary: []` makes `save` demand an echo the server does not emit and throw `AnalysisEchoMismatchError` after a wholly successful write; `update` deliberately excludes the empty array and is test-pinned (`src/operations/runs.ts:152` vs `:294`).
-- **`requestRaw` / `requestBinary` / `requestStream` bypass the org override** — no scoped ops-sdk operation uses them today.
+- **`requestRaw` / `requestBinary` / `requestStream` bypass the org override** — they reach fetch without `request()`, so on a scoped view they send no `X-Org-Slug` and skip the `orgInvalid` rejection. No ops-sdk operation uses them on a scoped path; the `withOrg` comment now says so instead of claiming full coverage (ship run #48).
 
 ## [6.5.0] - 2026-09-15
 

@@ -109,6 +109,16 @@ export const ORG_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/;
 /** The header the tracker's org-context middleware reads (after `:slug` and `X-Org-Id`). */
 export const ORG_SLUG_HEADER = 'X-Org-Slug';
 
+/**
+ * sdk-core `HttpClient` instance fields that are WRITTEN during operation and
+ * must be shared by every {@link OpsHttpClient.withOrg} view (see there). The
+ * list is the census of `this.<field> =` assignments in sdk-core 0.17.0's
+ * http-client outside the constructor; a new mutable field in sdk-core needs a
+ * row here, which is why the org-scope tests exercise refresh dedup and
+ * rate-limit visibility through views rather than trusting this list.
+ */
+const SHARED_CLIENT_STATE = ['refreshPromise', 'lastRateLimitInfo', 'rateLimitWarningFired', 'authStrategy'] as const;
+
 function assertOrgSlug(value: string, path: string): void {
   if (!ORG_SLUG_PATTERN.test(value)) {
     throw new InputValidationError(
@@ -144,6 +154,11 @@ export class OpsHttpClient extends HttpClient {
    * would escape both. Surfaced as a rejection of the view's first request.
    */
   private orgInvalid?: InputValidationError;
+  /**
+   * The client a view was minted from; `undefined` on the root itself. Views
+   * of views chain to the one root, never to each other.
+   */
+  private orgRoot?: OpsHttpClient;
 
   constructor(config: HttpClientConfig = {}) {
     if (config.orgSlug) assertOrgSlug(config.orgSlug, 'orgSlug');
@@ -192,7 +207,27 @@ export class OpsHttpClient extends HttpClient {
     // requestBinary or requestStream, which reach fetch directly: on a scoped
     // view those send no X-Org-Slug and skip the orgInvalid rejection. No
     // ops-sdk operation uses them on a scoped path today (ship run #48).
-    const view: OpsHttpClient = Object.create(this) as OpsHttpClient;
+    const root = this.orgRoot ?? this;
+    const view: OpsHttpClient = Object.create(root) as OpsHttpClient;
+    view.orgRoot = root;
+    // sdk-core keeps its resilience state in instance fields written through
+    // `this` — the token-refresh dedup gate (`refreshPromise`), the last
+    // rate-limit headers and the once-per-threshold warning latch, and the
+    // auth strategy itself. A plain write through a prototype-chained view
+    // creates an OWN property on the view and leaves the root's field
+    // untouched, so N concurrent scoped 401s each started their own re-login
+    // (which, under the API's single-session default, revoked each other) and
+    // rate-limit state recorded through a view was invisible on the root
+    // (ship run #48, code-auditor). Forward reads and writes of those fields
+    // to the root so every view IS the root for state, and a view for headers.
+    for (const field of SHARED_CLIENT_STATE) {
+      Object.defineProperty(view, field, {
+        get: () => (root as unknown as Record<string, unknown>)[field],
+        set: (value: unknown) => { (root as unknown as Record<string, unknown>)[field] = value; },
+        enumerable: false,
+        configurable: false,
+      });
+    }
     try {
       assertOrgSlug(org, 'org');
       view.orgOverride = org;

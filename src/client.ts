@@ -273,12 +273,28 @@ export class OpsClient {
   /**
    * Logout current session (revokes all sessions for this user).
    *
+   * Revoke every session for the current user server-side AND clear the
+   * session installed on this client (token and retained password), so
+   * `isAuthenticated()` is false afterwards and no automatic re-login can
+   * follow. An API-key strategy is untouched — keys are not sessions.
+   *
    * @returns Number of sessions revoked
    * @throws {UnauthorizedError} If client is not authenticated
    * @throws {OpsApiError} On network or server errors
    */
   async logout(): Promise<{ sessionsRevoked: number }> {
-    return authOps.logoutAll(this.httpClient);
+    const result = await authOps.logoutAll(this.httpClient);
+    // The server has revoked every session; forget ours too. Until ship run
+    // #48 this returned without touching the installed strategy, so
+    // `isAuthenticated()` stayed true on a revoked token and — with
+    // `autoRefresh` (the default) — the next 401 re-logged-in with the
+    // retained password, silently undoing the logout. `clearSession()` drops
+    // the token AND the password, so the next request fails `UnauthorizedError`
+    // before it is sent, and a fresh `login()` is the only way back. An API-key
+    // strategy is not a session and is left alone.
+    const strategy = this.httpClient.getAuthStrategy();
+    if (strategy instanceof JwtSessionAuth) strategy.clearSession();
+    return result;
   }
 
   /**

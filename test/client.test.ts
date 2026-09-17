@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import nock from 'nock';
 import { OpsClient } from '../src/client.js';
+import { UnauthorizedError } from '../src/errors/errors.js';
 import { BASE_URL, TEST_API_KEY } from './setup.js';
 import {
   createMockRun,
@@ -80,6 +81,26 @@ describe('OpsClient', () => {
       });
 
       expect(result.sessionToken).toBeDefined();
+    });
+
+    it('logout() clears the local session: isAuthenticated() is false and no re-login is attempted (ship #48)', async () => {
+      const sessionClient = new OpsClient({ baseUrl: BASE_URL });
+      nock(BASE_URL)
+        .post('/auth/login', { email: 'test@example.com', password: 'password123' })
+        .reply(200, { data: createMockLoginResponse() });
+      await sessionClient.login('test@example.com', 'password123');
+      expect(sessionClient.isAuthenticated()).toBe(true);
+
+      nock(BASE_URL).post('/auth/logout-all').reply(200, { data: { sessionsRevoked: 1 } });
+      const result = await sessionClient.logout();
+      expect(result.sessionsRevoked).toBe(1);
+      expect(sessionClient.isAuthenticated()).toBe(false);
+
+      // Before ship run #48 the installed JwtSessionAuth kept the password, so the
+      // next 401 re-logged-in and undid the logout. No nock for POST /auth/login
+      // exists here and net connect is disabled: a re-login attempt would surface
+      // as a network error, not the UnauthorizedError a logged-out client owes.
+      await expect(sessionClient.projects.list()).rejects.toThrow(UnauthorizedError);
     });
 
     it('should get current user', async () => {
