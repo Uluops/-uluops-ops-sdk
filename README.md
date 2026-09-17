@@ -115,7 +115,7 @@ The SDK covers the full platform API surface across 8 operation domains with ful
 ## Features
 
 - **Full API Coverage**: auth, projects, runs, issues, analytics, taxonomy, orgs, and admin domains
-- **Type-Safe**: Complete TypeScript definitions with Zod runtime validation
+- **Type-Safe**: Complete TypeScript definitions; every response is Zod-parsed before it is returned. Write inputs are Zod-validated as a gate (the raw input is what goes to the wire, and the primary writers may pass `_skipClientValidation`) — see [Runs Operations](#runs-operations) for which fields each write validates
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429, network failures)
 - **Error Hierarchy**: Typed errors for precise error handling
@@ -374,7 +374,7 @@ await client.projects.list();                                  // → constructo
 name: a call that names no org creates or targets the *personal* project of that name, even when
 a work org has one by the same name (spec D2). Name the org.
 
-Three org-routing errors are worth branching on (all exported with type guards):
+These org-routing errors are worth branching on (all exported with type guards):
 
 | Code | Status | Guard | What to do |
 |---|---|---|---|
@@ -403,6 +403,8 @@ directory (a file at `/` or `/Users` cannot become everyone's default), and a fi
 user is refused (a shared parent directory is the planting vector). `"personal"` is also honoured as
 an explicit value — `{ org: 'personal' }` sends no header. On a scoped call the per-call org header
 is set last and an `X-Org-Slug`/`X-Org-Id` in `options.headers` is refused.
+
+The pieces it is built from are exported too: `findWorkspaceOrgFile(cwd)` (the bounded upward walk, returning the path of the `.uluops.json` that answered), `WORKSPACE_ORG_FILE` (the file name, `.uluops.json`) and `PERSONAL_ORG_SENTINEL` (`"personal"`, the value that stops the walk and means "no org"). Reach for them when a tool wants to report *which* file answered, as the CLI does.
 
 ---
 
@@ -1003,7 +1005,7 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 | `recommendations` | `Recommendation[]` | Yes | Array of issues/recommendations (use `[]` for empty). Multi-agent pipelines: see [Convergence clustering](#convergence-clustering-clusterkey) before collapsing findings |
 | `summary` | `object` | No | Summary statistics |
 | `rawMarkdown` | `string` | No | Raw markdown report |
-| `idempotencyKey` | `string` | No | Key for duplicate prevention. When omitted, the SDK derives it from the payload content (sha256), so a byte-identical retry returns the original run (`deduplicated: true`) instead of creating a second one. Pass explicit distinct keys to deliberately save identical payloads twice |
+| `idempotencyKey` | `string` | No | Key for duplicate prevention. When omitted, the SDK derives it from the payload content (sha256), so a byte-identical retry returns the original run (`deduplicated: true`) instead of creating a second one. The hash is over `JSON.stringify` of the payload, so it is key-order-sensitive inside caller-supplied objects (`agents[]`, `recommendations[]`, `analysisRecords[].data`): a retry that rebuilds those with a different insertion order is a different key and writes a second run. Pass an explicit key when the retry path does not preserve object shape; pass explicit distinct keys to deliberately save identical payloads twice |
 | `definitionType` | `string` | No | Definition type (`'agent'`, `'command'`, `'workflow'`, `'pipeline'`) |
 | `definitionName` | `string` | No | Definition name (e.g., `'code-validator'`) |
 | `definitionVersion` | `string` | No | Definition version (e.g., `'1.2.0'`) |
@@ -1231,7 +1233,8 @@ const run = await client.runs.update({
   project: 'my-project',
   runNumber: 5,
   agents: [
-    { name: 'code-validator', score: 90, tokens: { inputTokens: 1500 } },
+    // Token fields are FLAT on update (UpdateAgentInput) — a nested `tokens` object is not a field the update path sends
+    { name: 'code-validator', score: 90, inputTokens: 1500 },
   ],
 });
 ```
@@ -2154,7 +2157,7 @@ For command-line usage, see the dedicated CLI package: [`@uluops/cli`](https://w
 | `ULUOPS_EMAIL` | Email for session auth | - |
 | `ULUOPS_PASSWORD` | Password for session auth | - |
 | `ULUOPS_SESSION_TOKEN` | Session token for auth | - |
-| `ULUOPS_ORG_SLUG` | Org slug for org-scoped requests (lowest precedence in [Org routing](#org-routing)) | personal org |
+| `ULUOPS_ORG_SLUG` | Org slug for org-scoped requests (lowest precedence in [Org routing](#org-routing--which-org-a-call-lands-in)) | personal org |
 | `ULUOPS_BASE_URL` | API base URL | `https://api.uluops.ai/api/v1` (localhost:3100 when `NODE_ENV=development`) |
 | `ULUOPS_DEBUG` | Enable debug logging | `false` |
 
@@ -2320,6 +2323,8 @@ const raw = await http.requestRaw('GET', '/endpoint'); // Without data unwrappin
 ```
 
 ### Custom Authentication Strategy
+
+The two strategies the client installs itself — `ApiKeyAuth` and `JwtSessionAuth` — are exported at the package root (re-exports of `@uluops/sdk-core/http`) for callers that construct one directly instead of through `createAuthStrategy`; the factory is the documented path and the constructors' signatures are sdk-core's.
 
 ```typescript
 import { OpsHttpClient, createAuthStrategy } from '@uluops/ops-sdk';

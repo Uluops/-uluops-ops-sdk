@@ -13,7 +13,7 @@ import { OpsClient } from '../src/client.js';
 import { InputValidationError } from '../src/errors/errors.js';
 import * as projectOps from '../src/operations/projects.js';
 import * as runOps from '../src/operations/runs.js';
-import { BASE_URL, TEST_API_KEY, createMockProject, createMockRun, createMockAgentSnapshot } from './setup.js';
+import { BASE_URL, TEST_API_KEY, createMockProject, createMockRun, createMockAgentSnapshot, createMockIssue } from './setup.js';
 
 const project = (): object => ({ data: createMockProject({ name: 'p' }) });
 const list = (): object => ({ data: [], total: 0, count: 0 });
@@ -142,9 +142,20 @@ describe('per-call org scope', () => {
       expect(saved.run.orgSlug).toBe('ulu-labs');
     });
 
-    it('issues.get(id, { org }) and analytics.getAgentPerformance(q, { org }) — reads take it too (D12)', async () => {
+    it('analytics.getAgentPerformance(q, { org }) — reads take it too (D12)', async () => {
       nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'acme').get('/analytics/agents/performance').reply(200, { data: [] });
       await client.analytics.getAgentPerformance(undefined, { org: 'acme' });
+    });
+
+    it('issues.get(id, { org }) sends X-Org-Slug (D12)', async () => {
+      // Was asserted by the previous test's NAME only — the body never called
+      // issues.get (ship run #48, test-architect). Control: the shared
+      // afterEach fails on any unconsumed nock, so the matchHeader scope must
+      // be hit by exactly this call.
+      const issue = createMockIssue();
+      nock(BASE_URL).matchHeader(ORG_SLUG_HEADER, 'acme').get(`/issues/${issue.id}`).reply(200, { data: issue });
+      const got = await client.issues.get(issue.id, { org: 'acme' });
+      expect(got.id).toBe(issue.id);
     });
 
     it('an invalid org is rejected before any request is made', async () => {

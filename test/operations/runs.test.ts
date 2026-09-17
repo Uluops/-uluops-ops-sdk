@@ -837,6 +837,19 @@ describe('Run Operations', () => {
       ).rejects.toThrow(/analysis concerns only; remove: agents, averageScore/);
     });
 
+    it('rejects a forbidden update-preview key even when it is explicitly null', async () => {
+      // The validator's doc comment promises this ('even explicitly `null`d');
+      // until ship run #48 nothing pinned it, so narrowing the filter from
+      // `!== undefined` to `!= null` would have passed the suite.
+      await expect(
+        runOps.previewUpdate(client, {
+          project: 'my-project',
+          runNumber: 5,
+          ...({ averageScore: null } as object),
+        })
+      ).rejects.toThrow(/analysis concerns only; remove: averageScore/);
+    });
+
     it('rejects an invalid analysis record client-side before any request', async () => {
       // No nock stub: a network attempt would throw a nock "no match" error,
       // so reaching the InputValidationError proves the request never left.

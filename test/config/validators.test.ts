@@ -875,6 +875,15 @@ describe('Config Validators', () => {
       expect(() => validateUuid('not-a-uuid', 'id')).toThrow(InputValidationError);
     });
 
+    it('pins the version and variant nibbles (v1-v5, variant 8/9/a/b)', () => {
+      // Well-formed 8-4-4-4-12 hex that is NOT an RFC 4122 v1-v5 UUID must
+      // still be rejected — the regex is stricter than 'hex in the right
+      // places', and a widened regex would pass the two tests above.
+      expect(() => validateUuid('123e4567-e89b-52d3-a456-426614174000', 'id')).not.toThrow(); // v5, variant a
+      expect(() => validateUuid('123e4567-e89b-62d3-a456-426614174000', 'id')).toThrow(InputValidationError); // v6
+      expect(() => validateUuid('123e4567-e89b-42d3-c456-426614174000', 'id')).toThrow(InputValidationError); // variant c
+    });
+
     it('should include field name in error message', () => {
       try {
         validateUuid('invalid', 'userId');

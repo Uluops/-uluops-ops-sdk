@@ -173,7 +173,7 @@ export async function getBurndown(
  *
  * @param client - HTTP client instance
  * @param query - Optional: project, days, alertThreshold (10-500, default 50)
- * @returns `{ items: VelocityItem[], summary: VelocitySummary, period }` — items have velocityPercent and alert flag
+ * @returns `{ items: VelocityItem[], summary: VelocitySummary }` — items have velocityPercent and alert flag (the wire's `period` is not part of the parsed shape)
  */
 export async function getVelocity(
   client: OpsHttpClient,

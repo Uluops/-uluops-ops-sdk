@@ -188,13 +188,16 @@ export class OpsHttpClient extends HttpClient {
     // Prototype-chained view: reads (auth strategy, adapter, config) fall
     // through to this instance; only the override fields are set on the view.
     // sdk-core's verbs (get/post/patch/put/delete) all delegate to `request`,
-    // so the override below covers every operation without touching them.
+    // so the override below covers them. It does NOT cover requestRaw,
+    // requestBinary or requestStream, which reach fetch directly: on a scoped
+    // view those send no X-Org-Slug and skip the orgInvalid rejection. No
+    // ops-sdk operation uses them on a scoped path today (ship run #48).
     const view: OpsHttpClient = Object.create(this) as OpsHttpClient;
     try {
       assertOrgSlug(org, 'org');
       view.orgOverride = org;
     } catch (err) {
-      view.orgInvalid = err as InputValidationError;
+      view.orgInvalid = err instanceof InputValidationError ? err : new InputValidationError(String(err), []);
     }
     return view;
   }

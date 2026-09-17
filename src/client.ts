@@ -55,7 +55,7 @@ import type {
   AnalysisRecordsList,
   AgentRunsAnalysis,
   SaveRunInput,
-  SaveRunResponse,
+  SaveRunResponseWithEcho,
   ValidateRunResponse,
   RunDiffQuery,
   RunDiffResult,
@@ -553,7 +553,7 @@ export class OpsClient {
   /** Execution run save, preview, diff, archive, and retrieval */
   readonly runs = {
     /** Save an execution run (agents, scores, recommendations). */
-    save: (input: SaveRunInput, options?: RunCallOptions): Promise<SaveRunResponse> =>
+    save: (input: SaveRunInput, options?: RunCallOptions): Promise<SaveRunResponseWithEcho> =>
       runOps.save(this.scope(options), input, options),
 
     /** Preview a save without persisting (dry-run). */

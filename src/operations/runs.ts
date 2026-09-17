@@ -747,7 +747,7 @@ export async function queryAnalysisRecords(
  * @param client - HTTP client instance
  * @param agentName - Agent name (e.g. 'epictetus-validator')
  * @param query - Query with required `project`, optional `decision`, `limit`, `offset`
- * @returns `{ items: AgentRunSummary[], total: number }`
+ * @returns `{ data: AgentRunSummary[], total: number }` — `data`, not `items`, since the 6.0.0 envelope flip
  */
 export async function getAgentRunsAnalysis(
   client: OpsHttpClient,
