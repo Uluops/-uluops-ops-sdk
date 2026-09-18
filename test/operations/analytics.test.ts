@@ -76,6 +76,7 @@ describe('Analytics Operations', () => {
               name: 'code-validator',
               totalIssues: 250,
               falsePositiveRate: 5,
+              declinedRate: 12.4,
               resolutionRate: 75,
               avgTimeToResolveDays: 1.5,
               reliabilityScore: 82,
@@ -90,7 +91,15 @@ describe('Analytics Operations', () => {
       expect(result.agents).toHaveLength(1);
       expect(result.agents[0].name).toBe('code-validator');
       expect(result.agents[0].falsePositiveRate).toBe(5);
+      // Surviving VALUE, not just `.success` — strip-mode dropped this field through 6.5.2 (tracker aa3ab1ed).
+      expect(result.agents[0].declinedRate).toBe(12.4);
       expect(result.agents[0].reliabilityScore).toBe(82);
+    });
+
+    it('requires declinedRate (ops-api >= 262bc93 always emits it)', () => {
+      const row = { name: 'x', totalIssues: 1, falsePositiveRate: 0, resolutionRate: 0, avgTimeToResolveDays: null, reliabilityScore: 40 };
+      expect(AgentReliabilityResultResponseSchema.safeParse({ agents: [{ ...row, declinedRate: 0 }] }).success).toBe(true);
+      expect(AgentReliabilityResultResponseSchema.safeParse({ agents: [row] }).success).toBe(false);
     });
 
     it('should filter by agent name', async () => {
@@ -103,6 +112,7 @@ describe('Analytics Operations', () => {
               name: 'test-architect',
               totalIssues: 180,
               falsePositiveRate: 3,
+              declinedRate: 0,
               resolutionRate: 80,
               avgTimeToResolveDays: null,
               reliabilityScore: 88,
