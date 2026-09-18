@@ -1180,6 +1180,11 @@ console.log(details.agents);
 console.log(details.recommendations);
 ```
 
+Agent snapshots returned by `runs.save` and `runs.getDetails` preserve both the
+normalized `model` and optional, nullable `modelRaw` supplied by the API.
+Use `modelRaw` to inspect the original model identity; older responses may omit
+it, and records without a raw identity may return `null`.
+
 #### `client.runs.diff(query)`
 
 Compare two runs to see fixed/new issues.

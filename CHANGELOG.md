@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.5.2] - 2026-09-17
+
 ### Fixed
 
 - Preserve optional nullable `modelRaw` on agent snapshots when parsing save and
