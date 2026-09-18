@@ -431,6 +431,16 @@ describe('Run Operations', () => {
   });
 
   describe('getDetails', () => {
+    it('preserves raw model identity alongside the canonical model', async () => {
+      const mockRun = createMockRun();
+      const agent = { ...createMockAgentSnapshot({ runId: mockRun.id, model: 'gpt-6-astra' }), modelRaw: 'openai/gpt-6-astra' };
+      nock(BASE_URL).get(`/runs/project/${TEST_IDS.proj1}/details`).reply(200, {
+        data: { run: mockRun, agents: [agent], recommendations: [] },
+      });
+      const details = await runOps.getDetails(client, TEST_IDS.proj1);
+      expect(details.agents[0]).toMatchObject({ model: 'gpt-6-astra', modelRaw: 'openai/gpt-6-astra' });
+    });
+
     it('should get run details with recommendations', async () => {
       const mockRun = createMockRun({ runNumber: 10 });
       const mockAgent = createMockAgentSnapshot({ runId: mockRun.id });

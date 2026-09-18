@@ -721,6 +721,8 @@ export const AgentSnapshotResponseSchema = z.object({
   decision: z.string(),
   summary: z.string().nullable().optional(),
   model: z.string().nullable(),
+  // Exact reported model before API normalization; absent on older responses.
+  modelRaw: z.string().nullable().optional(),
   // Producing CLI/runtime (v5.2.0). Optional: absent from responses until the API §3.5 columns ship.
   harness: z.string().nullable().optional(),
   inputTokens: z.number().int().nonnegative().nullable(),
