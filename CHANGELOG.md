@@ -4,11 +4,15 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **F01 — Occurrence history fields.** Retain optional, nullable occurrence `correlationStatus`, additive discovery counts and project-log `occurrenceCounts` in response schemas. Older producer responses remain accepted. Document the distinction between saved occurrence facts, current issue status and original run counts.
+
 ## [6.6.1] - 2026-09-18
 
 - Send canonical matrix thresholds and retain eligibility metadata (F22); includes the 6.6.0 analytics wire-contract changes.
-
-## [Unreleased]
 
 ## [6.6.0] - 2026-09-18
 
