@@ -213,9 +213,11 @@ export async function getAgentMatrix(
   client: OpsHttpClient,
   query?: AgentMatrixQuery
 ): Promise<z.infer<typeof AgentMatrixResultResponseSchema>> {
+  // This endpoint's public threshold key is camelCase, unlike generic queries.
+  const { minIssues, ...filters } = query ?? {};
   return AgentMatrixResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/agent-matrix',
-    toApiQuery(query)
+    { ...toApiQuery(filters), ...(minIssues !== undefined ? { minIssues } : {}) }
   ));
 }
 

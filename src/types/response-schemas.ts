@@ -1254,6 +1254,17 @@ export const ShadowModeResponseSchema = z.object({
 });
 
 export const AgentMatrixResultResponseSchema = z.object({
+  /** Absent on older servers; never infer the applied threshold from the request. */
+  effectiveMinIssues: z.number().int().min(1).max(1000).optional(),
+  eligibility: z.object({
+    matrix: z.literal('agent-total-qualifying-issues'),
+    singlePoints: z.literal('canonical-modes-before-min-issues'),
+    highOverlap: z.literal('canonical-modes-before-min-issues'),
+    candidateAgentCount: z.number().int().nonnegative(),
+    includedAgentCount: z.number().int().nonnegative(),
+    excludedAgentCount: z.number().int().nonnegative(),
+    singlePointAgentsExcludedFromMatrix: z.number().int().nonnegative(),
+  }).optional(),
   matrix: z.array(AgentMatrixRowResponseSchema),
   analysis: MatrixAnalysisResponseSchema,
   /**

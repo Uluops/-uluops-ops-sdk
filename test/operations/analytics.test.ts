@@ -358,15 +358,22 @@ describe('Analytics Operations', () => {
       expect(result.analysis.singlePoints).toHaveLength(1);
     });
 
-    it('should filter by minimum issues', async () => {
+    it('should use the canonical threshold spelling and retain eligibility metadata', async () => {
+      const eligibility = {
+        matrix: 'agent-total-qualifying-issues', singlePoints: 'canonical-modes-before-min-issues',
+        highOverlap: 'canonical-modes-before-min-issues', candidateAgentCount: 1,
+        includedAgentCount: 0, excludedAgentCount: 1, singlePointAgentsExcludedFromMatrix: 1,
+      };
       nock(BASE_URL)
         .get('/analytics/taxonomy/agent-matrix')
-        .query({ min_issues: 10 })
+        .query({ minIssues: 10, project: 'matrix-project', days: 14 })
         .reply(200, {
-          data: { matrix: [], analysis: { blindSpots: [], singlePoints: [], highOverlap: [] } },
+          data: { matrix: [], analysis: { blindSpots: [], singlePoints: [], highOverlap: [] }, effectiveMinIssues: 10, eligibility },
         });
 
-      await analyticsOps.getAgentMatrix(client, { minIssues: 10 });
+      const result = await analyticsOps.getAgentMatrix(client, { minIssues: 10, project: 'matrix-project', days: 14 });
+      expect(result.effectiveMinIssues).toBe(10);
+      expect(result.eligibility).toEqual(eligibility);
     });
   });
 

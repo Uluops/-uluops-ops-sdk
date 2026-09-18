@@ -1905,7 +1905,18 @@ Get agent-taxonomy coverage matrix.
 |-----------|------|----------|-------------|
 | `project` | `string` | No | Filter by project |
 | `days` | `number` | No | Time window (default: 90) |
-| `minIssues` | `number` | No | Min issues for inclusion |
+| `minIssues` | `number` | No | Minimum total qualifying issues per agent across domains (1–1000, default 5) |
+
+The SDK sends the API's canonical `minIssues` query key. The API also accepts
+`min_issues` for older SDKs; conflicting aliases return a field validation error.
+`effectiveMinIssues` echoes the applied threshold. `eligibility` reports candidate,
+included and excluded agent counts and identifies single-point/overlap analysis as
+canonical modes before threshold filtering. `singlePointAgentsExcludedFromMatrix`
+counts distinct agents in single-point results that are absent from the matrix.
+Matrix totals count qualifying issues in supported domains, not execution counts;
+single-point/overlap analysis additionally requires canonical domain/mode pairs.
+Both use the same authorized project and time window. Older servers may omit
+`effectiveMinIssues` and `eligibility`; absence means unavailable, not zero.
 
 ```typescript
 const matrix = await client.analytics.getAgentMatrix();
