@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.5.2] - 2026-09-17
+
+### Fixed
+
+- Preserve optional nullable `modelRaw` on agent snapshots when parsing save and
+  run-detail responses, alongside the normalized `model` field.
+
 ## [6.5.1] - 2026-09-16
 
 Patch: the ship-run-#48 fixes — three runtime defects under the org-scoped and session paths, the README/JSDoc corrections from consumer-validate run #47, and package metadata. No new surface; `client.runs.save`'s declared return type widens to what it already returned.
