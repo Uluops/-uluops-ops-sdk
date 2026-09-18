@@ -4,6 +4,10 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.6.1] - 2026-09-18
+
+- Send canonical matrix thresholds and retain eligibility metadata (F22); includes the 6.6.0 analytics wire-contract changes.
+
 ## [Unreleased]
 
 ## [6.6.0] - 2026-09-18
