@@ -422,6 +422,7 @@ export const OccurrenceResponseSchema = z.object({
   lineNumber: z.number().int().nonnegative().nullable(),
   classificationConfidence: z.enum(['high', 'medium', 'low']).nullable(),
   classifiedBy: z.enum(['agent', 'classifier', 'human']).nullable(),
+  correlationStatus: z.enum(['new', 'recurring', 'regression', 'observed']).nullable().optional(),
   createdAt: DateTimeStringSchema,
 });
 
@@ -1191,18 +1192,27 @@ export const VelocityResultResponseSchema = z.object({
 export const DiscoveryDomainBreakdownSchema = z.object({
   new: z.number().int().nonnegative(),
   recurring: z.number().int().nonnegative(),
+  regression: z.number().int().nonnegative().optional(),
+  observed: z.number().int().nonnegative().optional(),
+  unknown: z.number().int().nonnegative().optional(),
 });
 
 export const DiscoveryTimelinePointResponseSchema = z.object({
   period: z.string(),
   newIssues: z.number().int().nonnegative(),
   recurringIssues: z.number().int().nonnegative(),
+  regressionIssues: z.number().int().nonnegative().optional(),
+  observedIssues: z.number().int().nonnegative().optional(),
+  unknownIssues: z.number().int().nonnegative().optional(),
   domains: z.record(z.string(), DiscoveryDomainBreakdownSchema),
 });
 
 export const DiscoverySummaryResponseSchema = z.object({
   totalNew: z.number().int().nonnegative(),
   totalRecurring: z.number().int().nonnegative(),
+  totalRegressions: z.number().int().nonnegative().optional(),
+  totalObserved: z.number().int().nonnegative().optional(),
+  totalUnknown: z.number().int().nonnegative().optional(),
   newToRecurringRatio: z.number().nullable(),
   peakNewPeriod: z.object({ period: z.string(), count: z.number() }).nullable(),
 });

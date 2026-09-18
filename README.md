@@ -2440,3 +2440,5 @@ ULUOPS_DEBUG=true node app.js
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
+
+Occurrence `correlationStatus` is a saved detection fact, separate from current issue status. Legacy rows may be null, and run recommendation status is `unknown` when no fact was captured. Discovery retains regression-inclusive `recurringIssues` and adds optional `regressionIssues`, `observedIssues`, `unknownIssues` (summary `totalRegressions`, `totalObserved`, `totalUnknown`); absent fields indicate an older API, not zero.

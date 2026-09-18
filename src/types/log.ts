@@ -79,6 +79,13 @@ export const LogRunEventSchema = z.object({
     regressions: z.number().int(),
     observed: z.number().int(),
   }).nullable(),
+  occurrenceCounts: z.object({
+    new: z.number().int().nonnegative(),
+    recurring: z.number().int().nonnegative(),
+    regressions: z.number().int().nonnegative(),
+    observed: z.number().int().nonnegative(),
+    unknown: z.number().int().nonnegative(),
+  }).optional(),
   agents: z.array(z.string()),
 });
 export type LogRunEvent = z.infer<typeof LogRunEventSchema>;
