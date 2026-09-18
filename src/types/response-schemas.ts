@@ -1086,7 +1086,11 @@ export const AgentLifecycleEntryResponseSchema = z.object({
 export const AgentReliabilityResponseSchema = z.object({
   name: z.string(),
   totalIssues: z.number().int().nonnegative(),
+  // Since ops-api 262bc93 (@uluops/analytics 0.11.0, D2-A) `false-positive` ONLY — `wontfix`
+  // moved to `declinedRate` and is in neither numerator. Same type, narrower meaning.
   falsePositiveRate: z.number(),
+  /** `wontfix` share of the agent's issues, 0–100 — a judgment not to act. Reported, never scored. Stripped by this schema until 6.6.0. */
+  declinedRate: z.number(),
   resolutionRate: z.number(),
   avgTimeToResolveDays: z.number().nullable(),
   reliabilityScore: z.number(),

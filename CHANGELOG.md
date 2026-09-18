@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.6.0] - 2026-09-18
+
+### Added
+
+- **`AgentReliability.declinedRate: number`** — the `wontfix` share of an agent's issues
+  (0–100), which ops-api has emitted on `GET /analytics/agents/reliability` since `262bc93`
+  (2026-09-17, @uluops/analytics 0.11.0 D2-A) and which the non-strict
+  `AgentReliabilityResponseSchema` silently dropped: every SDK consumer (ops-mcp
+  `get_agent_reliability`, `ulu analytics reliability`) returned rows without it. Required,
+  not optional — the API always sends it. Tracker `aa3ab1ed`.
+
+### Changed
+
+- **`AgentReliability.falsePositiveRate` means less than it did — same type, narrower
+  meaning.** Since ops-api `262bc93` it counts `false-positive` only; `wontfix` moved to
+  `declinedRate` and sits in neither the resolution nor the false-positive numerator, so
+  `falsePositiveRate` went DOWN and `reliabilityScore` went UP for every agent with declined
+  issues on 2026-09-17, with no change on this SDK's surface. No compiler or parse error can
+  show this; this entry is the only channel. `regressionHazardPer1000IssueDays` (regression
+  analysis, D4-A) is NOT affected here: `regression_analysis` is served through the untyped
+  `getByMetric`, so it already passes through.
+
 ## [6.5.2] - 2026-09-17
 
 ### Fixed

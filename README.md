@@ -1780,7 +1780,12 @@ for (const entry of lifecycle) {
 
 #### `client.analytics.getAgentReliability(query)`
 
-Get agent reliability statistics (false positive rates, resolution rates).
+Get agent reliability statistics (false positive, declined and resolution rates).
+
+`falsePositiveRate` counts `false-positive` only; `declinedRate` is the `wontfix` share — a
+judgment not to act, in neither the resolution nor the false-positive numerator and never
+scored (ops-api ≥ 262bc93, @uluops/analytics 0.11.0). Before that, `wontfix` was inside
+`falsePositiveRate` — same field, same type, narrower meaning.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1790,7 +1795,7 @@ Get agent reliability statistics (false positive rates, resolution rates).
 ```typescript
 const { agents } = await client.analytics.getAgentReliability({ days: 90 });
 for (const a of agents) {
-  console.log(`${a.agent}: reliability=${a.reliabilityScore}`);
+  console.log(`${a.name}: reliability=${a.reliabilityScore} declined=${a.declinedRate}%`);
 }
 ```
 
