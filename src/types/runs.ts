@@ -494,7 +494,11 @@ export interface AgendaSection extends SectionBase {
  * etc.) and their schemas are defined by individual agents, not the SDK.
  * The SDK validates the container; the server validates domain-specific content.
  */
+export type AnalysisAgentType = 'validator' | 'analyst' | 'explorer' | 'forecaster' | 'executor' | 'generator';
+
 export interface AnalysisRecordInput {
+  /** Explicit type for an unregistered agent; must agree with an exact registry match. */
+  agentType?: AnalysisAgentType | null;
   /** Agent name — overrides run-level default when provided */
   agentName?: string;
   recordType: string;
@@ -518,6 +522,8 @@ export interface CategoryScore {
  * Analysis summary input for system-level metrics
  */
 export interface AnalysisSummaryInput {
+  /** Explicit type for an unregistered agent; must agree with an exact registry match. */
+  agentType?: AnalysisAgentType | null;
   /** Agent name — overrides run-level default when provided */
   agentName?: string;
   decision: string;

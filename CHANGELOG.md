@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **F02 — Analysis type declarations and provenance.** Save/update validation retains explicit `agentType` on records and summaries. Read schemas preserve type source and exact definition ID/version while accepting older responses. Unresolved and historically inferred attribution is `unknown`.
+
+### Added
+
 - **F01 — Occurrence history fields.** Retain optional, nullable occurrence `correlationStatus`, additive discovery counts and project-log `occurrenceCounts` in response schemas. Older producer responses remain accepted. Document the distinction between saved occurrence facts, current issue status and original run counts.
 
 ## [6.6.1] - 2026-09-18

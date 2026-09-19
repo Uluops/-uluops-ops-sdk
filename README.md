@@ -1393,6 +1393,8 @@ data.forEach(s => console.log(s.decision, s.systemMetrics));
 
 #### `client.runs.queryAnalysisRecords(query)`
 
+F02 analysis attribution: set `agentType` on each record or summary for an unregistered agent (for example, `{ agentName: 'local-map', agentType: 'explorer', decision: 'TRACED' }`). With multiple agents, name the agent explicitly. The API resolves registered agents at the saved execution version and rejects a conflicting declaration. Read `agentTypeSource` (`registry`, `declared`, `unresolved`, historical `inferred` or null) alongside `agentTypeDefinitionId` and `agentTypeDefinitionVersion`. Legacy inferred attribution reads as `unknown`; filter with `{ agentType: 'unknown' }` to find it. Later registry changes do not relabel saved analysis. These fields require the F02 API; final compatible package pins are part of the coordinated release.
+
 Cross-project query for analysis records with filters (v0.3.0).
 
 | Parameter | Type | Required | Description |

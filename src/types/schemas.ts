@@ -248,6 +248,7 @@ export const RecommendationInputSchema = z.object({
 
 /** Single analysis summary entry — shared base for single-object and per-agent array variants */
 export const AnalysisSummaryEntrySchema = z.object({
+  agentType: z.enum(['validator', 'analyst', 'explorer', 'forecaster', 'executor', 'generator']).nullish(),
   agentName: z.string().max(100).optional(),
   decision: z.string().min(1).max(50),
   score: z.number().min(0).max(100).optional().nullable(),
@@ -329,6 +330,7 @@ export const SaveRunInputSchema = z.object({
      *      the same reason the clusterKey test does.
      */
     agentName: z.string().min(1).max(100).optional(),
+    agentType: z.enum(['validator', 'analyst', 'explorer', 'forecaster', 'executor', 'generator']).nullish(),
     recordType: z.string().min(1).max(50),
     recordId: z.string().min(1).max(ANALYSIS_RECORD_ID_MAX_LENGTH),
     title: z.string().min(1).max(500),
