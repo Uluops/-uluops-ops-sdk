@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### F13
+
+- Add withResponseContext to org-scoped operations, preserving default return shapes and attaching context to post-response validation errors. Isolate concurrent org metadata while sharing authentication refresh and rate-limit state.
+
 ### F20
 
 - Add opt-in report-v2 idempotency, per-operation capability negotiation, typed unsupported-contract refusals before writes, and optional replay metadata. Requires the F20 SDK-core compatibility build.

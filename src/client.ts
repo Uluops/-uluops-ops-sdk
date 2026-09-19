@@ -114,7 +114,8 @@ import type {
 } from './types/analytics.js';
 
 import type { MessageResponse, DeleteResult } from './types/responses.js';
-import type { OrgScopedOptions, RunCallOptions } from './types/org.js';
+import { attachResponseContext, type ResponseContext } from '@uluops/sdk-core/http';
+import type { ContextResult, OrgScopedOptions, RunCallOptions } from './types/org.js';
 import type {
   RehomeProjectInput,
   AdminRehomeProjectInput,
@@ -322,8 +323,25 @@ export class OpsClient {
    * carrying `X-Org-Slug: <org>` on that request only; otherwise the root
    * client (constructor `orgSlug`, else the personal org).
    */
-  private scope(options?: OrgScopedOptions): OpsHttpClient {
+  private scope(options?: OrgScopedOptions<boolean>): OpsHttpClient {
     return options?.org ? this.httpClient.withOrg(options.org) : this.httpClient;
+  }
+
+  private async execute<T, C extends boolean = false>(
+    options: OrgScopedOptions<C> | undefined,
+    operation: (client: OpsHttpClient) => Promise<T>,
+  ): Promise<ContextResult<T, C>> {
+    let context: ResponseContext | null = null;
+    const client = this.scope(options).withResponseCapture(value => { context = value; });
+    try {
+      const data = await operation(client);
+      // The generic opt-in mirrors this runtime branch; existing shapes stay intact.
+      return (options?.withResponseContext ? { data, context } : data) as ContextResult<T, C>;
+    } catch (error) {
+      // HTTP errors already carry their own response; schema/echo errors occur later.
+      if (!(error instanceof Error) || !('responseContext' in error)) attachResponseContext(error, context);
+      throw error;
+    }
   }
 
   // ============================================
@@ -412,58 +430,58 @@ export class OpsClient {
   /** Project CRUD, summaries, trends, issue listing, and bulk operations */
   readonly projects = {
     /** List all projects visible to the caller — {data, total} (6.0.0, T13). */
-    list: (options?: OrgScopedOptions): Promise<{ data: Project[]; total: number }> =>
-      projectOps.list(this.scope(options)),
+    list: <C extends boolean = false>(options?: OrgScopedOptions<C>): Promise<ContextResult<{ data: Project[]; total: number }, C>> =>
+      this.execute(options, client => projectOps.list(client)),
 
     /** Get a project by id or name. */
-    get: (idOrName: string, options?: OrgScopedOptions): Promise<Project> =>
-      projectOps.get(this.scope(options), idOrName),
+    get: <C extends boolean = false>(idOrName: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Project, C>> =>
+      this.execute(options, client => projectOps.get(client, idOrName)),
 
     /** Create a new project. */
-    create: (input: CreateProjectInput, options?: OrgScopedOptions): Promise<Project> =>
-      projectOps.create(this.scope(options), input),
+    create: <C extends boolean = false>(input: CreateProjectInput, options?: OrgScopedOptions<C>): Promise<ContextResult<Project, C>> =>
+      this.execute(options, client => projectOps.create(client, input)),
 
     /** Update a project's metadata. */
-    update: (idOrName: string, input: UpdateProjectInput, options?: OrgScopedOptions): Promise<Project> =>
-      projectOps.update(this.scope(options), idOrName, input),
+    update: <C extends boolean = false>(idOrName: string, input: UpdateProjectInput, options?: OrgScopedOptions<C>): Promise<ContextResult<Project, C>> =>
+      this.execute(options, client => projectOps.update(client, idOrName, input)),
 
     /** Permanently delete a project (requires confirmation). */
-    delete: (idOrName: string, input: DeleteProjectInput, options?: OrgScopedOptions): Promise<DeleteResult> =>
-      projectOps.deleteProject(this.scope(options), idOrName, input),
+    delete: <C extends boolean = false>(idOrName: string, input: DeleteProjectInput, options?: OrgScopedOptions<C>): Promise<ContextResult<DeleteResult, C>> =>
+      this.execute(options, client => projectOps.deleteProject(client, idOrName, input)),
 
     /** Soft-delete a project; reversible via `restore()`. */
-    softDelete: (idOrName: string, input: DeleteProjectInput, options?: OrgScopedOptions): Promise<DeleteResult> =>
-      projectOps.softDelete(this.scope(options), idOrName, input),
+    softDelete: <C extends boolean = false>(idOrName: string, input: DeleteProjectInput, options?: OrgScopedOptions<C>): Promise<ContextResult<DeleteResult, C>> =>
+      this.execute(options, client => projectOps.softDelete(client, idOrName, input)),
 
     /** Restore a soft-deleted project. */
-    restore: (idOrName: string, options?: OrgScopedOptions): Promise<Project> =>
-      projectOps.restore(this.scope(options), idOrName),
+    restore: <C extends boolean = false>(idOrName: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Project, C>> =>
+      this.execute(options, client => projectOps.restore(client, idOrName)),
 
     /** Rename a project. */
-    rename: (input: RenameProjectInput, options?: OrgScopedOptions): Promise<Project> =>
-      projectOps.rename(this.scope(options), input),
+    rename: <C extends boolean = false>(input: RenameProjectInput, options?: OrgScopedOptions<C>): Promise<ContextResult<Project, C>> =>
+      this.execute(options, client => projectOps.rename(client, input)),
 
     /** Get aggregate summary stats for a project. */
-    getSummary: (idOrName: string, options?: OrgScopedOptions): Promise<ProjectSummaryResponse> =>
-      projectOps.getSummary(this.scope(options), idOrName),
+    getSummary: <C extends boolean = false>(idOrName: string, options?: OrgScopedOptions<C>): Promise<ContextResult<ProjectSummaryResponse, C>> =>
+      this.execute(options, client => projectOps.getSummary(client, idOrName)),
 
     /** Get time-series trends for a project. */
-    getTrends: (idOrName: string, query?: ProjectTrendsQuery, options?: OrgScopedOptions): Promise<ProjectTrends> =>
-      projectOps.getTrends(this.scope(options), idOrName, query),
+    getTrends: <C extends boolean = false>(idOrName: string, query?: ProjectTrendsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<ProjectTrends, C>> =>
+      this.execute(options, client => projectOps.getTrends(client, idOrName, query)),
 
     /** List a project's issues (filtered) — {data, total} (6.0.0, T13).
      * Replaces listIssuesWithCount, which existed only to recover the count
      * the old array return dropped. */
-    listIssues: (idOrName: string, query?: ListProjectIssuesQuery, options?: OrgScopedOptions): Promise<{ data: Issue[]; total: number }> =>
-      projectOps.listIssues(this.scope(options), idOrName, query),
+    listIssues: <C extends boolean = false>(idOrName: string, query?: ListProjectIssuesQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<{ data: Issue[]; total: number }, C>> =>
+      this.execute(options, client => projectOps.listIssues(client, idOrName, query)),
 
     /** Bulk-update the status of many issues in a project. */
-    bulkUpdateIssueStatus: (idOrName: string, updates: BulkIssueStatusUpdate[], options?: OrgScopedOptions): Promise<BulkIssueStatusResult> =>
-      projectOps.bulkUpdateIssueStatus(this.scope(options), idOrName, updates),
+    bulkUpdateIssueStatus: <C extends boolean = false>(idOrName: string, updates: BulkIssueStatusUpdate[], options?: OrgScopedOptions<C>): Promise<ContextResult<BulkIssueStatusResult, C>> =>
+      this.execute(options, client => projectOps.bulkUpdateIssueStatus(client, idOrName, updates)),
 
     /** Merge duplicate issues within a project. */
-    mergeIssues: (idOrName: string, input: MergeIssuesInput, options?: OrgScopedOptions): Promise<MergeIssuesResult> =>
-      projectOps.mergeIssues(this.scope(options), idOrName, input),
+    mergeIssues: <C extends boolean = false>(idOrName: string, input: MergeIssuesInput, options?: OrgScopedOptions<C>): Promise<ContextResult<MergeIssuesResult, C>> =>
+      this.execute(options, client => projectOps.mergeIssues(client, idOrName, input)),
 
     /**
      * Merge one project into another (merge-projects spec v0.3.4) — the
@@ -471,8 +489,8 @@ export class OpsClient {
      * advisory-locked transaction; the source is soft-deleted by default.
      * Pairwise only. Dry-run first: `{ ...input, dryRun: true }`.
      */
-    mergeProjects: (input: MergeProjectsInput, options?: OrgScopedOptions): Promise<MergeProjectsResult> =>
-      projectOps.mergeProjects(this.scope(options), input),
+    mergeProjects: <C extends boolean = false>(input: MergeProjectsInput, options?: OrgScopedOptions<C>): Promise<ContextResult<MergeProjectsResult, C>> =>
+      this.execute(options, client => projectOps.mergeProjects(client, input)),
 
     /**
      * Move a project to another org (project-org-routing-and-rehome §4.1, D14).
@@ -481,8 +499,8 @@ export class OpsClient {
      * project is looked up THERE. Needs `admin`/`owner` in both orgs. Old
      * address becomes a `410 PROJECT_REHOMED` tombstone, not a fork.
      */
-    rehome: (idOrName: string, input: RehomeProjectInput, options?: OrgScopedOptions): Promise<RehomeResponse> =>
-      projectOps.rehome(this.scope(options), idOrName, input),
+    rehome: <C extends boolean = false>(idOrName: string, input: RehomeProjectInput, options?: OrgScopedOptions<C>): Promise<ContextResult<RehomeResponse, C>> =>
+      this.execute(options, client => projectOps.rehome(client, idOrName, input)),
 
     /**
      * The project log (ulu log spec §3.2) — runs, decisions and regressions
@@ -490,16 +508,16 @@ export class OpsClient {
      * A `regression` is a row a run re-detected; a `resolved → open` decision
      * with no run is *reopened by decision* (D12) — keep them apart.
      */
-    getLog: (idOrName: string, query?: ProjectLogQuery, options?: OrgScopedOptions): Promise<ProjectLogPage> =>
-      projectOps.getLog(this.scope(options), idOrName, query),
+    getLog: <C extends boolean = false>(idOrName: string, query?: ProjectLogQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<ProjectLogPage, C>> =>
+      this.execute(options, client => projectOps.getLog(client, idOrName, query)),
 
     /**
      * The log's rollup (§3.3): examined / found / decided / cameBack /
      * activity — a cohort frame on run timestamps and an activity frame on
      * ledger timestamps; `decided` is the CURRENT status of the found issues.
      */
-    getLogStat: (idOrName: string, query?: LogStatQuery, options?: OrgScopedOptions): Promise<ProjectLogStat> =>
-      projectOps.getLogStat(this.scope(options), idOrName, query),
+    getLogStat: <C extends boolean = false>(idOrName: string, query?: LogStatQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<ProjectLogStat, C>> =>
+      this.execute(options, client => projectOps.getLogStat(client, idOrName, query)),
   };
 
   // ============================================
@@ -514,8 +532,8 @@ export class OpsClient {
      * org. `nextCursor` is opaque; pass it back verbatim. Narrow entries with
      * `readRehomeAuditDetails()`.
      */
-    getVisibleAuditLog: (slug: string, query?: OrgAuditFeedQuery): Promise<OrgAuditFeed> =>
-      orgOps.getVisibleAuditLog(this.httpClient, slug, query),
+    getVisibleAuditLog: <C extends boolean = false>(slug: string, query?: OrgAuditFeedQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<OrgAuditFeed, C>> =>
+      this.execute(options, client => orgOps.getVisibleAuditLog(client, slug, query)),
 
     /** The orgs the caller belongs to (personal included) — what `ulu log --orgs` iterates. */
     list: (): Promise<OrgListEntry[]> => orgOps.list(this.httpClient),
@@ -527,8 +545,8 @@ export class OpsClient {
      * path is the org; no `OrgScopedOptions` here for the same reason as
      * `getVisibleAuditLog`.
      */
-    getLogStat: (slug: string, query?: LogStatQuery): Promise<OrgLogStat> =>
-      orgOps.getLogStat(this.httpClient, slug, query),
+    getLogStat: <C extends boolean = false>(slug: string, query?: LogStatQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<OrgLogStat, C>> =>
+      this.execute(options, client => orgOps.getLogStat(client, slug, query)),
   };
 
   // ============================================
@@ -569,81 +587,81 @@ export class OpsClient {
   /** Execution run save, preview, diff, archive, and retrieval */
   readonly runs = {
     /** Save an execution run (agents, scores, recommendations). */
-    save: (input: SaveRunInput, options?: RunCallOptions): Promise<SaveRunResponseWithEcho> =>
-      runOps.save(this.scope(options), input, options),
+    save: <C extends boolean = false>(input: SaveRunInput, options?: RunCallOptions<C>): Promise<ContextResult<SaveRunResponseWithEcho, C>> =>
+      this.execute(options, client => runOps.save(client, input, options)),
 
     /** Preview a save without persisting (dry-run). */
-    validate: (input: SaveRunInput, options?: RunCallOptions): Promise<ValidateRunResponse> =>
-      runOps.validate(this.scope(options), input, options),
+    validate: <C extends boolean = false>(input: SaveRunInput, options?: RunCallOptions<C>): Promise<ContextResult<ValidateRunResponse, C>> =>
+      this.execute(options, client => runOps.validate(client, input, options)),
 
     /** Diff two runs to surface regressions/improvements. */
-    diff: (query: RunDiffQuery, options?: OrgScopedOptions): Promise<RunDiffResult> =>
-      runOps.diff(this.scope(options), query),
+    diff: <C extends boolean = false>(query: RunDiffQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<RunDiffResult, C>> =>
+      this.execute(options, client => runOps.diff(client, query)),
 
     /** Archive old runs by number/date/keep-last filter. */
-    archive: (input: ArchiveRunsInput, options?: OrgScopedOptions): Promise<ArchiveRunsResult> =>
-      runOps.archive(this.scope(options), input),
+    archive: <C extends boolean = false>(input: ArchiveRunsInput, options?: OrgScopedOptions<C>): Promise<ContextResult<ArchiveRunsResult, C>> =>
+      this.execute(options, client => runOps.archive(client, input)),
 
     /** Update a run (project + run number). Discards the analysis-write echo (use updateWithEcho); on analysis-bearing calls can throw AnalysisEchoMismatchError AFTER the write landed. */
-    update: (input: UpdateRunByNumberInput, options?: RunCallOptions): Promise<RunWriteEcho> =>
-      runOps.update(this.scope(options), input, options),
+    update: <C extends boolean = false>(input: UpdateRunByNumberInput, options?: RunCallOptions<C>): Promise<ContextResult<RunWriteEcho, C>> =>
+      this.execute(options, client => runOps.update(client, input, options)),
 
     /** Read-only preview of an analysis-bearing update (project + run number): what a write under the requested record_write_mode would supersede, create, and retire. */
-    previewUpdate: (input: UpdateRunPreviewByNumberInput, options?: RunCallOptions): Promise<RunUpdatePreview> =>
-      runOps.previewUpdate(this.scope(options), input, options),
+    previewUpdate: <C extends boolean = false>(input: UpdateRunPreviewByNumberInput, options?: RunCallOptions<C>): Promise<ContextResult<RunUpdatePreview, C>> =>
+      this.execute(options, client => runOps.previewUpdate(client, input, options)),
 
     /** Update (project + run number) returning the run AND the §3.9 analysis-write echo — success-path visibility of superseded/created counts (F17). */
-    updateWithEcho: (input: UpdateRunByNumberInput, options?: RunCallOptions): Promise<UpdateRunWithEchoResult> =>
-      runOps.updateWithEcho(this.scope(options), input, options),
+    updateWithEcho: <C extends boolean = false>(input: UpdateRunByNumberInput, options?: RunCallOptions<C>): Promise<ContextResult<UpdateRunWithEchoResult, C>> =>
+      this.execute(options, client => runOps.updateWithEcho(client, input, options)),
 
     /** List run summaries for a project — {data, total} (6.0.0, T13). */
-    listByProject: (projectId: string, query?: ListRunsQuery, options?: OrgScopedOptions): Promise<{ data: RunSummary[]; total: number }> =>
-      runOps.listByProject(this.scope(options), projectId, query),
+    listByProject: <C extends boolean = false>(projectId: string, query?: ListRunsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<{ data: RunSummary[]; total: number }, C>> =>
+      this.execute(options, client => runOps.listByProject(client, projectId, query)),
 
     /** Get the latest run for a project (optionally by workflow type). */
-    getLatest: (projectId: string, workflowType?: string, options?: OrgScopedOptions): Promise<Run> =>
-      runOps.getLatest(this.scope(options), projectId, workflowType),
+    getLatest: <C extends boolean = false>(projectId: string, workflowType?: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Run, C>> =>
+      this.execute(options, client => runOps.getLatest(client, projectId, workflowType)),
 
     /** Get full details for a run (defaults to latest when runNumber omitted). */
-    getDetails: (projectId: string, runNumber?: number, options?: OrgScopedOptions): Promise<RunDetails> =>
-      runOps.getDetails(this.scope(options), projectId, runNumber),
+    getDetails: <C extends boolean = false>(projectId: string, runNumber?: number, options?: OrgScopedOptions<C>): Promise<ContextResult<RunDetails, C>> =>
+      this.execute(options, client => runOps.getDetails(client, projectId, runNumber)),
 
     /** Get a single run by its id. */
-    get: (runId: string, options?: OrgScopedOptions): Promise<Run> =>
-      runOps.get(this.scope(options), runId),
+    get: <C extends boolean = false>(runId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Run, C>> =>
+      this.execute(options, client => runOps.get(client, runId)),
 
     /** Update a run by id. Discards the analysis-write echo (use updateByIdWithEcho); on analysis-bearing calls can throw AnalysisEchoMismatchError AFTER the write landed. */
-    updateById: (runId: string, input: UpdateRunInput, options?: RunCallOptions): Promise<RunWriteEcho> =>
-      runOps.updateById(this.scope(options), runId, input, options),
+    updateById: <C extends boolean = false>(runId: string, input: UpdateRunInput, options?: RunCallOptions<C>): Promise<ContextResult<RunWriteEcho, C>> =>
+      this.execute(options, client => runOps.updateById(client, runId, input, options)),
 
     /** Read-only preview of an analysis-bearing update, by run id. See previewUpdate. */
-    previewUpdateById: (runId: string, input: UpdateRunPreviewInput, options?: RunCallOptions): Promise<RunUpdatePreview> =>
-      runOps.previewUpdateById(this.scope(options), runId, input, options),
+    previewUpdateById: <C extends boolean = false>(runId: string, input: UpdateRunPreviewInput, options?: RunCallOptions<C>): Promise<ContextResult<RunUpdatePreview, C>> =>
+      this.execute(options, client => runOps.previewUpdateById(client, runId, input, options)),
 
     /** By-id sibling of updateWithEcho (F17). */
-    updateByIdWithEcho: (runId: string, input: UpdateRunInput, options?: RunCallOptions): Promise<UpdateRunWithEchoResult> =>
-      runOps.updateByIdWithEcho(this.scope(options), runId, input, options),
+    updateByIdWithEcho: <C extends boolean = false>(runId: string, input: UpdateRunInput, options?: RunCallOptions<C>): Promise<ContextResult<UpdateRunWithEchoResult, C>> =>
+      this.execute(options, client => runOps.updateByIdWithEcho(client, runId, input, options)),
 
     /** Delete a run by id. */
-    delete: (runId: string, options?: OrgScopedOptions): Promise<DeleteResult> =>
-      runOps.deleteRun(this.scope(options), runId),
+    delete: <C extends boolean = false>(runId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<DeleteResult, C>> =>
+      this.execute(options, client => runOps.deleteRun(client, runId)),
 
     // Analysis operations (v0.3.0)
     /** Get the structured analysis attached to a run. */
-    getAnalysis: (runId: string, options?: OrgScopedOptions): Promise<RunAnalysis> =>
-      runOps.getAnalysis(this.scope(options), runId),
+    getAnalysis: <C extends boolean = false>(runId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<RunAnalysis, C>> =>
+      this.execute(options, client => runOps.getAnalysis(client, runId)),
 
     /** List analyses across a project's runs. */
-    getProjectAnalysis: (projectId: string, query?: ProjectAnalysisQuery, options?: OrgScopedOptions): Promise<ProjectAnalysisList> =>
-      runOps.getProjectAnalysis(this.scope(options), projectId, query),
+    getProjectAnalysis: <C extends boolean = false>(projectId: string, query?: ProjectAnalysisQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<ProjectAnalysisList, C>> =>
+      this.execute(options, client => runOps.getProjectAnalysis(client, projectId, query)),
 
     /** Query individual analysis records across runs. */
-    queryAnalysisRecords: (query?: AnalysisRecordsQuery, options?: OrgScopedOptions): Promise<AnalysisRecordsList> =>
-      runOps.queryAnalysisRecords(this.scope(options), query),
+    queryAnalysisRecords: <C extends boolean = false>(query?: AnalysisRecordsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AnalysisRecordsList, C>> =>
+      this.execute(options, client => runOps.queryAnalysisRecords(client, query)),
 
     /** Get per-run analysis history for a single agent. */
-    getAgentRunsAnalysis: (agentName: string, query: AgentRunsAnalysisQuery, options?: OrgScopedOptions): Promise<AgentRunsAnalysis> =>
-      runOps.getAgentRunsAnalysis(this.scope(options), agentName, query),
+    getAgentRunsAnalysis: <C extends boolean = false>(agentName: string, query: AgentRunsAnalysisQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AgentRunsAnalysis, C>> =>
+      this.execute(options, client => runOps.getAgentRunsAnalysis(client, agentName, query)),
   };
 
   // ============================================
@@ -653,64 +671,64 @@ export class OpsClient {
   /** Issue CRUD, search, status management, notes, and bulk operations */
   readonly issues = {
     /** Create a user-submitted issue. */
-    create: (input: CreateUserIssueInput, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.create(this.scope(options), input),
+    create: <C extends boolean = false>(input: CreateUserIssueInput, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.create(client, input)),
 
     /** Search issues by text/filters. */
-    search: (query: IssueSearchQuery, options?: OrgScopedOptions): Promise<Issue[]> =>
-      issueOps.search(this.scope(options), query),
+    search: <C extends boolean = false>(query: IssueSearchQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue[], C>> =>
+      this.execute(options, client => issueOps.search(client, query)),
 
     /** Get an issue by its fingerprint within a project. */
-    getByFingerprint: (fingerprint: string, project: string, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.getByFingerprint(this.scope(options), fingerprint, project),
+    getByFingerprint: <C extends boolean = false>(fingerprint: string, project: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.getByFingerprint(client, fingerprint, project)),
 
     /** Update an issue's status by fingerprint + project. */
-    updateStatusByFingerprint: (fingerprint: string, project: string, input: UpdateIssueStatusInput, options?: OrgScopedOptions): Promise<StatusUpdateResult> =>
-      issueOps.updateStatusByFingerprint(this.scope(options), fingerprint, project, input),
+    updateStatusByFingerprint: <C extends boolean = false>(fingerprint: string, project: string, input: UpdateIssueStatusInput, options?: OrgScopedOptions<C>): Promise<ContextResult<StatusUpdateResult, C>> =>
+      this.execute(options, client => issueOps.updateStatusByFingerprint(client, fingerprint, project, input)),
 
     /** Get an issue by id. */
-    get: (issueId: string, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.get(this.scope(options), issueId),
+    get: <C extends boolean = false>(issueId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.get(client, issueId)),
 
     /** Get an issue with notes and history detail. */
-    getDetails: (issueId: string, options?: OrgScopedOptions): Promise<IssueDetails> =>
-      issueOps.getDetails(this.scope(options), issueId),
+    getDetails: <C extends boolean = false>(issueId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<IssueDetails, C>> =>
+      this.execute(options, client => issueOps.getDetails(client, issueId)),
 
     /** Get an issue's change history. */
-    getHistory: (issueId: string, options?: OrgScopedOptions): Promise<IssueHistoryEnvelope> =>
-      issueOps.getHistory(this.scope(options), issueId),
+    getHistory: <C extends boolean = false>(issueId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<IssueHistoryEnvelope, C>> =>
+      this.execute(options, client => issueOps.getHistory(client, issueId)),
 
     /** Update an issue's status by id. */
-    updateStatus: (issueId: string, input: UpdateIssueStatusInput, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.updateStatus(this.scope(options), issueId, input),
+    updateStatus: <C extends boolean = false>(issueId: string, input: UpdateIssueStatusInput, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.updateStatus(client, issueId, input)),
 
     /** Update an issue's metadata by id. */
-    update: (issueId: string, input: UpdateIssueInput, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.update(this.scope(options), issueId, input),
+    update: <C extends boolean = false>(issueId: string, input: UpdateIssueInput, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.update(client, issueId, input)),
 
     /** Add a note to an issue. */
-    addNote: (issueId: string, input: CreateIssueNoteInput, options?: OrgScopedOptions): Promise<IssueNote> =>
-      issueOps.addNote(this.scope(options), issueId, input),
+    addNote: <C extends boolean = false>(issueId: string, input: CreateIssueNoteInput, options?: OrgScopedOptions<C>): Promise<ContextResult<IssueNote, C>> =>
+      this.execute(options, client => issueOps.addNote(client, issueId, input)),
 
     /** Restore a soft-deleted issue. */
-    restore: (issueId: string, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.restore(this.scope(options), issueId),
+    restore: <C extends boolean = false>(issueId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.restore(client, issueId)),
 
     /** Soft-delete an active issue; reversible via `restore()`. */
-    softDelete: (issueId: string, options?: OrgScopedOptions): Promise<DeleteResult> =>
-      issueOps.softDelete(this.scope(options), issueId),
+    softDelete: <C extends boolean = false>(issueId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<DeleteResult, C>> =>
+      this.execute(options, client => issueOps.softDelete(client, issueId)),
 
     /** Undo the most recent change to an issue. */
-    undoLastChange: (issueId: string, options?: OrgScopedOptions): Promise<Issue> =>
-      issueOps.undoLastChange(this.scope(options), issueId),
+    undoLastChange: <C extends boolean = false>(issueId: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue, C>> =>
+      this.execute(options, client => issueOps.undoLastChange(client, issueId)),
 
     /** Bulk-update issue statuses; returns `{ updated, failed }`. */
-    bulkUpdateStatus: (updates: BulkStatusUpdateItem[], options?: OrgScopedOptions): Promise<BulkIssueStatusResult> =>
-      issueOps.bulkUpdateStatus(this.scope(options), updates),
+    bulkUpdateStatus: <C extends boolean = false>(updates: BulkStatusUpdateItem[], options?: OrgScopedOptions<C>): Promise<ContextResult<BulkIssueStatusResult, C>> =>
+      this.execute(options, client => issueOps.bulkUpdateStatus(client, updates)),
 
     /** List a project's issues by project id (filtered). */
-    listByProject: (projectId: string, query?: ListIssuesQuery, options?: OrgScopedOptions): Promise<Issue[]> =>
-      issueOps.listByProject(this.scope(options), projectId, query),
+    listByProject: <C extends boolean = false>(projectId: string, query?: ListIssuesQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<Issue[], C>> =>
+      this.execute(options, client => issueOps.listByProject(client, projectId, query)),
   };
 
   // ============================================
@@ -720,64 +738,64 @@ export class OpsClient {
   /** Agent performance, taxonomy analytics, burndown, velocity, and discovery */
   readonly analytics = {
     /** Get per-agent performance metrics. */
-    getAgentPerformance: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<AgentPerformance[]> =>
-      analyticsOps.getAgentPerformance(this.scope(options), query),
+    getAgentPerformance: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AgentPerformance[], C>> =>
+      this.execute(options, client => analyticsOps.getAgentPerformance(client, query)),
 
     /** Get agent reliability (convergence/recurrence) metrics. */
-    getAgentReliability: (query?: AgentReliabilityQuery, options?: OrgScopedOptions): Promise<AgentReliabilityResult> =>
-      analyticsOps.getAgentReliability(this.scope(options), query),
+    getAgentReliability: <C extends boolean = false>(query?: AgentReliabilityQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AgentReliabilityResult, C>> =>
+      this.execute(options, client => analyticsOps.getAgentReliability(client, query)),
 
     /** Get an agent's lifecycle timeline. */
-    getAgentLifecycle: (agentName: string, query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<AgentLifecycleEntry[]> =>
-      analyticsOps.getAgentLifecycle(this.scope(options), agentName, query),
+    getAgentLifecycle: <C extends boolean = false>(agentName: string, query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AgentLifecycleEntry[], C>> =>
+      this.execute(options, client => analyticsOps.getAgentLifecycle(client, agentName, query)),
 
     /** Get issue resolution-rate metrics. */
-    getResolutionRates: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<ResolutionRateResult[]> =>
-      analyticsOps.getResolutionRates(this.scope(options), query),
+    getResolutionRates: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<ResolutionRateResult[], C>> =>
+      this.execute(options, client => analyticsOps.getResolutionRates(client, query)),
 
     /** Get files with the most recurring issues. */
-    getFileHotspots: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<FileHotspotResult[]> =>
-      analyticsOps.getFileHotspots(this.scope(options), query),
+    getFileHotspots: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<FileHotspotResult[], C>> =>
+      this.execute(options, client => analyticsOps.getFileHotspots(client, query)),
 
     /** Get the distribution of issues across the failure taxonomy. */
-    getTaxonomyDistribution: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<TaxonomyDistributionResult[]> =>
-      analyticsOps.getTaxonomyDistribution(this.scope(options), query),
+    getTaxonomyDistribution: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<TaxonomyDistributionResult[], C>> =>
+      this.execute(options, client => analyticsOps.getTaxonomyDistribution(client, query)),
 
     /** Get the full taxonomy analytics breakdown. */
-    getFullTaxonomy: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<FullTaxonomyAnalyticsResult> =>
-      analyticsOps.getFullTaxonomy(this.scope(options), query),
+    getFullTaxonomy: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<FullTaxonomyAnalyticsResult, C>> =>
+      this.execute(options, client => analyticsOps.getFullTaxonomy(client, query)),
 
     /** Get issue burndown over time. */
-    getBurndown: (query?: BurndownQuery, options?: OrgScopedOptions): Promise<BurndownResultResponse> =>
-      analyticsOps.getBurndown(this.scope(options), query),
+    getBurndown: <C extends boolean = false>(query?: BurndownQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<BurndownResultResponse, C>> =>
+      this.execute(options, client => analyticsOps.getBurndown(client, query)),
 
     /** Get resolution velocity over time. */
-    getVelocity: (query?: VelocityQuery, options?: OrgScopedOptions): Promise<VelocityResultResponse> =>
-      analyticsOps.getVelocity(this.scope(options), query),
+    getVelocity: <C extends boolean = false>(query?: VelocityQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<VelocityResultResponse, C>> =>
+      this.execute(options, client => analyticsOps.getVelocity(client, query)),
 
     /** Get issue-discovery rate metrics. */
-    getDiscovery: (query?: DiscoveryQuery, options?: OrgScopedOptions): Promise<DiscoveryResultResponse> =>
-      analyticsOps.getDiscovery(this.scope(options), query),
+    getDiscovery: <C extends boolean = false>(query?: DiscoveryQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<DiscoveryResultResponse, C>> =>
+      this.execute(options, client => analyticsOps.getDiscovery(client, query)),
 
     /** Get the agent comparison matrix. */
-    getAgentMatrix: (query?: AgentMatrixQuery, options?: OrgScopedOptions): Promise<AgentMatrixResultResponse> =>
-      analyticsOps.getAgentMatrix(this.scope(options), query),
+    getAgentMatrix: <C extends boolean = false>(query?: AgentMatrixQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AgentMatrixResultResponse, C>> =>
+      this.execute(options, client => analyticsOps.getAgentMatrix(client, query)),
 
     /** Get a high-level trend summary. */
-    getTrendSummary: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<TrendSummaryResult[]> =>
-      analyticsOps.getTrendSummary(this.scope(options), query),
+    getTrendSummary: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<TrendSummaryResult[], C>> =>
+      this.execute(options, client => analyticsOps.getTrendSummary(client, query)),
 
     /**
      * Get analytics by metric name (generic endpoint).
      * Returns unvalidated data — use typed methods (getAgentPerformance, etc.) for validated responses.
      *
      */
-    getByMetric: (metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<unknown> =>
-      analyticsOps.getByMetric(this.scope(options), metric, query),
+    getByMetric: <C extends boolean = false>(metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<unknown, C>> =>
+      this.execute(options, client => analyticsOps.getByMetric(client, metric, query)),
 
     /** List agents known to the analytics layer. */
-    listAgents: (query?: AnalyticsQuery, options?: OrgScopedOptions): Promise<AgentInfo[]> =>
-      analyticsOps.listAgents(this.scope(options), query),
+    listAgents: <C extends boolean = false>(query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<AgentInfo[], C>> =>
+      this.execute(options, client => analyticsOps.listAgents(client, query)),
 
   };
 

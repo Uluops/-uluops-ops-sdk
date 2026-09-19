@@ -2458,3 +2458,22 @@ report bytes (omitted/null are equivalent), and retains the original accepted ha
 after enrichment. A key cannot switch contracts. Use a new key only for an intentional
 new submission. SDK-core's F20 code-preserving build is required for these errors;
 final stable dependency pins are a coordinated release gate.
+
+### Authoritative response org context
+
+Org-scoped operations accept `withResponseContext: true` in their trailing options:
+
+```typescript
+const result = await client.projects.list({ withResponseContext: true });
+console.log(result.data, result.context); // context is server-supplied or null
+const projects = await client.projects.list(); // existing return shape unchanged
+```
+
+Context is `{ version: 1, orgSlug, source }`, where source is `bound-key`, `request`,
+or `personal-default`. Omitting `org` does not prove personal routing: a bound key
+resolves to its org. Each operation carries its own context through response
+validation and transforms. Errors may expose `responseContext`, including failures
+parsing a successful write response; read the write outcome before retrying.
+Missing/malformed metadata from older servers yields `null` while preserving data.
+The org-path `getVisibleAuditLog` and `getLogStat` methods accept these options as
+their third argument. Auth/admin methods retain their existing contracts.
