@@ -47,7 +47,7 @@ import {
   validateUpdateRunInput,
   validateUpdateRunPreviewInput,
 } from '../config/validators.js';
-import { AnalysisEchoMismatchError, OpsApiError } from '../errors/errors.js';
+import { AnalysisEchoMismatchError, OpsApiError, UnsupportedContractError } from '../errors/errors.js';
 
 /**
  * Save an execution run with agent scores and recommendations.
@@ -104,16 +104,35 @@ export async function save(
   // the same key and the server returns the original run (deduplicated:true).
   // Callers who want two identical runs pass explicit distinct keys.
   const idempotencyKey = input.idempotencyKey ?? deriveIdempotencyKey(payload);
+  if (input.idempotencyContract && input.idempotencyContract !== 'legacy-v1') {
+    await requireIdempotencyContract(client, input.idempotencyContract);
+  }
   // rawEnvelope: `analysisWrite` is a sibling of `data` (same placement as
   // the update envelope); the default unwrap would discard it.
   const envelope = parseSaveEnvelope(await client.request<unknown>(
     'POST',
     '/runs',
-    { ...payload, idempotencyKey },
+    { ...payload, idempotencyKey, ...(input.idempotencyContract ? { idempotencyContract: input.idempotencyContract } : {}) },
     { retryMutations: true, rawEnvelope: true }
   ), '/runs');
   assertSaveAnalysisWriteEcho(input, envelope);
   return { ...envelope.data, analysisWrite: envelope.analysisWrite ?? null };
+}
+
+/** Negotiation uses this operation's scoped client; never cache across requests. */
+async function requireIdempotencyContract(client: OpsHttpClient, selector: string): Promise<void> {
+  let body: unknown;
+  try {
+    body = await client.request<unknown>('GET', '/capabilities', undefined, { rawEnvelope: true });
+  } catch (error) {
+    if (!(error instanceof OpsApiError) || error.statusCode !== 404 ||
+        (error.code && error.code !== 'NOT_FOUND')) throw error;
+    throw new UnsupportedContractError('idempotency', selector);
+  }
+  const parsed = z.object({ contracts: z.object({ idempotency: z.array(z.string()) }) }).safeParse(body);
+  if (!parsed.success || !parsed.data.contracts.idempotency.includes(selector)) {
+    throw new UnsupportedContractError('idempotency', selector);
+  }
 }
 
 /** Deterministic default idempotency key: sha256 of the outgoing payload. */

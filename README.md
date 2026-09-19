@@ -2444,3 +2444,17 @@ ULUOPS_DEBUG=true node app.js
 MIT License - see [LICENSE](./LICENSE) for details.
 
 Occurrence `correlationStatus` is a saved detection fact, separate from current issue status. Legacy rows may be null, and run recommendation status is `unknown` when no fact was captured. Discovery retains regression-inclusive `recurringIssues` and adds optional `regressionIssues`, `observedIssues`, `unknownIssues` (summary `totalRegressions`, `totalObserved`, `totalUnknown`); absent fields indicate an older API, not zero.
+
+
+### Versioned idempotency (F20)
+
+`runs.save({ ..., idempotencyKey: "submission-1", idempotencyContract: "report-v2", rawMarkdown: report })`
+negotiates support through authenticated `/capabilities` using the same org context.
+Unsupported selection throws `UnsupportedContractError` before the write. Omission
+keeps `legacy-v1`, whose hash excludes report text. Optional `result.idempotency`
+reports the contract, replay status, comparison quality and excluded fields; older
+servers omit it. A historical hashless replay is `unverifiable`. V2 compares exact
+report bytes (omitted/null are equivalent), and retains the original accepted hash
+after enrichment. A key cannot switch contracts. Use a new key only for an intentional
+new submission. SDK-core's F20 code-preserving build is required for these errors;
+final stable dependency pins are a coordinated release gate.

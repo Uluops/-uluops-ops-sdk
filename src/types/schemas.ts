@@ -287,7 +287,7 @@ export const SaveRunInputSchema = z.object({
   agents: z.array(AgentInputSchema).min(1).max(100),
   recommendations: z.array(RecommendationInputSchema).max(500),
   timestamp: z.string().datetime().optional(),
-  rawMarkdown: z.string().max(500_000).optional(),
+  rawMarkdown: z.string().max(500_000).nullish(),
   summary: z
     .object({
       allGatesPassed: z.boolean().optional(),
@@ -295,6 +295,7 @@ export const SaveRunInputSchema = z.object({
     })
     .optional(),
   idempotencyKey: z.string().max(100).optional(),
+  idempotencyContract: z.enum(['legacy-v1', 'report-v2']).optional(),
   definitionType: z.string().max(20).optional(),
   definitionName: z.string().max(100).optional(),
   definitionVersion: z.string().max(50).optional(),

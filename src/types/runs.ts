@@ -227,9 +227,11 @@ export interface SaveRunInput {
   agents: AgentInput[];
   recommendations: RecommendationInput[];
   timestamp?: string;
-  rawMarkdown?: string;
+  rawMarkdown?: string | null;
   summary?: RunSummaryInput;
   idempotencyKey?: string;
+  /** Opt-in exact report comparison; omission preserves legacy-v1. */
+  idempotencyContract?: 'legacy-v1' | 'report-v2';
   definitionType?: string;
   definitionName?: string;
   definitionVersion?: string;

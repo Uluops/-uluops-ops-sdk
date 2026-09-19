@@ -774,6 +774,12 @@ export const SaveRunResponseSchema = z.object({
   // are not fabricated). Fresh saves and post-migration replays are non-null.
   correlation: CorrelationResultResponseSchema.nullable(),
   deduplicated: z.boolean(),
+  idempotency: z.object({
+    contract: z.enum(['legacy-v1', 'report-v2']),
+    replayed: z.boolean(),
+    comparison: z.enum(['matched', 'unverifiable']),
+    excludedFields: z.array(z.string()),
+  }).optional(),
   analysisRecords: z.lazy(() => z.array(AnalysisRecordResponseSchema)).optional(),
   analysisSummary: z.lazy(() => AnalysisSummaryResponseSchema).optional(),
 });

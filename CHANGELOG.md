@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### F20
+
+- Add opt-in report-v2 idempotency, per-operation capability negotiation, typed unsupported-contract refusals before writes, and optional replay metadata. Requires the F20 SDK-core compatibility build.
+
 ### Added
 
 - **F02 — Analysis type declarations and provenance.** Save/update validation retains explicit `agentType` on records and summaries. Read schemas preserve type source and exact definition ID/version while accepting older responses. Unresolved and historically inferred attribution is `unknown`.

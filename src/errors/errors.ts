@@ -266,3 +266,17 @@ export class MfaRequiredError extends Error {
 export function isMfaRequiredError(err: unknown): err is MfaRequiredError {
   return err instanceof MfaRequiredError;
 }
+
+/** Requested semantics are unavailable; the write was never attempted. */
+export class UnsupportedContractError extends Error {
+  readonly code = 'UNSUPPORTED_CONTRACT';
+  readonly applicationState = 'not_applied';
+  constructor(readonly family: string, readonly selector: string) {
+    super(`Server does not advertise ${family} contract ${selector}; no write was attempted`);
+    this.name = 'UnsupportedContractError';
+  }
+}
+
+export function isUnsupportedContractError(error: unknown): error is UnsupportedContractError {
+  return error instanceof UnsupportedContractError;
+}
