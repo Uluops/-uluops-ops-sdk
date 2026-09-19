@@ -1393,7 +1393,7 @@ data.forEach(s => console.log(s.decision, s.systemMetrics));
 
 #### `client.runs.queryAnalysisRecords(query)`
 
-F02 analysis attribution: set `agentType` on each record or summary for an unregistered agent (for example, `{ agentName: 'local-map', agentType: 'explorer', decision: 'TRACED' }`). With multiple agents, name the agent explicitly. The API resolves registered agents at the saved execution version and rejects a conflicting declaration. Read `agentTypeSource` (`registry`, `declared`, `unresolved`, historical `inferred` or null) alongside `agentTypeDefinitionId` and `agentTypeDefinitionVersion`. Legacy inferred attribution reads as `unknown`; filter with `{ agentType: 'unknown' }` to find it. Later registry changes do not relabel saved analysis. These fields require the F02 API; final compatible package pins are part of the coordinated release.
+F02 analysis attribution: set `agentType` on each record or summary for an unregistered agent (for example, `{ agentName: 'local-map', agentType: 'explorer', decision: 'TRACED' }`). With multiple agents, name the agent explicitly. The API resolves registered agents at the saved execution version and rejects a conflicting declaration. Read `agentTypeSource` (`registry`, `declared`, `unresolved`, historical `inferred` or null) alongside `agentTypeDefinitionId` and `agentTypeDefinitionVersion`. Legacy inferred attribution reads as `unknown`; filter with `{ agentType: 'unknown' }` to find it. Later registry changes do not relabel saved analysis. These fields require an API that persists analysis attribution; older responses remain accepted, with missing provenance left unknown.
 
 Cross-project query for analysis records with filters (v0.3.0).
 
@@ -2326,6 +2326,44 @@ Available validators: `validateRegisterInput`, `validateLoginInput`, `validateCr
 
 ## Advanced Usage
 
+### Captured occurrence history
+
+Occurrence `correlationStatus` is a saved detection fact, separate from current issue status. Legacy rows may be null, and run recommendation status is `unknown` when no fact was captured. Discovery retains regression-inclusive `recurringIssues` and adds optional `regressionIssues`, `observedIssues`, `unknownIssues` (summary `totalRegressions`, `totalObserved`, `totalUnknown`); absent fields indicate an older API, not zero.
+
+
+### Versioned idempotency
+
+`runs.save({ ..., idempotencyKey: "submission-1", idempotencyContract: "report-v2", rawMarkdown: report })`
+negotiates support through authenticated `/capabilities` using the same org context.
+Unsupported selection throws `UnsupportedContractError` before the write. Omission
+keeps `legacy-v1`, whose hash excludes report text. Optional `result.idempotency`
+reports the contract, replay status, comparison quality and excluded fields; older
+servers omit it. A historical hashless replay is `unverifiable`. V2 compares exact
+report bytes (omitted/null are equivalent), and retains the original accepted hash
+after enrichment. A key cannot switch contracts. Use a new key only for an intentional
+new submission. This release pins `@uluops/sdk-core` 0.18.0 to preserve structured error codes
+and details. Enabling `report-v2` requires a server advertising that capability.
+
+### Authoritative response org context
+
+Org-scoped operations accept `withResponseContext: true` in their trailing options:
+
+```typescript
+const result = await client.projects.list({ withResponseContext: true });
+console.log(result.data, result.context); // context is server-supplied or null
+const projects = await client.projects.list(); // existing return shape unchanged
+```
+
+Context is `{ version: 1, orgSlug, source }`, where source is `bound-key`, `request`,
+or `personal-default`. Omitting `org` does not prove personal routing: a bound key
+resolves to its org. Each operation carries its own context through response
+validation and transforms. Errors may expose `responseContext`, including failures
+parsing a successful write response; read the write outcome before retrying.
+Missing/malformed metadata from older servers yields `null` while preserving data.
+The org-path `getVisibleAuditLog` and `getLogStat` methods accept these options as
+their third argument. Auth/admin methods retain their existing contracts.
+
+
 ### Using the Low-Level HTTP Client
 
 > **Prefer `OpsClient`** for all standard operations. Use `OpsHttpClient` directly only when you need custom endpoints or raw response access.
@@ -2442,38 +2480,3 @@ ULUOPS_DEBUG=true node app.js
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
-
-Occurrence `correlationStatus` is a saved detection fact, separate from current issue status. Legacy rows may be null, and run recommendation status is `unknown` when no fact was captured. Discovery retains regression-inclusive `recurringIssues` and adds optional `regressionIssues`, `observedIssues`, `unknownIssues` (summary `totalRegressions`, `totalObserved`, `totalUnknown`); absent fields indicate an older API, not zero.
-
-
-### Versioned idempotency (F20)
-
-`runs.save({ ..., idempotencyKey: "submission-1", idempotencyContract: "report-v2", rawMarkdown: report })`
-negotiates support through authenticated `/capabilities` using the same org context.
-Unsupported selection throws `UnsupportedContractError` before the write. Omission
-keeps `legacy-v1`, whose hash excludes report text. Optional `result.idempotency`
-reports the contract, replay status, comparison quality and excluded fields; older
-servers omit it. A historical hashless replay is `unverifiable`. V2 compares exact
-report bytes (omitted/null are equivalent), and retains the original accepted hash
-after enrichment. A key cannot switch contracts. Use a new key only for an intentional
-new submission. SDK-core's F20 code-preserving build is required for these errors;
-final stable dependency pins are a coordinated release gate.
-
-### Authoritative response org context
-
-Org-scoped operations accept `withResponseContext: true` in their trailing options:
-
-```typescript
-const result = await client.projects.list({ withResponseContext: true });
-console.log(result.data, result.context); // context is server-supplied or null
-const projects = await client.projects.list(); // existing return shape unchanged
-```
-
-Context is `{ version: 1, orgSlug, source }`, where source is `bound-key`, `request`,
-or `personal-default`. Omitting `org` does not prove personal routing: a bound key
-resolves to its org. Each operation carries its own context through response
-validation and transforms. Errors may expose `responseContext`, including failures
-parsing a successful write response; read the write outcome before retrying.
-Missing/malformed metadata from older servers yields `null` while preserving data.
-The org-path `getVisibleAuditLog` and `getLogStat` methods accept these options as
-their third argument. Auth/admin methods retain their existing contracts.

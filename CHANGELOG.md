@@ -4,29 +4,26 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [6.7.0] - 2026-09-19
 
-### F13
+### Added
 
 - Add withResponseContext to org-scoped operations, preserving default return shapes and attaching context to post-response validation errors. Isolate concurrent org metadata while sharing authentication refresh and rate-limit state.
 
-### F20
 
-- Add opt-in report-v2 idempotency, per-operation capability negotiation, typed unsupported-contract refusals before writes, and optional replay metadata. Requires the F20 SDK-core compatibility build.
-
-### Added
+- Add opt-in report-v2 idempotency, per-operation capability negotiation, typed unsupported-contract refusals before writes, and optional replay metadata. Pins `@uluops/sdk-core` 0.18.0, preserving structured 404/409 error codes and details. Opt-in report-v2 requires API capability support.
 
 - **F02 — Analysis type declarations and provenance.** Save/update validation retains explicit `agentType` on records and summaries. Read schemas preserve type source and exact definition ID/version while accepting older responses. Unresolved and historically inferred attribution is `unknown`.
 
-### Added
-
 - **F01 — Occurrence history fields.** Retain optional, nullable occurrence `correlationStatus`, additive discovery counts and project-log `occurrenceCounts` in response schemas. Older producer responses remain accepted. Document the distinction between saved occurrence facts, current issue status and original run counts.
 
-## [6.6.1] - 2026-09-18
+Includes the following unpublished 6.6.x candidates.
+
+## [6.6.1] - 2026-09-18 (unpublished candidate)
 
 - Send canonical matrix thresholds and retain eligibility metadata (F22); includes the 6.6.0 analytics wire-contract changes.
 
-## [6.6.0] - 2026-09-18
+## [6.6.0] - 2026-09-18 (unpublished candidate)
 
 ### Added
 
