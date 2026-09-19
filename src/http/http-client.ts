@@ -7,7 +7,7 @@
  * above this layer.
  */
 
-import { HttpClient } from '@uluops/sdk-core/http';
+import { HttpClient, type RequestOptions, type ResponseContext, type WithResponseContext } from '@uluops/sdk-core/http';
 import type { SecurityEventHandler } from '@uluops/sdk-core/http';
 import { DEFAULT_BASE_URL, SDK_VERSION } from '../config/constants.js';
 import { InputValidationError } from '../config/validators.js';
@@ -220,14 +220,7 @@ export class OpsHttpClient extends HttpClient {
     // rate-limit state recorded through a view was invisible on the root
     // (ship run #48, code-auditor). Forward reads and writes of those fields
     // to the root so every view IS the root for state, and a view for headers.
-    for (const field of SHARED_CLIENT_STATE) {
-      Object.defineProperty(view, field, {
-        get: () => (root as unknown as Record<string, unknown>)[field],
-        set: (value: unknown) => { (root as unknown as Record<string, unknown>)[field] = value; },
-        enumerable: false,
-        configurable: false,
-      });
-    }
+    this.shareClientState(view, root);
     try {
       assertOrgSlug(org, 'org');
       view.orgOverride = org;
@@ -242,37 +235,53 @@ export class OpsHttpClient extends HttpClient {
     return this.orgOverride;
   }
 
-  override request<T>(
-    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
-    endpoint: string,
-    data?: object,
-    options?: {
-      params?: object;
-      retries?: number;
-      retryMutations?: boolean;
-      headers?: Record<string, string>;
-      skipAuth?: boolean;
-      rawEnvelope?: boolean;
+  private shareClientState(view: OpsHttpClient, root: OpsHttpClient): void {
+    for (const field of SHARED_CLIENT_STATE) {
+      Object.defineProperty(view, field, {
+        get: () => (root as unknown as Record<string, unknown>)[field],
+        set: (value: unknown) => { (root as unknown as Record<string, unknown>)[field] = value; },
+        enumerable: false,
+        configurable: false,
+      });
     }
-  ): Promise<T> {
-    if (this.orgInvalid) return Promise.reject(this.orgInvalid);
-    if (this.orgOverride === undefined) return super.request<T>(method, endpoint, data, options);
-    // The per-call org is set LAST so a caller-supplied header cannot outrank
-    // it, and an org header in `options.headers` is refused outright: until
-    // 6.3.1 the spread order let `options.headers` win, and `X-Org-Id`
-    // outranks `X-Org-Slug` on the server, so a smuggled header would have
-    // silently redirected a scoped call (run #187, circumvention A7 /
-    // trust-boundary F7 — no live caller did this; the invariant held by luck).
-    const smuggled = Object.keys(options?.headers ?? {}).find((h) => /^x-org-(slug|id)$/i.test(h));
-    if (smuggled !== undefined) {
-      return Promise.reject(new InputValidationError(
-        `Refusing request header ${smuggled} on an org-scoped call: the per-call org (${this.orgOverride}) is the only org channel`,
-        [{ code: 'custom', path: ['headers', smuggled], message: 'org headers may not be set per request on a scoped view' }]
-      ));
+  }
+
+  private contextCapture?: (context: ResponseContext | null) => void;
+
+  /** A fresh view used by one SDK operation, never stored on the shared client. */
+  withResponseCapture(capture: (context: ResponseContext | null) => void): OpsHttpClient {
+    const view: OpsHttpClient = Object.create(this) as OpsHttpClient;
+    const root = this.orgRoot ?? this;
+    view.orgRoot = root;
+    this.shareClientState(view, root);
+    view.contextCapture = capture;
+    return view;
+  }
+
+  override request<T>(method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', endpoint: string, data: object | undefined, options: RequestOptions & { withResponseContext: true }): Promise<WithResponseContext<T>>;
+  override request<T>(method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', endpoint: string, data?: object, options?: RequestOptions & { withResponseContext?: false }): Promise<T>;
+  override request<T>(method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', endpoint: string, data: object | undefined, options: RequestOptions): Promise<T | WithResponseContext<T>>;
+  override async request<T>(
+    method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', endpoint: string,
+    data?: object, options?: RequestOptions
+  ): Promise<T | WithResponseContext<T>> {
+    // Clear preflight metadata before every request, including network failures.
+    this.contextCapture?.(null);
+    if (this.orgInvalid) throw this.orgInvalid;
+    let wireOptions = options;
+    if (this.orgOverride !== undefined) {
+      const smuggled = Object.keys(options?.headers ?? {}).find(h => /^x-org-(slug|id)$/i.test(h));
+      if (smuggled !== undefined) {
+        throw new InputValidationError(
+          `Refusing request header ${smuggled} on an org-scoped call: the per-call org (${this.orgOverride}) is the only org channel`,
+          [{ code: 'custom', path: ['headers', smuggled], message: 'org headers may not be set per request on a scoped view' }]
+        );
+      }
+      wireOptions = { ...options, headers: { ...(options?.headers ?? {}), [ORG_SLUG_HEADER]: this.orgOverride } };
     }
-    return super.request<T>(method, endpoint, data, {
-      ...options,
-      headers: { ...(options?.headers ?? {}), [ORG_SLUG_HEADER]: this.orgOverride },
-    });
+    if (!this.contextCapture) return super.request<T>(method, endpoint, data, wireOptions ?? {});
+    const result = await super.request<T>(method, endpoint, data, { ...wireOptions, withResponseContext: true });
+    this.contextCapture(result.context);
+    return options?.withResponseContext ? result : result.data;
   }
 }

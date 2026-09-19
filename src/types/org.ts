@@ -1,3 +1,7 @@
+import type { WithResponseContext } from '@uluops/sdk-core/http';
+export type { ResponseContext, WithResponseContext } from '@uluops/sdk-core/http';
+export type ContextResult<T, C extends boolean> = C extends true ? WithResponseContext<T> : T;
+
 /**
  * Org scoping for a single call (project-org-routing-and-rehome spec §3.2, D12).
  *
@@ -5,18 +9,19 @@
  * argument. `org` is the target org's slug and becomes the `X-Org-Slug`
  * header on that one request, overriding the client-level `orgSlug`.
  *
- * Omit it to use the client's `orgSlug`, or — with neither — the key-holder's
- * personal org. The API never infers an org from a project name (spec D2):
- * a request that names no org creates or targets the PERSONAL project of that
- * name, even when a work org has a project by the same name. Name the org.
+ * Omission sends no per-call org override. A bound API key resolves to its bound
+ * org; other credentials use server defaults. Only response context establishes
+ * the effective org. Never infer it from omission or a project name.
  */
-export interface OrgScopedOptions {
+export interface OrgScopedOptions<C extends boolean = false> {
+  /** Return data plus authenticated context from this operation's final response. */
+  withResponseContext?: C;
   /** Org slug (1–100 chars: alphanumeric, hyphen, underscore). */
   org?: string;
 }
 
 /** Run write/preview options: client-side validation escape hatch + org scope. */
-export interface RunCallOptions extends OrgScopedOptions {
+export interface RunCallOptions<C extends boolean = false> extends OrgScopedOptions<C> {
   /**
    * Skip the SDK's input validation. A convenience escape for pre-validated
    * callers (MCP, autosave hooks); the server validates regardless.
