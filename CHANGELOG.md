@@ -6,10 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+
+
+
+## [6.8.0] - 2026-09-25
+
 ### Added
 
 - F12: opt-in `coverage-v1` pricing with nullable priced cost, run/snapshot/token coverage and separately labeled explicit estimates. Preserve legacy cost defaults; unsupported identities never enter priced buckets under the new contract.
-
 
 ## [6.7.2] - 2026-09-25
 
