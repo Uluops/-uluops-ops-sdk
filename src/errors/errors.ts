@@ -267,12 +267,12 @@ export function isMfaRequiredError(err: unknown): err is MfaRequiredError {
   return err instanceof MfaRequiredError;
 }
 
-/** Requested semantics are unavailable; the write was never attempted. */
+/** Requested semantics are unavailable; the operation was never attempted. */
 export class UnsupportedContractError extends Error {
   readonly code = 'UNSUPPORTED_CONTRACT';
   readonly applicationState = 'not_applied';
   constructor(readonly family: string, readonly selector: string) {
-    super(`Server does not advertise ${family} contract ${selector}; no write was attempted`);
+    super(`Server does not advertise ${family} contract ${selector}; no ${family === 'idempotency' ? 'write' : 'operation'} was attempted`);
     this.name = 'UnsupportedContractError';
   }
 }

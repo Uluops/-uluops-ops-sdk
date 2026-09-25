@@ -46,10 +46,16 @@ import type { Granularity, DiscoveryGroupBy } from './enums.js';
  * Common query options for analytics endpoints
  */
 export interface AnalyticsQuery {
+  /** Opt in only for cost_analysis; absence preserves legacy cost estimates. */
+  pricingContract?: 'coverage-v1';
+  /** Explicit estimate for unpriced snapshots only; requires coverage-v1. */
+  estimateModel?: 'haiku' | 'sonnet' | 'opus';
   project?: string;
   days?: number; // 1-365, default 30
   limit?: number; // 1-100
 }
+
+export type { CostCoverageResult } from './cost-coverage.js';
 
 /** Time period metadata — derived from `PeriodResponseSchema`. */
 export type Period = z.infer<typeof PeriodResponseSchema>;

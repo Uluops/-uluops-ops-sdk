@@ -2493,3 +2493,39 @@ MIT License - see [LICENSE](./LICENSE) for details.
 ## Quality metric contracts (F04)
 
 Agent performance/lifecycle response types preserve optional `scoreThresholdPassRate`, `metricBasis`, `denominator`, `unit`, `threshold`, and `scoreScale`. Metadata is absent on older producers, never fabricated by the SDK. The rate is a raw-score threshold percentage, not a gate rate; `passRate` remains its legacy alias. Scoreless populations have null rates.
+
+### F12 pricing coverage (opt-in)
+
+`coverage-v1` separates supported model pricing from unpriced observations.
+`pricedCost` is in microdollars and is null when no snapshots have a supported
+model; a supported zero-token snapshot costs zero. `pricedCostDisplay` preserves
+the existing dollar formatting. Estimates never contribute to priced totals.
+
+Run coverage partitions distinct runs: a run is fully priced only if every
+snapshot in that population has a supported model. A mixed run counts once as
+unpriced but retains its priced snapshots' cost. Snapshot and token counts also
+partition independently; coverage values are ratios, or null for an empty
+denominator. Group run counts can overlap across groups.
+
+The configured table supports `haiku`, `sonnet`, `opus`, `claude-3-<tier>`, and
+their dated IDs (`20240307` for Haiku, `20240229` for Sonnet/Opus). Whitespace and
+case normalize for lookup; output retains the original identity. Other IDs,
+including newer and provider-prefixed models, remain unpriced pending an explicit
+rate-table review. The table was last verified on 2025-03-27; its source/date are
+returned. This is model-rate coverage, not verified billing or complete token
+telemetry: null token fields retain legacy zero handling.
+
+Legacy cost defaults remain unchanged. Removal requires a separately authorized
+next major and at least 90 days' notice after supported consumers are available.
+
+```ts
+const coverage = await client.analytics.getByMetric('cost_analysis', {
+  pricingContract: 'coverage-v1',
+  // estimateModel: 'sonnet', // optional, unpriced snapshots only
+}, { org: 'ulu-labs' });
+```
+The SDK negotiates pricing capability in the scoped operation and validates
+the coverage response. Absent support raises `UnsupportedContractError`; auth
+errors retain their meaning. No fallback request is made. The exported
+`CostCoverageResult` type describes the response; generic `getByMetric` continues
+to return `unknown` because other metric responses remain heterogeneous.

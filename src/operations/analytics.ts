@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
-import { InputValidationError } from '../errors/errors.js';
+import { InputValidationError, OpsApiError, UnsupportedContractError } from '../errors/errors.js';
+import { CostCoverageResponseSchema } from '../types/cost-coverage.js';
 import type {
   AnalyticsQuery,
   AgentInfo,
@@ -323,8 +324,35 @@ export async function getByMetric(
       [{ code: 'custom', path: ['metric'], message: `must be one of: ${ANALYTICS_METRICS.join(', ')}` }]
     );
   }
-  return client.get(
-    `/analytics/${metric}`,
-    toApiQuery(query)
-  );
+  if (query?.pricingContract !== undefined || query?.estimateModel !== undefined) {
+    const selection = z.object({
+      metric: z.literal('cost_analysis'), pricingContract: z.literal('coverage-v1'),
+      estimateModel: z.enum(['haiku', 'sonnet', 'opus']).optional(),
+    }).safeParse({ metric, ...query });
+    if (!selection.success) {
+      throw new InputValidationError('Invalid cost pricing selection', selection.error.issues);
+    }
+    await requirePricingContract(client);
+    const { pricingContract, estimateModel, ...filters } = query;
+    return CostCoverageResponseSchema.parse(await client.get(`/analytics/${metric}`, {
+      ...toApiQuery(filters), pricingContract, ...(estimateModel && { estimateModel }),
+    }));
+  }
+  return client.get(`/analytics/${metric}`, toApiQuery(query));
+}
+
+/** Negotiation belongs to this scoped operation, never a cross-org cache. */
+async function requirePricingContract(client: OpsHttpClient): Promise<void> {
+  let body: unknown;
+  try {
+    body = await client.request<unknown>('GET', '/capabilities', undefined, { rawEnvelope: true });
+  } catch (error) {
+    if (!(error instanceof OpsApiError) || error.statusCode !== 404 ||
+        (error.code && error.code !== 'NOT_FOUND')) throw error;
+    throw new UnsupportedContractError('pricing', 'coverage-v1');
+  }
+  const parsed = z.object({ contracts: z.object({ pricing: z.array(z.string()) }) }).safeParse(body);
+  if (!parsed.success || !parsed.data.contracts.pricing.includes('coverage-v1')) {
+    throw new UnsupportedContractError('pricing', 'coverage-v1');
+  }
 }
