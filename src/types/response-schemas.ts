@@ -1183,6 +1183,15 @@ export const BurndownDataPointResponseSchema = z.object({
 }).catchall(z.number().int().nonnegative());
 
 export const BurndownResultResponseSchema = z.object({
+  // Optional for compatibility with servers predating aggregation metadata.
+  period: z.object({ start: z.string(), end: z.string(), days: z.number().int() }).optional(),
+  asOf: z.string().optional(),
+  granularity: z.enum(['daily', 'weekly']).optional(),
+  timezone: z.literal('UTC').optional(),
+  trendGranularity: z.literal('daily').optional(),
+  buckets: z.array(z.object({
+    start: z.string(), end: z.string(), snapshotDate: z.string(), partial: z.boolean(),
+  })).optional(),
   timeSeries: z.array(BurndownDataPointResponseSchema),
   trends: z.record(z.string(), DomainTrendResponseSchema),
 });

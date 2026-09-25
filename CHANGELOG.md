@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- F06: Preserve optional burndown interval, as-of, granularity, timezone and bucket metadata when parsing API responses; remain compatible with older servers.
+
 ## [6.7.1] - 2026-09-24
 
 ### Changed

@@ -32,6 +32,20 @@ describe('Analytics Operations', () => {
     });
   });
 
+  it('forwards weekly selection and preserves aggregation metadata from the API', async () => {
+    const data = {
+      timeSeries: [{ date: '2026-02-01', STR: 3, total: 3 }], trends: {},
+      period: { start: '2026-01-28', end: '2026-02-01', days: 4 },
+      asOf: '2026-02-01T12:00:00Z', granularity: 'weekly', timezone: 'UTC',
+      trendGranularity: 'daily',
+      buckets: [{ start: '2026-01-28', end: '2026-02-01', snapshotDate: '2026-02-01', partial: true }],
+    };
+    nock(BASE_URL).get('/analytics/taxonomy/burndown')
+      .query({ days: 4, granularity: 'weekly' }).reply(200, { data });
+    expect(await analyticsOps.getBurndown(client, { days: 4, granularity: 'weekly' })).toEqual(data);
+    expect(BurndownResultResponseSchema.parse({ timeSeries: [], trends: {} })).toEqual({ timeSeries: [], trends: {} });
+  });
+
   describe('getAgentPerformance', () => {
     it('should get validator performance metrics', async () => {
       mockValidatedListEndpoint(

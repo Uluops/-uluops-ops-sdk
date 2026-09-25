@@ -1854,7 +1854,16 @@ console.log('By severity:', taxonomy.bySeverity);
 
 #### `client.analytics.getBurndown(query)`
 
-Get burndown time series by failure domain.
+Get burndown time series by failure domain. `granularity: 'weekly'` selects the
+final available daily stock snapshot in each intersected UTC ISO week (Monday–Sunday).
+Counts are never summed. `date` remains the selected snapshot date. On upgraded
+servers, `period` is the inclusive UTC calendar-date interval, `asOf` is the
+observation instant, and `buckets` gives clipped inclusive `start`/`end`,
+`snapshotDate`, and `partial` (including the in-progress final day).
+`granularity`, `timezone`, and `trendGranularity` describe the result. Trends
+always use daily samples, so `avgDailyChange` remains issues/day. Metadata is
+optional for older servers. Daily stock history retains its existing semantics;
+reopening an issue can change the projection based on current `resolved_at`.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1863,7 +1872,7 @@ Get burndown time series by failure domain.
 | `granularity` | `string` | No | `'daily'` or `'weekly'` |
 
 ```typescript
-const burndown = await client.analytics.getBurndown({ days: 30 });
+const burndown = await client.analytics.getBurndown({ days: 30, granularity: 'weekly' });
 console.log('Time series:', burndown.timeSeries);
 console.log('Trends:', burndown.trends);
 // { STR: { trend: 'declining', avgDailyChange: -0.05, netChange: -12, confidence: 'high' }, ... }
