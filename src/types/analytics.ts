@@ -69,7 +69,14 @@ export interface AgentInfo {
   totalRuns: number;
   /** Null when the agent has no scored runs (nullable-aggregate class). */
   averageScore: number | null;
+  /** Legacy alias of scoreThresholdPassRate, not a gate result. */
   passRate: number | null;
+  scoreThresholdPassRate?: number | null;
+  metricBasis?: 'score-threshold';
+  denominator?: number;
+  unit?: 'percent';
+  threshold?: number;
+  scoreScale?: 'raw-unscaled';
 }
 
 /** Agent performance metrics — derived from `AgentPerformanceResponseSchema`. */

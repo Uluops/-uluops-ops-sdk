@@ -2480,3 +2480,7 @@ ULUOPS_DEBUG=true node app.js
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
+
+## Quality metric contracts (F04)
+
+Agent performance/lifecycle response types preserve optional `scoreThresholdPassRate`, `metricBasis`, `denominator`, `unit`, `threshold`, and `scoreScale`. Metadata is absent on older producers, never fabricated by the SDK. The rate is a raw-score threshold percentage, not a gate rate; `passRate` remains its legacy alias. Scoreless populations have null rates.

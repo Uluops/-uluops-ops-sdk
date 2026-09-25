@@ -1072,7 +1072,17 @@ export const BulkStatusUpdateResultResponseSchema = z.object({
 // ANALYTICS RESPONSE SCHEMAS
 // ============================================
 
+const scoreThresholdMetadataShape = {
+  scoreThresholdPassRate: z.number().nullable().optional(),
+  metricBasis: z.literal('score-threshold').optional(),
+  denominator: z.number().int().nonnegative().optional(),
+  unit: z.literal('percent').optional(),
+  threshold: z.number().optional(),
+  scoreScale: z.literal('raw-unscaled').optional(),
+};
+
 export const AgentPerformanceResponseSchema = z.object({
+  ...scoreThresholdMetadataShape,
   name: z.string(),
   totalRuns: z.number().int().nonnegative(),
   // Nullable: an agent whose runs carry no scores (lens/explorer runs, or no
@@ -1087,6 +1097,7 @@ export const AgentPerformanceResponseSchema = z.object({
 });
 
 export const AgentLifecycleEntryResponseSchema = z.object({
+  ...scoreThresholdMetadataShape,
   name: z.string(),
   definitionVersion: z.string(),
   firstSeenAt: z.string(),

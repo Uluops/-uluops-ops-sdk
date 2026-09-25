@@ -4,6 +4,14 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+## [6.7.1] - 2026-09-24
+
+### Changed
+
+- Preserve score-threshold metadata for agent performance and lifecycle: raw-score threshold, scored-run denominator and percentage units. `passRate` remains the compatibility alias; this metric does not establish a gate outcome.
+
 ## [6.7.0] - 2026-09-19
 
 ### Added
