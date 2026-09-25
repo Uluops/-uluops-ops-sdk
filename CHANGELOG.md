@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- F06 live verification: send discovery `groupBy` using the API endpoint spelling so week/month selection reaches the query.
+
 ### Fixed
 
 - F06: Preserve optional burndown interval, as-of, granularity, timezone and bucket metadata when parsing API responses; remain compatible with older servers.

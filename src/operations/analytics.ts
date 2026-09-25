@@ -189,16 +189,17 @@ export async function getVelocity(
  * Get discovery timeline — new vs recurring issues over time.
  *
  * @param client - HTTP client instance
- * @param query - Optional filters: project, days, granularity ('daily' | 'weekly')
+ * @param query - Optional filters: project, days, groupBy ('day' | 'week' | 'month')
  * @returns `{ timeSeries, summary }` — summary includes newRate, recurringRate, totalNew, totalRecurring
  */
 export async function getDiscovery(
   client: OpsHttpClient,
   query?: DiscoveryQuery
 ): Promise<z.infer<typeof DiscoveryResultResponseSchema>> {
+  const { groupBy, ...filters } = query ?? {};
   return DiscoveryResultResponseSchema.parse(await client.get<unknown>(
     '/analytics/taxonomy/discovery',
-    toApiQuery(query)
+    { ...toApiQuery(filters), ...(groupBy !== undefined ? { groupBy } : {}) }
   ));
 }
 

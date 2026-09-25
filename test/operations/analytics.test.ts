@@ -340,10 +340,10 @@ describe('Analytics Operations', () => {
       expect(discovery.summary.newToRecurringRatio).toBe(0.5);
     });
 
-    it('should group by week or month', async () => {
+    it.each(['day', 'week', 'month'] as const)('forwards the API groupBy spelling for %s', async (groupBy) => {
       nock(BASE_URL)
         .get('/analytics/taxonomy/discovery')
-        .query({ group_by: 'week' })
+        .query({ groupBy })
         .reply(200, {
           data: {
             timeline: [{ period: '2024-W01', newIssues: 15, recurringIssues: 30, domains: {} }],
@@ -351,7 +351,7 @@ describe('Analytics Operations', () => {
           },
         });
 
-      await analyticsOps.getDiscovery(client, { groupBy: 'week' });
+      await analyticsOps.getDiscovery(client, { groupBy });
     });
   });
 
