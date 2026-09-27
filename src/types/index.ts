@@ -21,4 +21,4 @@ export * from './schemas.js';
 
 // Response schemas are internal — import from './response-schemas.js' directly if needed for testing
 
-export type { DiscoveryPage, DiscoveryQuery, ProjectDiscoveryQuery, IssueDiscoveryQuery, IssueSearchPageQuery, RunDiscoveryQuery, AnalysisDiscoveryQuery } from '../operations/discovery.js';
+export type { DiscoveryPage, DiscoveryQuery, ProjectDiscoveryQuery, IssueDiscoveryQuery, IssueSearchPageQuery, RunDiscoveryQuery, AnalysisDiscoveryQuery, AgentDiscoveryQuery, AgentDiscoveryPage } from '../operations/discovery.js';

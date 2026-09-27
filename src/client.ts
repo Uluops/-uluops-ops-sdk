@@ -430,6 +430,9 @@ export class OpsClient {
 
   /** Project CRUD, summaries, trends, issue listing, and bulk operations */
   readonly discovery = {
+    /** Discover recorded agent names with project/time/search filters and stable paging. */
+    listAgents: <C extends boolean = false>(query?: discoveryOps.AgentDiscoveryQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.listAgents(client, query)),
     /** Search and page active projects with a stable order and optional public-field projection. */
     listProjects: <C extends boolean = false>(query?: discoveryOps.ProjectDiscoveryQuery, options?: OrgScopedOptions<C>) =>
       this.execute(options, client => discoveryOps.listProjects(client, query)),

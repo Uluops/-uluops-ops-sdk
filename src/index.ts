@@ -50,4 +50,4 @@ export {
   type ResolveWorkspaceOrgOptions,
 } from './config/workspace-org.js';
 
-export type { DiscoveryPage, DiscoveryQuery, ProjectDiscoveryQuery, IssueDiscoveryQuery, IssueSearchPageQuery, RunDiscoveryQuery, AnalysisDiscoveryQuery } from './operations/discovery.js';
+export type { DiscoveryPage, DiscoveryQuery, ProjectDiscoveryQuery, IssueDiscoveryQuery, IssueSearchPageQuery, RunDiscoveryQuery, AnalysisDiscoveryQuery, AgentDiscoveryQuery, AgentDiscoveryPage } from './operations/discovery.js';

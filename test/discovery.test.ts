@@ -6,10 +6,40 @@ import { BASE_URL, TEST_API_KEY, TEST_UUID, createMockProject } from './setup.js
 
 const client = () => new OpsClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY, retries: 0 });
 const emptyPage = { data: [], total: 0, limit: 50, offset: 0, hasMore: false };
-const capabilities = { contracts: { discovery: ['page-v1'] } };
+const capabilities = { contracts: { discovery: ['page-v1'], agentDiscovery: ['recorded-v1'] } };
 const headers = (org: string) => ({ 'X-UluOps-Context-Version': '1', 'X-UluOps-Org-Slug': org, 'X-UluOps-Org-Source': 'bound-key' });
 
 describe('discovery page-v1 contract', () => {
+  it('pages recorded agent names with exact filters and validates metadata', async () => {
+    const result = { data: [{ name: 'scratch-agent' }], total: 26, limit: 1, offset: 25, hasMore: false };
+    nock(BASE_URL).get('/capabilities').reply(200, capabilities);
+    nock(BASE_URL).get('/agents/discovery').query({ format: 'page', project: 'p', days: 14, search: 'scratch', limit: 1, offset: 25 }).reply(200, result);
+    expect(await client().discovery.listAgents({ project: 'p', days: 14, search: 'scratch', limit: 1, offset: 25 }))
+      .toEqual(result);
+  });
+
+  it('does not request agent discovery when recorded-v1 is absent', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, { contracts: {} });
+    await expect(client().discovery.listAgents()).rejects.toMatchObject({ name: 'UnsupportedContractError' });
+  });
+
+  it('does not infer agent discovery support from F15 page-v1', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, { contracts: { discovery: ['page-v1'] } });
+    await expect(client().discovery.listAgents()).rejects.toMatchObject({ family: 'agentDiscovery', selector: 'recorded-v1' });
+  });
+
+  it('rejects unsupported agent projection before capability negotiation', async () => {
+    await expect(client().discovery.listAgents({ fields: ['name'] } as never)).rejects.toMatchObject({ name: 'ZodError' });
+    expect(nock.isDone()).toBe(true);
+  });
+
+  it('rejects an empty page that claims more agents, preventing stalled traversal', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, capabilities);
+    nock(BASE_URL).get('/agents/discovery').query({ format: 'page' })
+      .reply(200, { data: [], total: 1, limit: 50, offset: 0, hasMore: true });
+    await expect(client().discovery.listAgents()).rejects.toMatchObject({ name: 'ZodError' });
+  });
+
   it.each([
     ['projects', '/projects', (c: OpsClient) => c.discovery.listProjects()],
     ['issues', '/projects/a%2Fb/issues', (c: OpsClient) => c.discovery.queryIssues('a/b')],

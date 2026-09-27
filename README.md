@@ -2534,6 +2534,8 @@ to return `unknown` because other metric responses remain heterogeneous.
 ## Discovery pages (F15 / page-v1)
 
 Authenticated `GET /api/v1/capabilities` advertises `contracts.discovery: ["page-v1"]`.
+Agent-name discovery additionally requires `contracts.agentDiscovery: ["recorded-v1"]`;
+older APIs do not imply F07 support merely by advertising F15 pages.
 Select `format=page` on the endpoints below to receive
 `{data,total,count,limit,offset,hasMore}`. `count` is the number on this page;
 `total` counts the same authorized and filtered dataset. `hasMore` is
@@ -2554,13 +2556,16 @@ a fixed dataset; concurrent writes are not snapshot-isolated.
 | `/analysis/records` | `project` name/UUID and `runId` UUID | createdAt asc, id asc |
 | `/projects/:id/analysis` | existing agent/type/decision filters | run timestamp desc, summary id asc |
 | `/agents/:name/runs-analysis` | existing project/decision filters | run timestamp desc, summary id asc |
+| `/agents/discovery` | `project`, `days` (1–365), literal `search` | binary agent-name asc |
 
-All lists accept `fields` as a comma-separated list of public **output** names
-in camelCase. Search, sort and projection require `format=page`. Omitting
+The F15 page endpoints above accept `fields` as a comma-separated list of
+public **output** names in camelCase. Search, sort and projection require `format=page`. Omitting
 `fields` retains the endpoint's existing projection; an empty list selects
 only `id`. Identity and page metadata are always retained. Unknown/private
 fields and unsupported sorts return validation errors. Projection follows
 authorization, filtering and pagination and never changes database access.
+`/agents/discovery` has a fixed `{name}` row shape and does not accept field
+projection; undeclared query controls are rejected.
 Explicit sorts always end with immutable id asc; when only `sortOrder` is
 provided it controls the endpoint's default primary key (analysis has no sort
 controls). Optional public fields absent from a row remain absent.
@@ -2607,8 +2612,8 @@ MCP new search/sort/projection/archive/scope inputs require `format=page`.
 on its existing path.
 
 This release explicitly uses offsets instead of adding cursors to every list.
-Project-log and org-audit cursors remain opaque and unchanged. F07 agent
-catalog completeness is separate and follows F15.
+Project-log and org-audit cursors remain opaque and unchanged. Agent discovery
+uses the same page-v1 capability for recorded-run names.
 
 Rollout: publish the tolerant SDK, deploy the capability-producing API, then
 publish/select the new MCP. Keep previous packages available; client rollback
@@ -2625,7 +2630,15 @@ for (const project of page.data) console.log(project.id, project.name);
 await client.discovery.queryIssues('billing', { workflowType: 'ship', classified: true });
 await client.discovery.listRuns('billing', { includeArchived: true });
 await client.discovery.queryAnalysisRecords({ project: 'billing', runId });
+const agents = await client.discovery.listAgents({ search: 'scratch', days: 90, limit: 50 });
+// Next offset: agents.offset + agents.data.length, while agents.hasMore.
 ```
+
+Agent discovery returns distinct names recorded in the selected run-history
+window, not configured agents or an allowlist. Search is a case-insensitive
+literal substring (`%`, `_` and backslash have no wildcard meaning). It
+defaults to the last 30 days and uses the same page-v1 limits and metadata as
+other discovery pages.
 
 Other page methods: `searchIssues`, `getProjectAnalysis`, `getAgentRunsAnalysis`.
 Rows are typed `Partial<T> & {id:string}` because projection may omit any other field.
