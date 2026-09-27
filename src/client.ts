@@ -1,3 +1,4 @@
+import * as discoveryOps from './operations/discovery.js';
 import { OpsHttpClient, type HttpClientConfig } from './http/http-client.js';
 import { createLogger } from '@uluops/sdk-core/utils';
 import { JwtSessionAuth } from './http/auth-strategy.js';
@@ -428,6 +429,30 @@ export class OpsClient {
   // ============================================
 
   /** Project CRUD, summaries, trends, issue listing, and bulk operations */
+  readonly discovery = {
+    /** Search and page active projects with a stable order and optional public-field projection. */
+    listProjects: <C extends boolean = false>(query?: discoveryOps.ProjectDiscoveryQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.listProjects(client, query)),
+    /** Page project issues; workflowType matches any occurrence and classified tests failureCode presence. */
+    queryIssues: <C extends boolean = false>(project: string, query?: discoveryOps.IssueDiscoveryQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.queryIssues(client, project, query)),
+    /** Search with filtered totals; the legacy issues.search array remains available. */
+    searchIssues: <C extends boolean = false>(query: discoveryOps.IssueSearchPageQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.searchIssues(client, query)),
+    /** Enumerate runs, including archived runs when explicitly requested. */
+    listRuns: <C extends boolean = false>(project: string, query?: discoveryOps.RunDiscoveryQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.listRuns(client, project, query)),
+    /** Scope analysis records to the caller's org, project and/or run. */
+    queryAnalysisRecords: <C extends boolean = false>(query?: discoveryOps.AnalysisDiscoveryQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.queryAnalysisRecords(client, query)),
+    /** Page project analysis summaries with projection. */
+    getProjectAnalysis: <C extends boolean = false>(project: string, query?: discoveryOps.DiscoveryQuery & ProjectAnalysisQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.getProjectAnalysis(client, project, query)),
+    /** Page an agent's analysis summaries in one project. */
+    getAgentRunsAnalysis: <C extends boolean = false>(agent: string, query: discoveryOps.DiscoveryQuery & AgentRunsAnalysisQuery, options?: OrgScopedOptions<C>) =>
+      this.execute(options, client => discoveryOps.getAgentRunsAnalysis(client, agent, query)),
+  };
+
   readonly projects = {
     /** List all projects visible to the caller — {data, total} (6.0.0, T13). */
     list: <C extends boolean = false>(options?: OrgScopedOptions<C>): Promise<ContextResult<{ data: Project[]; total: number }, C>> =>

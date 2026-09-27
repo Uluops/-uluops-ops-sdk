@@ -89,6 +89,8 @@ export interface ProjectTrendsQuery {
  * List issues in project query options
  */
 export interface ListProjectIssuesQuery {
+  workflowType?: string;
+  classified?: boolean;
   status?: StatusFilter;
   priority?: Priority;
   severity?: Severity;

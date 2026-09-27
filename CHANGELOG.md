@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- F15: opt-in discovery `page-v1` with project search, stable sorting, public-field projection, filtered totals/hasMore, analysis project/run scope and archived-run inclusion. Legacy response shapes and log cursors remain unchanged.
+
+### Fixed
+
+- Forward workflow/classification issue filters and offset; choose issue-search fallback from the matching total so later pages cannot switch datasets. Preserve public projection fields across the SDK boundary.
+
+
 
 
 

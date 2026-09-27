@@ -395,6 +395,7 @@ export interface UpdateRunWithEchoResult {
  * List runs query options
  */
 export interface ListRunsQuery {
+  offset?: number;
   workflowType?: string;
   limit?: number; // 1-100
 }

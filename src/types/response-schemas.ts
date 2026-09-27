@@ -321,6 +321,8 @@ const MAX_REASON = 2_000; // headroom above status_history.reason varchar(1000) 
 const MAX_CREATED_BY = 200; // issue_notes.created_by varchar(200)
 
 export const IssueResponseSchema = z.object({
+  authorId: z.string().nullable().optional(),
+  semanticFingerprint: z.string().nullable().optional(),
   id: z.string().uuid(),
   projectId: z.string().uuid(),
   fingerprint: z.string().max(MAX_FINGERPRINT),
@@ -702,6 +704,7 @@ export const RunSummaryResponseSchema = z.object({
   updatedAt: DateTimeStringSchema.optional(),
   // Aggregate fields computed by getRunsSummary query
   totalRecommendations: z.number().int().nonnegative(),
+  highCount: z.number().int().nonnegative().optional(),
   criticalCount: z.number().int().nonnegative(),
   suggestedCount: z.number().int().nonnegative(),
   backlogCount: z.number().int().nonnegative(),
