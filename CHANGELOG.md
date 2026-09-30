@@ -8,16 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- F16: expose `isFinalizedRunFieldImmutableError` and preserve the API's finalized-field cause, safe details and request ID for recovery after a refused run update. This release pins `@uluops/sdk-core` 0.18.1.
+
+## [6.10.0] - 2026-09-27
+
+### Added
+
 - F07: add negotiated `recorded-v1` agent discovery pages with literal name search, project/time filters, stable name ordering, and complete-list retrieval. Existing agent-performance responses remain unchanged.
+
+## [6.9.0] - 2026-09-27
+
+### Added
+
 - F15: opt-in discovery `page-v1` with project search, stable sorting, public-field projection, filtered totals/hasMore, analysis project/run scope and archived-run inclusion. Legacy response shapes and log cursors remain unchanged.
 
 ### Fixed
 
 - Forward workflow/classification issue filters and offset; choose issue-search fallback from the matching total so later pages cannot switch datasets. Preserve public projection fields across the SDK boundary.
-
-
-
-
 
 ## [6.8.0] - 2026-09-25
 

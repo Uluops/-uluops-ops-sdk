@@ -15,6 +15,7 @@ import {
   isInsufficientOrgRoleError,
   isOrgAccessDeniedError,
   isProjectRehomedError,
+  isFinalizedRunFieldImmutableError,
 } from '../../src/errors/errors.js';
 import { HTTP_STATUS, ERROR_CODES } from '@uluops/sdk-core/config';
 
@@ -385,5 +386,14 @@ describe('Error Classes', () => {
       expect(isProjectRehomedError(make(410, 'PROJECT_REHOMED', { project_id: 'p1' }))).toBe(false);
       expect(isProjectRehomedError(make(410, 'PROJECT_MERGED', { project_id: 'p1', target_org: { id: 'o2', slug: 'x' } }))).toBe(false);
     });
+  });
+
+  it('narrows a finalized-run field refusal only when its details are complete', () => {
+    const good = createErrorFromStatus(403, 'Cannot rewrite averageScore', 'FINALIZED_RUN_FIELD_IMMUTABLE', {
+      immutableField: 'averageScore', applicationState: 'not_applied',
+    });
+    expect(isFinalizedRunFieldImmutableError(good)).toBe(true);
+    if (isFinalizedRunFieldImmutableError(good)) expect(good.details.immutableField).toBe('averageScore');
+    expect(isFinalizedRunFieldImmutableError(createErrorFromStatus(403, 'No', 'FINALIZED_RUN_FIELD_IMMUTABLE'))).toBe(false);
   });
 });

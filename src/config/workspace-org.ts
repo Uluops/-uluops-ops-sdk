@@ -140,6 +140,10 @@ function isUnder(child: string, parent: string): boolean {
  * single-default leak D13 exists to remove, one layer down. Outside the
  * home directory the walk still reaches the filesystem root; the ownership
  * check in `readWorkspaceOrgFile` is the guard there.
+ * @param cwd - Directory where the upward search begins.
+ * @param stopAt - Optional inclusive upper boundary for the search.
+ * @param home - Home directory used as the default upper boundary when `cwd` lies beneath it.
+ * @returns The nearest workspace file path, or `undefined` when none is found within the boundary.
  */
 export function findWorkspaceOrgFile(cwd: string, stopAt?: string, home: string = homedir()): string | undefined {
   let dir = resolve(cwd);
@@ -188,6 +192,7 @@ export function readWorkspaceOrgFile(path: string, uid: number | undefined = pro
  *   an `org` that is not a valid slug (other than the sentinel), a `project`
  *   that is not a valid project name, or a `project` with no `org` beside it
  *   (`"project" requires "org"; use "personal" for no org`).
+ * @returns The validated workspace fields, or `undefined` when the file declares neither field.
  */
 export function readWorkspaceFile(path: string, uid: number | undefined = process.getuid?.()): WorkspaceFile | undefined {
   if (uid !== undefined) {

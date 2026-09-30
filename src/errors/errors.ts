@@ -100,6 +100,21 @@ export class AnalysisEchoMismatchError extends Error {
 
 import { SdkApiError as _SdkApiError } from '@uluops/sdk-core/errors';
 
+/** A finalized run's quality vote cannot be rewritten through updateRun. Telemetry and analysis enrichment remain separate writes. */
+export const FINALIZED_RUN_FIELD_IMMUTABLE = 'FINALIZED_RUN_FIELD_IMMUTABLE' as const;
+export interface FinalizedRunFieldDetails {
+  immutableField: 'averageScore' | 'allGatesPassed';
+  applicationState: 'not_applied';
+}
+
+/** Narrow a finalized-run refusal to its supported immutable field and application state. */
+export function isFinalizedRunFieldImmutableError(err: unknown): err is _SdkApiError & { details: FinalizedRunFieldDetails } {
+  if (!(err instanceof _SdkApiError) || err.code !== FINALIZED_RUN_FIELD_IMMUTABLE) return false;
+  const details = err.details as Partial<FinalizedRunFieldDetails> | undefined;
+  return (details?.immutableField === 'averageScore' || details?.immutableField === 'allGatesPassed')
+    && details.applicationState === 'not_applied';
+}
+
 /**
  * 403 — the caller is a member of the org but below the write floor
  * (`publisher`). On tracker writes the API rewrites the body: `details.applied`

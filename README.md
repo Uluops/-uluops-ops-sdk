@@ -17,6 +17,11 @@ See the [Changelog](./CHANGELOG.md) for the current version and release history.
 
 ### Programmatic Usage
 
+`NODE_ENV=development` selects `http://localhost:3100/api/v1`. Start that API
+server or pass `baseUrl` before making a request; otherwise a connection failure
+is expected. A client without credentials can call public endpoints, while run
+writes and other authenticated operations require an API key or a logged-in session.
+
 ```typescript
 import { OpsClient } from '@uluops/ops-sdk';
 
@@ -2205,6 +2210,8 @@ Or configure globally in `~/.uluops/.env`.
 
 The SDK provides typed error classes for precise error handling:
 
+For a finalized run, changing an already recorded `averageScore` or `allGatesPassed` returns `FINALIZED_RUN_FIELD_IMMUTABLE` with `details.immutableField` and `details.applicationState: 'not_applied'`. Use `isFinalizedRunFieldImmutableError(error)` to narrow the details; read the run before deciding on any further update. Token and analysis enrichment remain available. API cause codes, safe details and request IDs are preserved on the typed error when supplied by the server.
+
 ```typescript
 import {
   OpsApiError,
@@ -2234,6 +2241,26 @@ try {
     console.log('Invalid input:', error.details);
   } else if (isOpsApiError(error)) {
     console.log(`API error: ${error.code} - ${error.message}`);
+  }
+}
+```
+
+For a finalized run update, narrow the refusal and inspect the immutable field:
+
+```typescript
+import { OpsClient } from '@uluops/ops-sdk';
+import { isFinalizedRunFieldImmutableError } from '@uluops/ops-sdk/errors';
+
+const client = new OpsClient(); // Configure credentials as shown in Quick Start.
+
+try {
+  await client.runs.update({ project: 'my-project', runNumber: 5, averageScore: 90 });
+} catch (error) {
+  if (isFinalizedRunFieldImmutableError(error)) {
+    console.log(error.details.immutableField); // averageScore or allGatesPassed
+    console.log(error.details.applicationState); // not_applied
+  } else {
+    throw error;
   }
 }
 ```
@@ -2350,7 +2377,7 @@ reports the contract, replay status, comparison quality and excluded fields; old
 servers omit it. A historical hashless replay is `unverifiable`. V2 compares exact
 report bytes (omitted/null are equivalent), and retains the original accepted hash
 after enrichment. A key cannot switch contracts. Use a new key only for an intentional
-new submission. This release pins `@uluops/sdk-core` 0.18.0 to preserve structured error codes
+new submission. Version 6.10.1 pins `@uluops/sdk-core` 0.18.1 to preserve structured error codes
 and details. Enabling `report-v2` requires a server advertising that capability.
 
 ### Authoritative response org context

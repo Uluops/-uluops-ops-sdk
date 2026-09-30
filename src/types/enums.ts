@@ -240,7 +240,9 @@ export const SEVERITY_CODE_MAP: Record<FailureSeverityCode, Severity> = {
 };
 
 /**
- * Convert severity code to severity value
+ * Convert one severity letter from a failure code to its public severity value.
+ * @param code - `C`, `H`, `M`, `L` or `I`; nullish and unknown values are accepted.
+ * @returns The mapped severity, or `null` when `code` is not a known severity letter.
  */
 export function severityFromCode(code: string | null | undefined): Severity | null {
   if (!code || !(code in SEVERITY_CODE_MAP)) return null;
@@ -250,6 +252,8 @@ export function severityFromCode(code: string | null | undefined): Severity | nu
 /**
  * Parse a failure code into its components.
  * Accepts any well-formed domain, not just the four well-known ones.
+ * @param code - A `DOMAIN-MODE/SEVERITY` string such as `STR-OMI/M`.
+ * @returns The parsed components, or `null` when the string does not match the failure-code format.
  */
 export function parseFailureCode(code: string): {
   domain: string;
@@ -277,7 +281,11 @@ export function parseFailureCode(code: string): {
 }
 
 /**
- * Build a failure code from components
+ * Build a failure code from components.
+ * @param domain - One of the SDK's known failure domains.
+ * @param mode - Three-letter mode code; this helper does not validate the mode against the domain.
+ * @param severityCode - One-letter severity code.
+ * @returns The formatted `DOMAIN-MODE/SEVERITY` string.
  */
 export function buildFailureCode(
   domain: FailureDomain,
