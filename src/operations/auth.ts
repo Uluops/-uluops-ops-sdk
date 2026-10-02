@@ -211,10 +211,13 @@ export async function setPassword(
 }
 
 /**
- * Get current user info (minimal — id, email, role).
+ * Get the current user plus the account facts `/auth/me` adds: MFA state
+ * (`mfaEnabled`, `totpEnabled`, `totpPending`, `webauthnEnabled`),
+ * `personalOrgSlug`, and the sign-in counts. Those fields are optional, and
+ * were silently stripped before 6.12.0.
  *
  * @param client - HTTP client instance
- * @returns `AuthUser` with id, email, role, createdAt
+ * @returns `AuthUser`
  */
 export async function getMe(client: OpsHttpClient): Promise<AuthUser> {
   return AuthUserResponseSchema.parse(await client.get<unknown>('/auth/me', undefined));

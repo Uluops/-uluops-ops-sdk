@@ -510,12 +510,17 @@ console.log(`Revoked ${sessionsRevoked} sessions`);
 
 #### `client.auth.getMe()`
 
-Get the current authenticated user.
+Get the current authenticated user, plus the account facts `/auth/me` adds (6.12.0+: these were silently stripped before):
 
 ```typescript
 const user = await client.auth.getMe();
 console.log(user.email, user.role);
+user.mfaEnabled;      // any VERIFIED second factor (totpEnabled || webauthnEnabled)
+user.totpPending;     // TOTP secret stored but not verified, so not active
+user.personalOrgSlug; // null if none
 ```
+
+All of these are optional, so an older API may omit them.
 
 #### `client.auth.getProfile()`
 
