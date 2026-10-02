@@ -1985,11 +1985,11 @@ unknown producer metadata is retained. Legacy shapes remain unchanged:
 | `resolution_rates`, `file_hotspots`, `trend_summary`, `cross_project_patterns` | Array |
 | `regression_analysis`, `cost_analysis` | Domain object |
 
-List metrics accept `{ format: 'page', limit: 50, offset: 0 }`, returning
+Starting with SDK 6.11.0, list metrics accept `{ format: 'page', limit: 50, offset: 0 }`, returning
 `{data,total,limit,offset,hasMore,implemented,reason?}`. The SDK negotiates
 `contracts.analytics: ["page-v1"]` on the scoped API before selecting this contract;
 unsupported servers throw `UnsupportedContractError` without a legacy fallback.
-Page defaults are limit50/offset0, maximum limit100. Total counts the same authorized,
+Page defaults are limit 50/offset 0, maximum limit 100. Total counts the same authorized,
 filtered dataset before pagination. Ordering is stable for a fixed dataset; concurrent
 writes do not provide snapshot isolation. `cross_project_patterns` is still a placeholder:
 its legacy result is `[]`, while its page has `implemented:false` and a reason.

@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- F11: negotiated `format=page` for six list analytics metrics, with filtered totals, paging controls and explicit implementation metadata. Validate all eight generic metric responses while preserving legacy shapes and unknown metadata; object metrics remain objects.
+- F11 (6.11.0): negotiated `format=page` for six list analytics metrics, with filtered totals, paging controls and explicit implementation metadata. Validate all eight generic metric responses while preserving legacy shapes and unknown metadata; object metrics remain objects.
 
 ## [6.10.1] - Unreleased
 
