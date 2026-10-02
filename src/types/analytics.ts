@@ -303,3 +303,5 @@ export interface AnalyticsMetricQuery extends AnalyticsQuery {
   format?: 'page';
   offset?: number;
 }
+
+export type { AnalyticsPage, AnalyticsListMetric } from './analytics-metrics.js';

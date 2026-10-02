@@ -29,7 +29,18 @@ export const LegacyCostMetricSchema = z.object({
   byProject: z.array(group.extend({ project: z.string() })), byWorkflow: z.array(group.extend({ workflowType: z.string() })),
 }).passthrough();
 
-export function parseAnalyticsMetric(metric: string, body: unknown, page: boolean): unknown {
+export interface AnalyticsPage<T = unknown> {
+  data: T[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  implemented: boolean;
+  reason?: string;
+  [key: string]: unknown;
+}
+
+export function parseAnalyticsMetric(metric: string, body: unknown, page: boolean, requested?: { limit: number; offset: number }): unknown {
   if (metric === 'regression_analysis') return RegressionMetricSchema.parse(body);
   if (metric === 'cost_analysis') return LegacyCostMetricSchema.parse(body);
   const row = AnalyticsListSchemas[metric as AnalyticsListMetric];
@@ -41,6 +52,9 @@ export function parseAnalyticsMetric(metric: string, body: unknown, page: boolea
     }).passthrough().superRefine((value, ctx) => {
       if (!value.implemented && !value.reason) ctx.addIssue({ code: 'custom', path: ['reason'], message: 'Unimplemented metrics require a reason' });
       if (!value.implemented && (value.data.length !== 0 || value.total !== 0)) ctx.addIssue({ code: 'custom', path: ['implemented'], message: 'Unimplemented metrics cannot report results' });
+      if (requested && (value.limit !== requested.limit || value.offset !== requested.offset)) ctx.addIssue({ code: 'custom', path: ['offset'], message: 'Analytics page controls differ from the request' });
+      if (value.data.length > value.total || (value.data.length > 0 && value.offset + value.data.length > value.total)) ctx.addIssue({ code: 'custom', path: ['total'], message: 'Analytics rows exceed total' });
+      if (value.hasMore && value.data.length === 0) ctx.addIssue({ code: 'custom', path: ['data'], message: 'Analytics page made no progress' });
       if (value.data.length > value.limit || value.hasMore !== (value.offset + value.data.length < value.total)) ctx.addIssue({ code: 'custom', path: ['hasMore'], message: 'Inconsistent analytics page metadata' });
     }).parse(body);
   }

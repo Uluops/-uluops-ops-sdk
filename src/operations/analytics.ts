@@ -351,7 +351,8 @@ export async function getByMetric(
       ...toApiQuery(filters), pricingContract, ...(estimateModel && { estimateModel }),
     }));
   }
-  return parseAnalyticsMetric(metric, await client.get(`/analytics/${metric}`, toApiQuery(page ? { ...query, limit: query?.limit ?? 50, offset: query?.offset ?? 0 } : query)), page);
+  const controls = page ? { limit: query?.limit ?? 50, offset: query?.offset ?? 0 } : undefined;
+  return parseAnalyticsMetric(metric, await client.get(`/analytics/${metric}`, toApiQuery(page ? { ...query, ...controls } : query)), page, controls);
 }
 
 /** Negotiation belongs to this scoped operation, never a cross-org cache. */

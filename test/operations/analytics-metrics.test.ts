@@ -77,10 +77,19 @@ describe('generic analytics response contracts', () => {
       await expect(sdk.analytics.getByMetric('file_hotspots', { format: 'page' }, { org })).rejects.toMatchObject({ code: 'UNSUPPORTED_CONTRACT' });
     }
   });
-  for (const change of [{ implemented: false }, { hasMore: true }, { total: '1' }, { data: [{}] }]) it(`rejects malformed page ${JSON.stringify(change)}`, async () => {
+  for (const change of [
+    { implemented: false }, { hasMore: true }, { total: '1' }, { data: [{}] },
+    { limit: 10 }, { offset: 1 }, { data: [rows.file_hotspots], total: 0 },
+    { data: [], total: 10, hasMore: true },
+  ]) it(`rejects malformed page ${JSON.stringify(change)}`, async () => {
     capability();
     nock(BASE_URL).get('/analytics/file_hotspots').query(true).reply(200, { data: { data: [], total: 0, limit: 50, offset: 0, hasMore: false, implemented: true, ...change } });
     await expect(client().analytics.getByMetric('file_hotspots', { format: 'page' })).rejects.toThrow();
+  });
+  it('rejects rows beyond a nonzero requested offset and total', async () => {
+    capability();
+    nock(BASE_URL).get('/analytics/file_hotspots').query(true).reply(200, { data: { data: [rows.file_hotspots, rows.file_hotspots], total: 3, limit: 50, offset: 2, hasMore: false, implemented: true } });
+    await expect(client().analytics.getByMetric('file_hotspots', { format: 'page', offset: 2 })).rejects.toThrow('Analytics rows exceed total');
   });
   it('rejects malformed legacy rows', async () => {
     nock(BASE_URL).get('/analytics/file_hotspots').reply(200, { data: [{ issueCount: 'bad' }] });
