@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **`AuthUser` / `getMe()` now carries the fields `GET /auth/me` adds beyond the user row:** `personalOrgSlug`, `mfaEnabled`, `totpEnabled`, `totpPending`, `webauthnEnabled`, `auth_method_count` (deprecated, frozen), `trust_root_count` and `has_password`. All optional, so older APIs still parse; wire names are kept as sent. **Why (a fix, presented as additive):** `AuthUserResponseSchema` is a plain `z.object`, which strips undeclared keys and still succeeds, so every SDK consumer silently lost these fields. The dashboard read `user.mfaEnabled ?? false` and showed "MFA DISABLED" for an account with an active passkey (2026-10-02). The new test asserts that the parsed key set equals the wire key set; it failed on 6.11.0 listing exactly these eight keys. Other response schemas may drift the same way; no CI check compares SDK output against API payloads yet (tracked).
 - F11 (6.11.0): negotiated `format=page` for six list analytics metrics, with filtered totals, paging controls and explicit implementation metadata. Validate all eight generic metric responses while preserving legacy shapes and unknown metadata; object metrics remain objects.
 
 ## [6.10.1] - Unreleased

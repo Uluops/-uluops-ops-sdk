@@ -179,6 +179,37 @@ describe('Auth Operations', () => {
       expect(user.email).toBe('user@example.com');
       expect(user.role).toBe('user');
     });
+
+    // The full /auth/me payload, as ops-api auth-controller getMe builds it
+    // (2026-10-02). A plain z.object STRIPS undeclared keys and returns 200, so
+    // until 6.12.0 every consumer lost the MFA flags; the dashboard showed
+    // "MFA DISABLED" for a passkey account. Assert no key the API sends is
+    // dropped, not just that the parse succeeds.
+    it('keeps every /auth/me field the API sends (no silent strip)', async () => {
+      const wire = {
+        ...createMockAuthUser({ id: TEST_IDS.user1, email: 'user@example.com', role: 'user' }),
+        personalOrgSlug: 'alex',
+        mfaEnabled: true,
+        totpEnabled: false,
+        totpPending: false,
+        webauthnEnabled: true,
+        auth_method_count: 2,
+        trust_root_count: 1,
+        has_password: true,
+      };
+      nock(BASE_URL).get('/auth/me').reply(200, { data: wire });
+
+      const user = await authOps.getMe(client);
+
+      expect(Object.keys(user).sort()).toEqual(Object.keys(wire).sort());
+      expect(user).toMatchObject({ mfaEnabled: true, webauthnEnabled: true, totpEnabled: false, personalOrgSlug: 'alex' });
+    });
+
+    it('still parses an older API response without the MFA fields (all optional)', async () => {
+      nock(BASE_URL).get('/auth/me').reply(200, { data: createMockAuthUser({ id: TEST_IDS.user1 }) });
+      const user = await authOps.getMe(client);
+      expect(user.mfaEnabled).toBeUndefined();
+    });
   });
 
   describe('getProfile', () => {

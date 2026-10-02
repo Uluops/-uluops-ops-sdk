@@ -115,6 +115,27 @@ export const AuthUserResponseSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
+  // ── Fields GET /auth/me adds beyond the user row (6.12.0) ──────────
+  // Until 6.12.0 these were undeclared, and z.object STRIPS undeclared keys
+  // with a 200, so every SDK consumer silently lost them. The dashboard
+  // showed "MFA DISABLED" for a passkey account (2026-10-02). Optional, so
+  // older APIs still parse. Wire names kept as sent (some snake_case).
+  /** The caller's personal org slug; null if it has none. */
+  personalOrgSlug: z.string().nullable().optional(),
+  /** Any VERIFIED second factor is active (totpEnabled || webauthnEnabled). */
+  mfaEnabled: z.boolean().optional(),
+  /** TOTP is verified and active. Since platform 1.31.0 it never means merely provisioned. */
+  totpEnabled: z.boolean().optional(),
+  /** A TOTP secret is stored but not verified (abandoned setup, or reset by migration 027). Not active. */
+  totpPending: z.boolean().optional(),
+  /** At least one passkey is registered and active. */
+  webauthnEnabled: z.boolean().optional(),
+  /** DEPRECATED (frozen, counts link rows); prefer trust_root_count. */
+  auth_method_count: z.number().int().nonnegative().optional(),
+  /** Distinct verified mailboxes that can sign in. */
+  trust_root_count: z.number().int().nonnegative().optional(),
+  /** The account has a password credential. */
+  has_password: z.boolean().optional(),
 });
 
 export const PublicUserResponseSchema = z.object({
