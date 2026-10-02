@@ -2,9 +2,11 @@ import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import { InputValidationError, OpsApiError, UnsupportedContractError } from '../errors/errors.js';
+import { parseAnalyticsMetric, AnalyticsListSchemas } from '../types/analytics-metrics.js';
 import { CostCoverageResponseSchema } from '../types/cost-coverage.js';
 import type {
   AnalyticsQuery,
+  AnalyticsMetricQuery,
   AgentInfo,
   AgentLifecycleEntry,
   AgentPerformance,
@@ -305,18 +307,18 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
 
 /**
  * Get analytics by metric name via the generic `/:metric` endpoint.
- * Response is untyped (`unknown`) — prefer the typed methods for validated responses.
+ * Validates each metric while preserving its legacy shape and producer metadata.
  *
  * @param client - HTTP client instance
  * @param metric - One of: agent_performance, resolution_rates, cross_project_patterns, file_hotspots, regression_analysis, trend_summary, cost_analysis, taxonomy_distribution
  * @param query - Optional: project, days
- * @returns Unvalidated response data
+ * @returns Validated metric data, or an explicitly selected list page
  * @throws {InputValidationError} If metric is not in ANALYTICS_METRICS
  */
 export async function getByMetric(
   client: OpsHttpClient,
   metric: AnalyticsMetric,
-  query?: AnalyticsQuery
+  query?: AnalyticsMetricQuery
 ): Promise<unknown> {
   if (!isValidMetric(metric)) {
     throw new InputValidationError(
@@ -324,6 +326,17 @@ export async function getByMetric(
       [{ code: 'custom', path: ['metric'], message: `must be one of: ${ANALYTICS_METRICS.join(', ')}` }]
     );
   }
+  const page = query?.format === 'page';
+  const selection = z.object({
+    format: z.literal('page').optional(),
+    offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
+    limit: page ? z.number().int().min(1).max(100).optional() : z.number().optional(),
+  }).safeParse(query ?? {});
+  if (!selection.success) throw new InputValidationError('Invalid analytics page selection', selection.error.issues);
+  if ((page && !Object.hasOwn(AnalyticsListSchemas, metric)) || (!page && query?.offset !== undefined)) {
+    throw new InputValidationError('Analytics pages require a list metric and format=page', [{ code: 'custom', path: ['format'], message: 'Select format=page only for list metrics' }]);
+  }
+  if (page) await requireAnalyticsPage(client);
   if (query?.pricingContract !== undefined || query?.estimateModel !== undefined) {
     const selection = z.object({
       metric: z.literal('cost_analysis'), pricingContract: z.literal('coverage-v1'),
@@ -338,7 +351,7 @@ export async function getByMetric(
       ...toApiQuery(filters), pricingContract, ...(estimateModel && { estimateModel }),
     }));
   }
-  return client.get(`/analytics/${metric}`, toApiQuery(query));
+  return parseAnalyticsMetric(metric, await client.get(`/analytics/${metric}`, toApiQuery(page ? { ...query, limit: query?.limit ?? 50, offset: query?.offset ?? 0 } : query)), page);
 }
 
 /** Negotiation belongs to this scoped operation, never a cross-org cache. */
@@ -355,4 +368,16 @@ async function requirePricingContract(client: OpsHttpClient): Promise<void> {
   if (!parsed.success || !parsed.data.contracts.pricing.includes('coverage-v1')) {
     throw new UnsupportedContractError('pricing', 'coverage-v1');
   }
+}
+
+async function requireAnalyticsPage(client: OpsHttpClient): Promise<void> {
+  let body: unknown;
+  try {
+    body = await client.request<unknown>('GET', '/capabilities', undefined, { rawEnvelope: true });
+  } catch (error) {
+    if (!(error instanceof OpsApiError) || error.statusCode !== 404 || (error.code && error.code !== 'NOT_FOUND')) throw error;
+    throw new UnsupportedContractError('analytics', 'page-v1');
+  }
+  const parsed = z.object({ contracts: z.object({ analytics: z.array(z.string()) }) }).safeParse(body);
+  if (!parsed.success || !parsed.data.contracts.analytics.includes('page-v1')) throw new UnsupportedContractError('analytics', 'page-v1');
 }

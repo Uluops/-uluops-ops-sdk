@@ -93,6 +93,7 @@ import type {
 
 import type {
   AnalyticsQuery,
+  AnalyticsMetricQuery,
   AgentPerformance,
   AgentInfo,
   AgentLifecycleEntry,
@@ -815,10 +816,10 @@ export class OpsClient {
 
     /**
      * Get analytics by metric name (generic endpoint).
-     * Returns unvalidated data — use typed methods (getAgentPerformance, etc.) for validated responses.
+     * Validates all metrics while preserving legacy shapes; format=page negotiates list paging.
      *
      */
-    getByMetric: <C extends boolean = false>(metric: analyticsOps.AnalyticsMetric, query?: AnalyticsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<unknown, C>> =>
+    getByMetric: <C extends boolean = false>(metric: analyticsOps.AnalyticsMetric, query?: AnalyticsMetricQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<unknown, C>> =>
       this.execute(options, client => analyticsOps.getByMetric(client, metric, query)),
 
     /** List agents known to the analytics layer. */

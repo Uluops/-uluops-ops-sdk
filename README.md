@@ -1976,7 +1976,30 @@ for (const trend of trends) {
 
 #### `client.analytics.getByMetric(metric, query)`
 
-Get analytics by specific metric name.
+Get analytics by specific metric name. All eight metrics receive runtime schema validation;
+unknown producer metadata is retained. Legacy shapes remain unchanged:
+
+| Metrics | Legacy result |
+|---|---|
+| `agent_performance`, `taxonomy_distribution` | `{data,total}` |
+| `resolution_rates`, `file_hotspots`, `trend_summary`, `cross_project_patterns` | Array |
+| `regression_analysis`, `cost_analysis` | Domain object |
+
+List metrics accept `{ format: 'page', limit: 50, offset: 0 }`, returning
+`{data,total,limit,offset,hasMore,implemented,reason?}`. The SDK negotiates
+`contracts.analytics: ["page-v1"]` on the scoped API before selecting this contract;
+unsupported servers throw `UnsupportedContractError` without a legacy fallback.
+Page defaults are limit50/offset0, maximum limit100. Total counts the same authorized,
+filtered dataset before pagination. Ordering is stable for a fixed dataset; concurrent
+writes do not provide snapshot isolation. `cross_project_patterns` is still a placeholder:
+its legacy result is `[]`, while its page has `implemented:false` and a reason.
+Object metrics reject `format=page`; cost's `pricingContract:'coverage-v1'` remains separate.
+
+```typescript
+const page = await client.analytics.getByMetric('file_hotspots', {
+  format: 'page', project: 'my-project', limit: 50, offset: 0,
+});
+```
 
 Available metrics: `agent_performance`, `resolution_rates`, `cross_project_patterns`, `file_hotspots`, `regression_analysis`, `trend_summary`, `cost_analysis`, `taxonomy_distribution`.
 

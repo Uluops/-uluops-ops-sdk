@@ -297,3 +297,9 @@ export type TrendSummaryResult = z.infer<typeof TrendSummaryResponseSchema>;
  * Derived from TaxonomyResponseSchema — see response-schemas.ts.
  */
 export type { TaxonomyResponse } from './response-schemas.js';
+
+/** Generic analytics supports negotiated pages only for list-valued metrics. */
+export interface AnalyticsMetricQuery extends AnalyticsQuery {
+  format?: 'page';
+  offset?: number;
+}

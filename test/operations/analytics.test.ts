@@ -423,33 +423,10 @@ describe('Analytics Operations', () => {
   });
 
   describe('getByMetric', () => {
-    it('should get analytics by metric name', async () => {
-      nock(BASE_URL)
-        .get('/analytics/cost_analysis')
-        .reply(200, {
-          data: [{ name: 'code-validator', totalRuns: 10, totalInputTokens: 5000, totalOutputTokens: 2000, totalEffectiveTokens: 7000, estimatedCost: 0.15 }],
-        });
-
-      const result = await analyticsOps.getByMetric(client, 'cost_analysis') as Array<Record<string, unknown>>;
-
-      expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('code-validator');
-      expect(result[0].totalRuns).toBe(10);
-    });
-
-    it('should pass query parameters', async () => {
-      nock(BASE_URL)
-        .get('/analytics/regression_analysis')
-        .query({ project: 'proj-1', days: 30 })
-        .reply(200, {
-          data: [],
-        });
-
-      await analyticsOps.getByMetric(client, 'regression_analysis', {
-        project: 'proj-1',
-        days: 30,
-      });
+    it('should pass query parameters and retain a regression object', async () => {
+      const data = { regressionRate: null, totalRegressions: 0, recurringCount: 0, totalResolved: 0 };
+      nock(BASE_URL).get('/analytics/regression_analysis').query({ project: 'proj-1', days: 30 }).reply(200, { data });
+      expect(await analyticsOps.getByMetric(client, 'regression_analysis', { project: 'proj-1', days: 30 })).toEqual(data);
     });
 
     it('should throw error for invalid metric', async () => {
