@@ -326,6 +326,34 @@ describe('Project Operations', () => {
       expect(issues[1].priority).toBe('suggested');
     });
 
+    it('reads issues whose type is a domain type outside the universal set (6.13.0)', async () => {
+      // The API stores `type` as an open string. Before 6.13.0 ONE such row threw
+      // ZodError for the whole page (2026-10-03: -uluops-platform and
+      // uluops-registry-api were unreadable). Both the known and an unknown value
+      // must survive verbatim, and null must too.
+      const mockIssues = [
+        createMockIssue({ title: 'domain', type: 'design' }),
+        createMockIssue({ title: 'universal', type: 'bug' }),
+        createMockIssue({ title: 'untyped', type: null }),
+      ];
+      nock(BASE_URL)
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
+        .reply(200, { data: mockIssues, total: 3, count: 3 });
+
+      const { data: issues } = await projectOps.listIssues(client, TEST_IDS.proj1);
+
+      expect(issues.map(i => i.type)).toEqual(['design', 'bug', null]);
+    });
+
+    it('CONTROL: the open read schema still enforces the wire bound (type > 50 chars throws)', async () => {
+      nock(BASE_URL)
+        .get(`/projects/${TEST_IDS.proj1}/issues`)
+        // createMockIssue self-validates, so build a valid issue and widen the field after.
+        .reply(200, { data: [{ ...createMockIssue(), type: 'x'.repeat(51) }], total: 1, count: 1 });
+
+      await expect(projectOps.listIssues(client, TEST_IDS.proj1)).rejects.toThrow();
+    });
+
     it('should list issues with filters', async () => {
       const mockIssues = [createMockIssue({ title: 'Critical Bug', priority: 'critical' })];
 

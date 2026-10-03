@@ -20,5 +20,7 @@ export * from './responses.js';
 export * from './schemas.js';
 
 // Response schemas are internal — import from './response-schemas.js' directly if needed for testing
+// …except the read-side issue-type union, which consumers need to name (6.13.0).
+export type { IssueTypeRead } from './response-schemas.js';
 
 export type { DiscoveryPage, DiscoveryQuery, ProjectDiscoveryQuery, IssueDiscoveryQuery, IssueSearchPageQuery, RunDiscoveryQuery, AnalysisDiscoveryQuery, AgentDiscoveryQuery, AgentDiscoveryPage } from '../operations/discovery.js';

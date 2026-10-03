@@ -4,6 +4,16 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.13.0] - 2026-10-03
+
+### Fixed
+
+- **Issue lists no longer throw on a domain issue `type`.** Issue `type` on reads is now an open string (`≤ 50` chars, nullable) instead of `z.enum(ISSUE_TYPES)`. **Why:** the API stores `type` as an open string, and domain types with no universal mapping are persisted verbatim. One such row made the SDK throw `ZodError` for its whole page. On 2026-10-03, 13 rows typed `design`, `architecture`, `observability` and `process` made every issue list of `-uluops-platform` (507 issues) and `uluops-registry-api` (2,848) unreadable through every 6.x consumer. `@uluops/rah-service` silently dropped both projects from the RAH snapshot, about 17% of ulu-labs' issues. Decided by Alex 2026-10-03: the API's open contract is the truth; the SDK was the drifted side. Negative control: the new list test fails on 6.12.0. A companion control asserts the 50-char wire bound still throws, so the schema is not `z.any()`.
+
+### Changed
+
+- **`Issue['type']` widens from `IssueType | null` to `IssueTypeRead | null`**, where `IssueTypeRead = IssueType | (string & {})`. It is exported from the package root. Editor completion for the universal values is kept. **What can break:** a TypeScript `switch` on `issue.type` that relied on exhaustiveness (a `never` default) no longer type-checks; add a default branch. Comparisons such as `issue.type === 'bug'` are unaffected. **Writes are unchanged:** `IssueTypeSchema` (create/update inputs) stays closed, so the SDK never introduces a value the API does not already hold.
+
 ## [6.12.0] - 2026-10-02
 
 ### Fixed

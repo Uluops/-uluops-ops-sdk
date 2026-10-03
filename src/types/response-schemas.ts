@@ -90,7 +90,26 @@ export type MergeProjectConflictKind =
  * (lower-snake identifier) without asserting knowledge of the value set.
  */
 export const MergeConflictKindResponseSchema = z.string().regex(/^[a-z][a-z0-9_]*$/);
-export const IssueTypeResponseSchema = z.enum(ISSUE_TYPES);
+/**
+ * Issue `type` on READS is an open string, not `z.enum(ISSUE_TYPES)` (6.13.0).
+ *
+ * The API stores `type` as `z.string().max(50)` ("domain types resolved by API",
+ * ops-uluops-api `business-objects/enums.ts`), so a domain type with no universal
+ * mapping is persisted verbatim. The closed enum here made one such row throw
+ * `ZodError` for its WHOLE page. On 2026-10-03, 13 rows typed `design`,
+ * `architecture`, `observability` and `process` made every issue list of
+ * `-uluops-platform` (507) and `uluops-registry-api` (2,848) unreadable through the
+ * SDK. rah-service then dropped both projects from the RAH snapshot as a
+ * per-project fetch error.
+ *
+ * Writes stay closed (`IssueTypeSchema` in `schemas.ts`), so the SDK never
+ * introduces a new value. It only stops refusing ones the API already holds.
+ * `IssueTypeRead` keeps editor completion for the universal set while admitting
+ * any other string. This is the same reasoning as `MergeConflictKindResponseSchema`
+ * above: assert the wire format, not knowledge of the value set. (Alex, 2026-10-03.)
+ */
+export type IssueTypeRead = (typeof ISSUE_TYPES)[number] | (string & {});
+export const IssueTypeResponseSchema: z.ZodType<IssueTypeRead> = z.string().max(50);
 export const NoteTypeResponseSchema = z.enum(NOTE_TYPES);
 export const UserRoleResponseSchema = z.enum(USER_ROLES);
 export const SubscriptionTierResponseSchema = z.enum(SUBSCRIPTION_TIERS);
