@@ -4,6 +4,18 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [6.14.0] - 2026-10-03
+
+### Fixed
+
+- **Twelve fields the API sends are now kept instead of silently dropped.** They were found by the new ops-api strip guard (tracker `a6cc132a`), which compares every live wire body in the contract suite key-for-key against what the SDK returns. `z.object` strips undeclared keys and still succeeds, so each of these reached no consumer. All are declared optional (and nullable where the API sends null), so older APIs still parse.
+  - `AuthUser` (`/auth/me` and the `user` of `/auth/register`): `requiresReattestation`, `usernameConfirmed`. **6.12.0's `/auth/me` fix missed `requiresReattestation`.** Its test compared against the field list it was written from, not against a live body.
+  - Run write echo (`runs.save` `run`, `runs.update*`): `payloadHashVersion`, `projectInferred`, `newIssuesCount`, `recurringIssuesCount`, `regressionsCount`, `observedCount`, `clusteredOccurrencesCount` (NULL = predates capture, 0 = none clustered; the two are kept distinct).
+  - Correlation result: `duplicatesSkipped`.
+  - Occurrence (`issues.getDetails`): `convergenceClusterId`.
+  - Taxonomy: `source { package, version, database }`, and `failureCodePattern.note` / `validCodes`. The API recorded on 2026-09-16 that older SDKs strip `source`.
+  - **Tests:** `test/types/declared-wire-fields.test.ts` takes its values from live wire bodies, not from these schemas. Five cases fail on 6.13.0, and a control proves a pre-6.14 body (none of the new keys) still parses.
+
 ## [6.13.0] - 2026-10-03
 
 ### Fixed

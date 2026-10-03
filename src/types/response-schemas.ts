@@ -155,6 +155,14 @@ export const AuthUserResponseSchema = z.object({
   trust_root_count: z.number().int().nonnegative().optional(),
   /** The account has a password credential. */
   has_password: z.boolean().optional(),
+  // ── Declared 6.14.0 — found by the ops-api strip guard (tracker a6cc132a) ──
+  // 6.12.0 declared the eight /auth/me fields its test saw; the guard, comparing a
+  // live wire body key-for-key, found these two still dropped (/auth/me and the
+  // `user` of /auth/register share this schema).
+  /** Passkeys were disabled for this account and must be re-registered (platform migration 013). */
+  requiresReattestation: z.boolean().optional(),
+  /** The username was chosen by the user rather than auto-assigned; once true it is locked. */
+  usernameConfirmed: z.boolean().optional(),
 });
 
 export const PublicUserResponseSchema = z.object({
@@ -465,6 +473,8 @@ export const OccurrenceResponseSchema = z.object({
   classificationConfidence: z.enum(['high', 'medium', 'low']).nullable(),
   classifiedBy: z.enum(['agent', 'classifier', 'human']).nullable(),
   correlationStatus: z.enum(['new', 'recurring', 'regression', 'observed']).nullable().optional(),
+  /** Orchestrator-declared convergence cluster (fingerprint spec §8.3); null = no adjudicating stage. 6.14.0. */
+  convergenceClusterId: z.string().max(64).nullable().optional(),
   createdAt: DateTimeStringSchema,
 });
 
@@ -671,6 +681,18 @@ export const RunWriteEchoResponseSchema = z.object({
   mergedFromProjectId: z.string().uuid().nullable().optional(),
   mergedFromRunNumber: z.number().int().nullable().optional(),
   mergedFromIdempotencyKey: z.string().nullable().optional(),
+  // ── Declared 6.14.0 (ops-api strip guard, a6cc132a) — previously dropped from every write echo ──
+  /** Which idempotency-hash contract produced `payloadHash` (`legacy-v1` | `report-v2`; open string). */
+  payloadHashVersion: z.string().nullable().optional(),
+  /** The submitter reported the project name was inferred (basename fallback). NULL = not reported. */
+  projectInferred: z.boolean().nullable().optional(),
+  /** Correlation outcome counts persisted at first save (NULL for runs predating migration 065). */
+  newIssuesCount: z.number().int().nullable().optional(),
+  recurringIssuesCount: z.number().int().nullable().optional(),
+  regressionsCount: z.number().int().nullable().optional(),
+  observedCount: z.number().int().nullable().optional(),
+  /** Occurrences carrying a convergence cluster id. NULL = predates capture; 0 = captured, none clustered — different claims. */
+  clusteredOccurrencesCount: z.number().int().nullable().optional(),
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,
   projectSlug: z.string().optional(),
@@ -806,6 +828,8 @@ export const CorrelationResultResponseSchema = z.object({
   recurringIssues: z.number().int().nonnegative(),
   regressions: z.number().int().nonnegative(),
   observed: z.number().int().nonnegative().optional(),
+  /** Recommendations dropped as exact duplicates within the same save. 6.14.0. */
+  duplicatesSkipped: z.number().int().nonnegative().optional(),
   crossAgentMatches: z.array(CrossAgentItemSchema).optional(),
 });
 
@@ -1516,6 +1540,10 @@ const FailureCodePatternSchema = z.object({
   pattern: z.string(),
   format: z.string(),
   example: z.string(),
+  /** Why the regex is a format floor, not a membership test. 6.14.0. */
+  note: z.string().optional(),
+  /** The closed canonical failure-code set (DOMAIN-MODE); the pattern alone admits non-members. 6.14.0. */
+  validCodes: z.array(z.string()).optional(),
 });
 
 export const TaxonomyResponseSchema = z.object({
@@ -1524,6 +1552,16 @@ export const TaxonomyResponseSchema = z.object({
   priorities: z.array(z.string()),
   statuses: z.array(z.string()),
   failureCodePattern: FailureCodePatternSchema,
+  /**
+   * Where the taxonomy came from (6.14.0). The `@uluops/taxonomy` package is the source and the
+   * database a mirror; `database` reports `in-sync` | `drifted` | `unavailable` (open string —
+   * a new state must not throw). The API added this 2026-09-16 noting older SDKs strip it.
+   */
+  source: z.object({
+    package: z.string(),
+    version: z.string(),
+    database: z.string(),
+  }).optional(),
 });
 
 // Type exports
