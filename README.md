@@ -2238,6 +2238,8 @@ Or configure globally in `~/.uluops/.env`.
 
 The SDK provides typed error classes for precise error handling:
 
+Authorized `runs.get`, `runs.getLatest`, and `runs.getDetails` reads may include `editCapabilities` (`RunEditCapabilities`). It describes the current actor's permission, mutable and immutable fields, unchanged-only fields, UUID-only archive fields, required role and denial reason using camelCase API request keys. Read-scoped API keys receive `canUpdate: false` and `denialReason: INSUFFICIENT_SCOPE`, even when their actor has publisher/owner membership. An absent capability object means unknown (older producer), and writes always recheck authorization and policy. `previewScope: 'analysis-only'` means update previews do not validate metadata or quality edits. Run identity and timestamp are immutable; recorded zero scores and false gate results are immutable too. Identical recorded values may be echoed, but cannot be cleared. Agent enrichment still follows existing agent update restrictions. `recordWriteMode` is a conditional option requiring analysis records, rather than an independently mutable run field. Archive metadata is supported by UUID updates; the API ignores archive fields on project + run number updates.
+
 For a finalized run, changing an already recorded `averageScore` or `allGatesPassed` returns `FINALIZED_RUN_FIELD_IMMUTABLE` with `details.immutableField` and `details.applicationState: 'not_applied'`. Use `isFinalizedRunFieldImmutableError(error)` to narrow the details; read the run before deciding on any further update. Token and analysis enrichment remain available. API cause codes, safe details and request IDs are preserved on the typed error when supplied by the server.
 
 ```typescript

@@ -4,6 +4,31 @@ All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+## [6.15.2] - 2026-10-04
+
+### Fixed
+
+- F17 actor-scope review: preserve `INSUFFICIENT_SCOPE` for read-scoped API keys in typed edit capabilities. Supersedes local 6.15.1 candidate.
+
+## [6.15.1] - 2026-10-04
+
+### Fixed
+
+- F17 review: explicitly document that the API ignores archive metadata on project-number updates, and that recordWriteMode requires analysis records. Supersedes the locally validated 6.15.0 candidate.
+
+## [6.15.0] - 2026-10-04
+
+### Added
+
+- F17: optional typed `RunEditCapabilities` on authorized UUID/latest/details reads, preserving actor-scoped policy without inventing capabilities for older producers.
+
+### Fixed
+
+- Repair the existing sdk-core 0.18.1 lockfile checksum to match authoritative npm metadata, restoring cold installs without changing the dependency version.
+- F17: update documentation now distinguishes immutable identity/timestamp and recorded quality fields from enrichment, UUID-only archive metadata, and analysis-only previews.
+
 ## [6.14.0] - 2026-10-03
 
 ### Fixed

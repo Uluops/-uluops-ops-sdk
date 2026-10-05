@@ -7,6 +7,7 @@ import type {
 import type { IssueFieldsBase } from './issues.js';
 import {
   RunReadResponseSchema,
+  RunEditCapabilitiesResponseSchema,
   RunWriteEchoResponseSchema,
   AgentSnapshotResponseSchema,
   CorrelationResultResponseSchema,
@@ -31,6 +32,9 @@ import {
 // ─────────────────────────────────────────────────────────────────
 // Response types (derived from Zod schemas — single source of truth)
 // ─────────────────────────────────────────────────────────────────
+
+/** Advisory policy in camelCase API request keys; absence means unknown. */
+export type RunEditCapabilities = z.infer<typeof RunEditCapabilitiesResponseSchema>;
 
 /** Run entity — an execution record from any agent, workflow, or pipeline */
 /** Run as returned by the READ surfaces (get/getLatest, diff refs) — the
@@ -267,7 +271,9 @@ export interface ArchiveRunsInput {
 }
 
 /**
- * Update run input
+ * Update run input. Read editCapabilities first when available. Run identity and
+ * timestamp are immutable; recorded score/gate values can only be echoed unchanged.
+ * Preview covers analysis writes only, not metadata or quality fields.
  */
 export interface UpdateRunInput {
   /**
@@ -277,10 +283,14 @@ export interface UpdateRunInput {
    * 5.18.0 it is not sent at all. Set it at save time.
    */
   workflowType?: string;
+  /** Fill an unrecorded value or echo it unchanged; recorded false is immutable too. */
   allGatesPassed?: boolean;
+  /** Fill an unrecorded value or echo it unchanged; recorded zero cannot be changed or cleared. */
   averageScore?: number | null;
   rawMarkdown?: string | null;
+  /** Archive metadata is supported only by UUID updates; the API ignores it on project + run number updates. */
   archivedAt?: string | null;
+  /** UUID updates only; sent as archivedReason. The API ignores it on project + run number updates. */
   archiveReason?: string | null;
   recommendations?: RecommendationInput[];
   agents?: UpdateAgentInput[];

@@ -26,6 +26,21 @@ describe('Run Operations', () => {
     });
   });
 
+  it.each(['get', 'getLatest', 'getDetails'] as const)('preserves authorized edit capabilities through %s', async surface => {
+    const capabilities = {
+      canUpdate: true, mutableFields: ['agents'], byIdOnlyFields: ['archivedAt', 'archivedReason'],
+      immutableFields: [{ field: 'averageScore', reason: 'FINALIZED_RUN_FIELD_IMMUTABLE' }],
+      unchangedOnlyFields: ['averageScore'], requiredRole: 'publisher', denialReason: null,
+      previewScope: 'analysis-only',
+    };
+    const run = { ...createMockRun(), editCapabilities: capabilities };
+    const endpoint = surface === 'get' ? `/runs/${run.id}` : `/runs/project/${TEST_IDS.proj1}/${surface === 'getLatest' ? 'latest' : 'details'}`;
+    nock(BASE_URL).get(endpoint).reply(200, { data: surface === 'getDetails' ? { run, agents: [], recommendations: [] } : run });
+    const parsed = surface === 'getDetails' ? (await runOps.getDetails(client, TEST_IDS.proj1)).run
+      : surface === 'getLatest' ? await runOps.getLatest(client, TEST_IDS.proj1) : await runOps.get(client, run.id);
+    expect(parsed.editCapabilities).toEqual(capabilities);
+  });
+
   describe('save', () => {
     it('should save validation run', async () => {
       const mockRun = createMockRun({ runNumber: 1, workflowType: 'post-implementation' });

@@ -418,6 +418,10 @@ function parseUpdateEnvelope(body: unknown, endpoint: string): z.infer<typeof Up
  * enrichment with analysis records and summaries (per-agent scoped replace —
  * see {@link UpdateRunInput}).
  *
+ * Recorded averageScore/allGatesPassed cannot be changed or cleared; identical
+ * values are allowed. Identity/timestamp are immutable. Consult editCapabilities
+ * on an authorized read; previews cover analysis only.
+ *
  * @param client - HTTP client instance
  * @param input - Update payload with project + runNumber identifier
  * @returns Updated run
@@ -449,6 +453,8 @@ async function updateEnvelope(
 }
 
 /**
+ * Archive metadata (archivedAt/archiveReason) is ignored by the API on this
+ * project + run number path; use a UUID update for archive fields.
  * Update run metadata by project and run number (per-agent analysis writes —
  * see {@link UpdateRunInput}).
  *
@@ -470,6 +476,7 @@ export async function update(
 }
 
 /**
+ * Archive metadata is ignored by the API on this selector; use UUID updates.
  * Update by project + run number, returning the run AND the server's §3.9
  * analysis-write echo (F17): success-path visibility of what the write
  * actually superseded. `analysisWrite` is null on updates that carried no
@@ -570,7 +577,8 @@ export async function get(client: OpsHttpClient, runId: string): Promise<Run> {
  *
  * @param client - HTTP client instance
  * @param runId - Run UUID
- * @param input - Fields to update (all optional except identifier)
+ * @param input - Fields to update (recorded quality fields are immutable; identity
+ *   and timestamp cannot be updated; previews cover analysis only) (all optional except identifier)
  * @returns Updated run
  * @throws {InputValidationError} If input fails client-side Zod validation
  * @throws {AnalysisEchoMismatchError} If an analysis-bearing update's response

@@ -611,6 +611,21 @@ export const StatusUpdateResultResponseSchema = z.object({
 // RUN RESPONSE SCHEMAS
 // ============================================
 
+/** Actor-scoped advisory on authorized run reads. Writes recheck current policy. */
+export const RunEditCapabilitiesResponseSchema = z.object({
+  canUpdate: z.boolean(),
+  mutableFields: z.array(z.string()),
+  immutableFields: z.array(z.object({
+    field: z.string(),
+    reason: z.enum(['STRUCTURAL_IDENTITY_IMMUTABLE', 'FINALIZED_RUN_FIELD_IMMUTABLE']),
+  })),
+  unchangedOnlyFields: z.array(z.string()),
+  byIdOnlyFields: z.array(z.string()),
+  requiredRole: z.literal('publisher'),
+  denialReason: z.enum(['ORG_ACCESS_DENIED', 'INSUFFICIENT_ORG_ROLE', 'INSUFFICIENT_SCOPE']).nullable(),
+  previewScope: z.literal('analysis-only'),
+});
+
 /**
  * Run READ projection (API 2.0.0, tool-sweep T10) — the 14-key shape
  * `GET /runs/:id` and `GET /runs/project/:id/latest` return, and the shape
@@ -619,6 +634,8 @@ export const StatusUpdateResultResponseSchema = z.object({
  * test/types/tolerance-window.test.ts).
  */
 export const RunReadResponseSchema = z.object({
+  // Absent on older producers and diff refs: unknown, never inferred permission.
+  editCapabilities: RunEditCapabilitiesResponseSchema.optional(),
   id: z.string().uuid(),
   projectId: z.string().uuid(),
   runNumber: z.number().int().positive(),
