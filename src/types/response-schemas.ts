@@ -457,6 +457,8 @@ export const IssueResponseSchema = z.object({
    * (tracker `fc862289`). Same mechanism as `issueStatus` / `659d061d` below.
    */
   description: z.string().max(MAX_DESCRIPTION).nullable().optional(),
+  /** Detail read remediation narrative; description retains its existing occurrence meaning. */
+  effectiveDescription: z.string().max(MAX_DESCRIPTION).nullable().optional(),
   deletedAt: NullableDateTimeSchema.optional(),  // Stripped by issueToPublic
   createdAt: DateTimeStringSchema,
   updatedAt: DateTimeStringSchema,

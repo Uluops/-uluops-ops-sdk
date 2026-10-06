@@ -1,8 +1,10 @@
 import { z } from 'zod';
+import { OpsApiError, UnsupportedContractError } from '../errors/errors.js';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
 import {
   ProjectLogPageSchema,
+  ActionableProjectLogPageSchema,
   ProjectLogStatSchema,
   type LogStatQuery,
   type ProjectLogPage,
@@ -430,12 +432,31 @@ export async function getLog(
   idOrName: string,
   query: ProjectLogQuery = {}
 ): Promise<ProjectLogPage> {
-  return ProjectLogPageSchema.parse(await client.request<unknown>(
+  z.object({ format: z.literal('actionable').optional() }).parse(query);
+  if (query.format === 'actionable') await requireProjectLogContract(client);
+  const schema = query.format === 'actionable' ? ActionableProjectLogPageSchema : ProjectLogPageSchema;
+  return schema.parse(await client.request<unknown>(
     'GET',
     `/projects/${encodeURIComponent(idOrName)}/log`,
     logQueryParams(query),
     { rawEnvelope: true },
   ));
+}
+
+/** Negotiate on this scoped operation; preserve authorization failures and never fall back. */
+async function requireProjectLogContract(client: OpsHttpClient): Promise<void> {
+  let body: unknown;
+  try {
+    body = await client.request<unknown>('GET', '/capabilities', undefined, { rawEnvelope: true });
+  } catch (error) {
+    if (!(error instanceof OpsApiError) || error.statusCode !== 404 ||
+        (error.code && error.code !== 'NOT_FOUND')) throw error;
+    throw new UnsupportedContractError('projectLog', 'actionable-v1');
+  }
+  const parsed = z.object({ contracts: z.object({ projectLog: z.array(z.string()) }) }).safeParse(body);
+  if (!parsed.success || !parsed.data.contracts.projectLog.includes('actionable-v1')) {
+    throw new UnsupportedContractError('projectLog', 'actionable-v1');
+  }
 }
 
 /**
@@ -457,6 +478,7 @@ export async function getLogStat(
 /** Wire form of {@link ProjectLogQuery} — camelCase preserved, arrays comma-joined, booleans as strings. */
 export function logQueryParams(query: ProjectLogQuery): Record<string, string> {
   const params: Record<string, string> = {};
+  if (query.format !== undefined) params['format'] = query.format;
   if (query.since !== undefined) params['since'] = query.since;
   if (query.until !== undefined) params['until'] = query.until;
   if (query.limit !== undefined) params['limit'] = String(query.limit);

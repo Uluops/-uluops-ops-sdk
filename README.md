@@ -842,6 +842,16 @@ do {
 } while (cursor);
 ```
 
+Use `format: 'actionable'` for issue lookup identities. The SDK negotiates
+`contracts.projectLog: ['actionable-v1']` in the selected org, then requires full
+16–64-character `fingerprint` values on decision and regression events. Optional
+`displayFingerprint` is the 12-character presentation prefix; omission of the
+selector retains legacy prefix identities. Unsupported contracts fail before the
+log request, with no fallback. Return `nextCursor` unchanged as `cursor`.
+
+Issue reads can also carry optional nullable `effectiveDescription`, the API's
+remediation narrative. The existing occurrence `description` keeps its meaning.
+
 #### `client.projects.getLogStat(idOrName, query?, options?)` — the rollup (§3.3)
 
 `{ projectId, window, examined, found, decided, cameBack, activity }`. Two frames on two clocks:
@@ -2650,7 +2660,7 @@ requested scope. Ordinary and org-bound keys use existing org authorization.
 ## Public projection allowlists
 
 - Projects: `id,name,domain,ownerId,orgId,createdAt,updatedAt`.
-- Issues: `id,projectId,authorId,fingerprint,semanticFingerprint,title,status,priority,severity,failureCode,failureDomain,failureMode,failureSeverityCode,category,agent,type,filePath,lineNumber,timesSeen,firstSeenRunId,lastSeenRunId,resolvedAt,resolutionRunId,mergedFromProjectId,mergedIntoIssueId,description,createdAt,updatedAt`.
+- Issues: `id,projectId,authorId,fingerprint,semanticFingerprint,title,status,priority,severity,failureCode,failureDomain,failureMode,failureSeverityCode,category,agent,type,filePath,lineNumber,timesSeen,firstSeenRunId,lastSeenRunId,resolvedAt,resolutionRunId,mergedFromProjectId,mergedIntoIssueId,description,effectiveDescription,createdAt,updatedAt`.
 - Runs: `id,projectId,runNumber,workflowType,timestamp,allGatesPassed,averageScore,archivedAt,archiveReason,createdAt,totalRecommendations,criticalCount,highCount,suggestedCount,backlogCount,agentScores`.
 - Analysis records: `id,runId,agentName,agentType,agentTypeSource,agentTypeDefinitionId,agentTypeDefinitionVersion,recordType,recordId,title,classification,severity,recordData,createdAt`.
 - Analysis summaries: `id,runId,agentName,agentType,agentTypeSource,agentTypeDefinitionId,agentTypeDefinitionVersion,decision,score,decisionVocabulary,systemMetrics,categoryScores,epistemicAssessment,auditImplications,explorationMaps,createdAt`.

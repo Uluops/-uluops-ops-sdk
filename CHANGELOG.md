@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- F19: `projects.getLog({format: "actionable"})` negotiates `projectLog/actionable-v1`, validates full fingerprints, and preserves optional `displayFingerprint`. Omission retains legacy log identities.
+- Preserve optional nullable `effectiveDescription` on issue reads alongside the existing occurrence `description`.
+
 ## [6.15.2] - 2026-10-04
 
 ### Fixed

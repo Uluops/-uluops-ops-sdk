@@ -32,6 +32,8 @@ export type LogEventKind = (typeof LOG_EVENT_KINDS)[number];
  * SDK's generic `toApiQuery` (which snake_cases).
  */
 export interface ProjectLogQuery {
+  /** Request full actionable fingerprints; negotiated through actionable-v1. */
+  format?: 'actionable';
   /** ISO 8601; `since <= until` or the API answers 400. */
   since?: string;
   until?: string;
@@ -93,8 +95,9 @@ export type LogRunEvent = z.infer<typeof LogRunEventSchema>;
 export const LogDecisionEventSchema = z.object({
   type: z.literal('decision'),
   issueId: z.string(),
-  /** 12-char prefix — what the `issues history` picker prints. */
+  /** Legacy: 12-char prefix; actionable: full issue identity. */
   fingerprint: z.string(),
+  displayFingerprint: z.string().length(12).optional(),
   title: z.string(),
   from: nullableString,
   to: z.string(),
@@ -113,6 +116,7 @@ export const LogRegressionEventSchema = z.object({
   type: z.literal('regression'),
   issueId: z.string(),
   fingerprint: z.string(),
+  displayFingerprint: z.string().length(12).optional(),
   title: z.string(),
   /** `null` when the detecting run is archived or otherwise unresolvable — render *via run ?*. */
   viaRunNumber: z.number().int().nullable(),
@@ -131,6 +135,21 @@ export const ProjectLogPageSchema = z.object({
   count: z.number().int().nonnegative(),
   hasMore: z.boolean(),
   nextCursor: z.string().optional(),
+});
+/** Selected actionable responses must retain full identities; omission of display text is compatible. */
+export const ActionableProjectLogPageSchema = ProjectLogPageSchema.extend({
+  data: z.array(z.discriminatedUnion('type', [
+    LogRunEventSchema,
+    LogDecisionEventSchema.extend({ fingerprint: z.string().min(16).max(64) }),
+    LogRegressionEventSchema.extend({ fingerprint: z.string().min(16).max(64) }),
+  ])).superRefine((events, context) => {
+    events.forEach((event, index) => {
+      if (event.type !== 'run' && event.displayFingerprint !== undefined &&
+          event.displayFingerprint !== event.fingerprint.slice(0, 12)) {
+        context.addIssue({ code: 'custom', path: [index, 'displayFingerprint'], message: 'Must match the full fingerprint prefix' });
+      }
+    });
+  }),
 });
 export type ProjectLogPage = z.infer<typeof ProjectLogPageSchema>;
 

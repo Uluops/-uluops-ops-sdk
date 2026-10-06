@@ -78,6 +78,51 @@ describe('projects.getLog — the stream (§3.2)', () => {
     expect(nock.isDone()).toBe(true);
   });
 
+  it('negotiates actionable identities and preserves opaque cursors through successive scoped HTTP reads', async () => {
+    const ops = new OpsClient({ baseUrl: BASE_URL, apiKey: TEST_API_KEY });
+    const fingerprint = 'abcdef123456' + 'a'.repeat(52);
+    const cursor = 'opaque+/=%:ß';
+    for (const query of [{ format: 'actionable' }, { format: 'actionable', cursor }]) {
+      nock(BASE_URL, { reqheaders: { 'X-Org-Slug': 'acme' } }).get('/capabilities')
+        .reply(200, { contracts: { projectLog: ['actionable-v1'] } });
+      const scope = nock(BASE_URL, { reqheaders: { 'X-Org-Slug': 'acme' } }).get('/projects/billing/log')
+        .query(query).reply(200, { data: [{ ...decisionEvent, fingerprint, displayFingerprint: fingerprint.slice(0, 12) }, { ...regressionEvent, fingerprint }], count: 2, hasMore: true, nextCursor: cursor });
+      const page = await ops.projects.getLog('billing', query as { format: 'actionable'; cursor?: string }, { org: 'acme' });
+      expect(page.data[0]).toMatchObject({ fingerprint, displayFingerprint: fingerprint.slice(0, 12) });
+      expect(page.data[1]).not.toHaveProperty('displayFingerprint');
+      expect(page.nextCursor).toBe(cursor);
+      expect(scope.isDone()).toBe(true);
+    }
+  });
+
+  it.each([200, 404])('refuses an unavailable actionable contract (%s) without legacy fallback', async status => {
+    nock(BASE_URL).get('/capabilities').reply(status, status === 200 ? { contracts: {} } : { error: { code: 'NOT_FOUND' } });
+    await expect(projectOps.getLog(client, 'billing', { format: 'actionable' })).rejects.toMatchObject({ name: 'UnsupportedContractError' });
+  });
+
+  it.each([401, 403])('preserves actionable capability authorization failures (%s)', async status => {
+    nock(BASE_URL).get('/capabilities').reply(status, { error: { code: 'FORBIDDEN', message: 'denied' } });
+    await expect(projectOps.getLog(client, 'billing', { format: 'actionable' })).rejects.toMatchObject({ statusCode: status });
+  });
+
+  it('rejects a downgraded actionable response containing a fingerprint prefix', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, { contracts: { projectLog: ['actionable-v1'] } });
+    nock(BASE_URL).get('/projects/billing/log').query({ format: 'actionable' })
+      .reply(200, { data: [decisionEvent], count: 1, hasMore: false });
+    await expect(projectOps.getLog(client, 'billing', { format: 'actionable' })).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it.each([
+    { fingerprint: 'a'.repeat(32), displayFingerprint: 'b'.repeat(12) },
+    { fingerprint: 'a'.repeat(32), displayFingerprint: 'a'.repeat(11) },
+    { fingerprint: 'a'.repeat(65) },
+  ])('rejects malformed actionable identity/display pairs %j', async identity => {
+    nock(BASE_URL).get('/capabilities').reply(200, { contracts: { projectLog: ['actionable-v1'] } });
+    nock(BASE_URL).get('/projects/billing/log').query({ format: 'actionable' })
+      .reply(200, { data: [{ ...decisionEvent, ...identity }], count: 1, hasMore: false });
+    await expect(projectOps.getLog(client, 'billing', { format: 'actionable' })).rejects.toBeInstanceOf(ZodError);
+  });
+
   it('CONTROL: the generic snake_casing path would have sent workflow_type — which the API ignores — so it is not what getLog uses', () => {
     const generic = toApiQuery({ workflowType: 'ship', includeArchived: true });
     expect(generic).toHaveProperty('workflow_type', 'ship');
