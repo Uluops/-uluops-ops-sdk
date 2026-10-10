@@ -257,6 +257,7 @@ import type {
   Priority,
   Status,
   Severity,
+  IssueTypeRead, // the READ type of Issue['type'] (6.13.0) — open; IssueType is the closed write set
   // Issue history envelope (added in 3.2.0 — see CHANGELOG)
   IssueHistoryEnvelope,
   HistoryEvent,
@@ -1568,6 +1569,12 @@ const issues = await client.issues.search({
 });
 ```
 
+> **`Issue['type']` is open on reads (6.13.0).** A read returns `IssueTypeRead | null`
+> (`IssueType | (string & {})`), not `IssueType`: the API holds values outside the universal set,
+> and a closed read schema rejected those issues outright. A `switch` on `issue.type` that relied
+> on exhaustiveness (a `never` default) needs a `default` branch. Writes (`create`, `update`) stay
+> on the closed `IssueType`.
+
 #### `client.issues.get(issueId)`
 
 Get an issue by ID.
@@ -2110,8 +2117,9 @@ for (const entry of feed.data.entries) {
 `details.action` (`project.rehome_out` on the source org's feed, `project.rehome_in` on the
 target's). A non-member gets `403 ORG_ACCESS_DENIED`.
 
-**Who did it: `actorKind` (6.17.0; sent by ops-api from its platform 1.35.0 pin).** Each entry
-carries `actorKind`: `'user'`, `'system:org_lifecycle'` (the org purge — its `actorId` is the
+**Who did it: `actorKind` (6.17.0; sent by ops-api from its platform 1.35.0 pin).** An entry
+of the member feed (`getOrgAuditFeed`) may carry `actorKind` — the admin rehome-events feed does
+not: `'user'`, `'system:org_lifecycle'` (the org purge — its `actorId` is the
 reserved principal `00000000-0000-4000-8000-0000000000a1`), or `'unknown'` (a null actor, or an
 unmapped reserved value). It is a **string, not an enum** — a later system principal adds a
 `'system:…'` value, and an enum would throw on it — and it is **optional**: an older server does

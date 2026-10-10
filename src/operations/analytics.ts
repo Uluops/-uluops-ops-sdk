@@ -314,6 +314,13 @@ export function isValidMetric(metric: string): metric is AnalyticsMetric {
  * @param query - Optional: project, days
  * @returns Validated metric data, or an explicitly selected list page
  * @throws {InputValidationError} If metric is not in ANALYTICS_METRICS
+ *
+ * @example
+ * ```typescript
+ * const rates = await client.analytics.getByMetric('resolution_rates', { project: 'my-project' });
+ * // A list metric as one page (AnalyticsPage):
+ * const page = await client.analytics.getByMetric('file_hotspots', { format: 'page', limit: 50 });
+ * ```
  */
 export async function getByMetric(
   client: OpsHttpClient,

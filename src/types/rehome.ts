@@ -201,13 +201,23 @@ export const OrgAuditEntrySchema = z.object({
  * Display label for a feed entry's actor: `'system'` for any `system:*` kind, `'unknown'` for
  * `unknown`, otherwise the actor id. When the server did not report `actorKind` (older ops-api),
  * falls back to the id, or `'system'` for a null actor — the meaning a null had before the
- * principal existed. Never parses `details`.
+ * principal existed. Once the server HAS reported a kind, a null id is never read as the system:
+ * a kind the server classified as not-system (e.g. `'user'` with no id) labels `'unknown'`.
+ * Never parses `details`.
+ *
+ * @example
+ * ```typescript
+ * describeAuditActor({ actorId: '00000000-0000-4000-8000-0000000000a1', actorKind: 'system:org_lifecycle' }); // 'system'
+ * describeAuditActor({ actorId: null, actorKind: 'unknown' });   // 'unknown'
+ * describeAuditActor({ actorId: 'u-123', actorKind: 'user' });   // 'u-123'
+ * describeAuditActor({ actorId: null });                          // 'system' (older server, no kind)
+ * ```
  */
 export function describeAuditActor(entry: Pick<OrgAuditEntry, 'actorId' | 'actorKind'>): string {
   const kind = entry.actorKind;
   if (kind !== undefined) {
     if (kind.startsWith('system:')) return 'system';
-    if (kind === 'unknown') return 'unknown';
+    return kind === 'unknown' ? 'unknown' : entry.actorId ?? 'unknown';
   }
   return entry.actorId ?? 'system';
 }

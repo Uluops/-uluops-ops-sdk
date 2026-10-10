@@ -29,6 +29,11 @@ export const LegacyCostMetricSchema = z.object({
   byProject: z.array(group.extend({ project: z.string() })), byWorkflow: z.array(group.extend({ workflowType: z.string() })),
 }).passthrough();
 
+/**
+ * A list metric read with `format: 'page'` (see `getByMetric`): one offset-paged slice of the
+ * metric's rows. `implemented: false` (with `reason`) marks a metric the server does not page
+ * yet — `data` is then empty and is not evidence of no rows. Unknown keys are passed through.
+ */
 export interface AnalyticsPage<T = unknown> {
   data: T[];
   total: number;

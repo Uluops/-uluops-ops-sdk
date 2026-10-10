@@ -258,6 +258,11 @@ describe('feed actorKind (system-actor-principal, ops-api platform 1.35.0)', () 
     expect(describeAuditActor({ actorId: TEST_IDS.user1, actorKind: 'user' })).toBe(TEST_IDS.user1);
   });
 
+  it('D: once a kind is reported, a null id is never labelled the system [control: 6.17.0 draft returned system]', () => {
+    expect(describeAuditActor({ actorId: null, actorKind: 'user' })).toBe('unknown');
+    expect(describeAuditActor({ actorId: null, actorKind: 'robot' })).toBe('unknown');
+  });
+
   it('P: without actorKind (older server) the label falls back to the id, or system for null', () => {
     expect(describeAuditActor({ actorId: TEST_IDS.user1 })).toBe(TEST_IDS.user1);
     expect(describeAuditActor({ actorId: null })).toBe('system');

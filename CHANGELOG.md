@@ -11,7 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **`actorKind` on org audit-feed entries** (`OrgAuditEntrySchema`, `orgs.getVisibleAuditLog`): `z.string().optional()`. ops-api sends it from its `@uluops/platform` 1.35.0 pin (system-actor-principal spec v0.3.2, Phase 2): `'user'`, `'system:org_lifecycle'` (the org purge; `actorId` is the reserved principal `00000000-0000-4000-8000-0000000000a1`) or `'unknown'`. **A string, deliberately not an enum:** a later system principal adds a `'system:…'` value, and a pinned `z.enum` would throw on it in every consumer that has not upgraded. Optional, because an older server does not send it. Before 6.17.0 the non-strict entry schema stripped the field silently (checked 2026-10-09: no installed copy was `.strict()`).
-- **`describeAuditActor(entry)`** — the display label: `'system'` for any `system:*` kind, `'unknown'` for `unknown`, otherwise the actor id; without `actorKind` it falls back to the id, or `'system'` for a null actor (what a null meant before the principal existed). Never reads `details`.
+- **`describeAuditActor(entry)`** — the display label: `'system'` for any `system:*` kind, `'unknown'` for `unknown`, otherwise the actor id; without `actorKind` it falls back to the id, or `'system'` for a null actor (what a null meant before the principal existed). Once a kind IS reported, a null id labels `'unknown'`, never `'system'` — the server has already classified the row as not-system. Never reads `details`.
+
+### Documentation
+
+- Consumer-validate fold (tracker `ops-sdk`, run token `cv-sdk-d9196a`, covering 6.10.1–6.17.0): README now states that `Issue['type']` reads as the open `IssueTypeRead` since 6.13.0 (an exhaustive `switch` needs a `default`) and lists `IssueTypeRead` in the type-import block; the `actorKind` section says it is optional and member-feed only. JSDoc: `@returns`/`@throws`/`@example` on `projects.getLog`, `@example` on `analytics.getByMetric` and `describeAuditActor`, and a doc comment on `AnalyticsPage` (`implemented: false` is not evidence of no rows).
 
 ## [6.16.0] - 2026-10-06
 

@@ -426,6 +426,18 @@ export async function rehome(
  * @param client - HTTP client instance
  * @param idOrName - Project id or name (resolved in the call's org)
  * @param query - Window, paging and filters (see {@link ProjectLogQuery})
+ * @returns One page: `data[]` events newest first, `count`, `hasMore`, and `nextCursor` when
+ *   another page exists. With `format: 'actionable'`, decision and regression events are
+ *   guaranteed a full `fingerprint`.
+ * @throws {UnsupportedContractError} With `format: 'actionable'`, when the server does not
+ *   advertise `projectLog: actionable-v1` on `GET /capabilities` (checked before the read).
+ *
+ * @example
+ * ```typescript
+ * const page = await client.projects.getLog('my-project', { format: 'actionable', limit: 20 });
+ * for (const e of page.data) if (e.type !== 'run') console.log(e.fingerprint);
+ * if (page.hasMore) await client.projects.getLog('my-project', { format: 'actionable', cursor: page.nextCursor });
+ * ```
  */
 export async function getLog(
   client: OpsHttpClient,
