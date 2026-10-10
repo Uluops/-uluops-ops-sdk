@@ -25,7 +25,8 @@ import {
   SESSION_REQUIRED,
 } from '../../src/errors/errors.js';
 import { InputValidationError } from '../../src/config/validators.js';
-import { readRehomeAuditDetails } from '../../src/types/rehome.js';
+import { readRehomeAuditDetails, describeAuditActor, OrgAuditEntrySchema } from '../../src/types/rehome.js';
+import { z } from 'zod';
 import { BASE_URL, TEST_API_KEY } from '../setup.js';
 import { TEST_IDS, createMockProject, createMockAuthUser, resetMockIds } from '../contract-helpers.js';
 
@@ -231,6 +232,35 @@ describe('orgs.getVisibleAuditLog — D19 feed', () => {
     expect(d?.to_org.slug).toBe('alexself2');
     expect(d?.to_personal_org).toBe(true);
     expect(readRehomeAuditDetails(otherEntry)).toBeNull();
+  });
+});
+
+describe('feed actorKind (system-actor-principal, ops-api platform 1.35.0)', () => {
+  const base = { id: TEST_IDS.issue1, action: 'org.updated', createdAt: '2026-10-09T12:00:00.000Z', details: { visibility: 'org' } };
+
+  it('D: an actorKind the SDK has never heard of parses — it is a string, not an enum [mutation control: a z.enum throws]', () => {
+    const entry = { ...base, actorId: '00000000-0000-4000-8000-0000000000b2', actorKind: 'system:some_future' };
+    expect(OrgAuditEntrySchema.parse(entry).actorKind).toBe('system:some_future');
+    // control: the enum a later reader might be tempted to write rejects the same row.
+    const asEnum = OrgAuditEntrySchema.extend({ actorKind: z.enum(['user', 'system:org_lifecycle', 'unknown']).optional() });
+    expect(() => asEnum.parse(entry)).toThrow();
+  });
+
+  it('P: actorKind is preserved on the parsed envelope, and absent (older server) still parses', () => {
+    expect(OrgAuditEntrySchema.parse({ ...base, actorId: TEST_IDS.user1, actorKind: 'user' }).actorKind).toBe('user');
+    expect(OrgAuditEntrySchema.parse({ ...base, actorId: TEST_IDS.user1 })).not.toHaveProperty('actorKind');
+  });
+
+  it('D: describeAuditActor labels by kind, never by the reserved id', () => {
+    expect(describeAuditActor({ actorId: '00000000-0000-4000-8000-0000000000a1', actorKind: 'system:org_lifecycle' })).toBe('system');
+    expect(describeAuditActor({ actorId: '00000000-0000-4000-8000-0000000000b2', actorKind: 'system:some_future' })).toBe('system');
+    expect(describeAuditActor({ actorId: null, actorKind: 'unknown' })).toBe('unknown');
+    expect(describeAuditActor({ actorId: TEST_IDS.user1, actorKind: 'user' })).toBe(TEST_IDS.user1);
+  });
+
+  it('P: without actorKind (older server) the label falls back to the id, or system for null', () => {
+    expect(describeAuditActor({ actorId: TEST_IDS.user1 })).toBe(TEST_IDS.user1);
+    expect(describeAuditActor({ actorId: null })).toBe('system');
   });
 });
 

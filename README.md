@@ -2110,6 +2110,22 @@ for (const entry of feed.data.entries) {
 `details.action` (`project.rehome_out` on the source org's feed, `project.rehome_in` on the
 target's). A non-member gets `403 ORG_ACCESS_DENIED`.
 
+**Who did it: `actorKind` (6.17.0; sent by ops-api from its platform 1.35.0 pin).** Each entry
+carries `actorKind`: `'user'`, `'system:org_lifecycle'` (the org purge — its `actorId` is the
+reserved principal `00000000-0000-4000-8000-0000000000a1`), or `'unknown'` (a null actor, or an
+unmapped reserved value). It is a **string, not an enum** — a later system principal adds a
+`'system:…'` value, and an enum would throw on it — and it is **optional**: an older server does
+not send it. Classify by `actorKind`, never by comparing `actorId` or reading `details`. The
+`describeAuditActor(entry)` helper does both for display:
+
+```typescript
+import { describeAuditActor } from '@uluops/ops-sdk';
+
+for (const entry of feed.data.entries) {
+  console.log(describeAuditActor(entry)); // 'system' | 'unknown' | the actor's user id
+}
+```
+
 ---
 
 #### `client.orgs.list()` — the orgs you belong to

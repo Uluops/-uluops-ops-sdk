@@ -179,11 +179,38 @@ export type ProjectRehomeEventList = z.infer<typeof ProjectRehomeEventListRespon
  */
 export const OrgAuditEntrySchema = z.object({
   id: z.string(),
+  /**
+   * A user id, the org purge's reserved principal (`00000000-0000-4000-8000-0000000000a1`),
+   * or null (no recorded actor). Classify with `actorKind`, never by comparing this string.
+   */
   actorId: z.string().nullable(),
+  /**
+   * What the actor is (ops-api with `@uluops/platform` ≥ 1.35.0; absent from older servers):
+   * `'user'`, `'system:org_lifecycle'` (the org purge) or `'unknown'` (a null actor, or an
+   * unmapped reserved value). A STRING, deliberately not an enum: a later system principal adds
+   * a value (`'system:…'`), and a pinned `z.enum` would THROW on it in every consumer that has
+   * not upgraded. Treat any `'system:'` prefix as the system; treat absence as "not reported".
+   */
+  actorKind: z.string().optional(),
   action: z.string(),
   details: z.record(z.string(), z.unknown()),
   createdAt: DateTimeStringSchema,
 });
+
+/**
+ * Display label for a feed entry's actor: `'system'` for any `system:*` kind, `'unknown'` for
+ * `unknown`, otherwise the actor id. When the server did not report `actorKind` (older ops-api),
+ * falls back to the id, or `'system'` for a null actor — the meaning a null had before the
+ * principal existed. Never parses `details`.
+ */
+export function describeAuditActor(entry: Pick<OrgAuditEntry, 'actorId' | 'actorKind'>): string {
+  const kind = entry.actorKind;
+  if (kind !== undefined) {
+    if (kind.startsWith('system:')) return 'system';
+    if (kind === 'unknown') return 'unknown';
+  }
+  return entry.actorId ?? 'system';
+}
 export type OrgAuditEntry = z.infer<typeof OrgAuditEntrySchema>;
 
 export const OrgAuditFeedResponseSchema = z.object({

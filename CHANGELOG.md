@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [6.17.0] - 2026-10-09
+
+### Added
+
+- **`actorKind` on org audit-feed entries** (`OrgAuditEntrySchema`, `orgs.getVisibleAuditLog`): `z.string().optional()`. ops-api sends it from its `@uluops/platform` 1.35.0 pin (system-actor-principal spec v0.3.2, Phase 2): `'user'`, `'system:org_lifecycle'` (the org purge; `actorId` is the reserved principal `00000000-0000-4000-8000-0000000000a1`) or `'unknown'`. **A string, deliberately not an enum:** a later system principal adds a `'system:…'` value, and a pinned `z.enum` would throw on it in every consumer that has not upgraded. Optional, because an older server does not send it. Before 6.17.0 the non-strict entry schema stripped the field silently (checked 2026-10-09: no installed copy was `.strict()`).
+- **`describeAuditActor(entry)`** — the display label: `'system'` for any `system:*` kind, `'unknown'` for `unknown`, otherwise the actor id; without `actorKind` it falls back to the id, or `'system'` for a null actor (what a null meant before the principal existed). Never reads `details`.
+
+## [6.16.0] - 2026-10-06
+
+*(Heading cut 2026-10-09: these entries shipped in 6.16.0 — published from 7e82d8e — but were left under Unreleased.)*
+
 ### Added
 
 - F19: `projects.getLog({format: "actionable"})` negotiates `projectLog/actionable-v1`, validates full fingerprints, and preserves optional `displayFingerprint`. Omission retains legacy log identities.
