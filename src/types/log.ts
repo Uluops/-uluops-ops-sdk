@@ -13,7 +13,11 @@
  * and `null` means *no reason recorded*; `source` is `'agent'` or `null`, and
  * `null` is *unattributed*, never *human*; a `regression` event is a row a RUN
  * re-detected, while a `resolved → open` decision without a run is *reopened
- * by decision* (D12) — the SDK types both and does not collapse them.
+ * by decision* (D12) — the SDK types both and does not collapse them. Since
+ * ops-api 7a9f95d6 (2026-10-23) a run reopens only a `completed` finding, and
+ * `cameBack.detected` counts `completed → open` by a run; a `regression` EVENT
+ * still labels any run-written resolved → open row, so for rows from before
+ * that date the stream can show a regression the count does not include.
  */
 import { z } from 'zod';
 
@@ -203,7 +207,9 @@ export const LogStatBodySchema = z.object({
   }),
   /** D12: distinct issues, with the row count beside each. */
   cameBack: z.object({
-    /** A run re-detected it (`run_id IS NOT NULL`). */
+    /** A run re-detected a FIXED finding: run-written `completed → open` (`run_id IS NOT NULL`).
+     *  Since ops-api 7a9f95d6 (2026-10-23) a re-detected wontfix / false-positive holds and is
+     *  not counted here — retroactively. */
     detected: z.number().int(),
     detectedEvents: z.number().int(),
     /** Reopened by decision (no run). Never "by hand". */

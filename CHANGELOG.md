@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Doc comments only:** `ProjectLogStat.cameBack.detected` and the module note in `types/log.ts` now describe the API since ops-api `7a9f95d6` (2026-10-23, tracker `d64e9358`): `detected` counts a run's re-detection of a **fixed** (`completed`) finding; a re-detected `wontfix`/`false-positive` holds its status and is not counted, retroactively. A `regression` stream event still labels any run-written resolved → open row, so the two can differ for pre-2026-10-23 rows. No schema or type change.
+
 ## [6.17.0] - 2026-10-09
 
 ### Added
