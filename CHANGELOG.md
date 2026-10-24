@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - **Doc comments only:** `ProjectLogStat.cameBack.detected` and the module note in `types/log.ts` now describe the API since ops-api `7a9f95d6` (2026-10-23, tracker `d64e9358`): `detected` counts a run's re-detection of a **fixed** (`completed`) finding; a re-detected `wontfix`/`false-positive` holds its status and is not counted, retroactively. A `regression` stream event still labels any run-written resolved → open row, so the two can differ for pre-2026-10-23 rows. No schema or type change.
 
+### Fixed
+- **Documentation, from the consumer-validate run before this release:** README: the package is ESM-only (stated before Quick Start and under Requirements; it was nowhere in the README); the `ServiceUnavailableError` row and Automatic Retries now describe the sdk-core 0.19.0 retry opt-out and `details`; a Troubleshooting entry for the zod peer `ERESOLVE`; a broken `#runs-operations` link fixed. `isUnsupportedContractError` gains the doc comment its sibling guards carry.
+
 ## [6.17.0] - 2026-10-09
 
 ### Added

@@ -292,6 +292,7 @@ export class UnsupportedContractError extends Error {
   }
 }
 
+/** Type guard for {@link UnsupportedContractError}. */
 export function isUnsupportedContractError(error: unknown): error is UnsupportedContractError {
   return error instanceof UnsupportedContractError;
 }

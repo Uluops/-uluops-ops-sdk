@@ -15,6 +15,8 @@ See the [Changelog](./CHANGELOG.md) for the current version and release history.
 
 ## Quick Start
 
+> **ESM-only.** This package ships ES modules only (its `exports` has no `require` condition). Use `"type": "module"` in your `package.json`, a `.mjs` file, or an ESM-aware runner such as `npx tsx`. `require('@uluops/ops-sdk')` fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`, and pasting the examples into a CommonJS `.js` file fails with `Cannot use import statement outside a module`.
+
 ### Programmatic Usage
 
 `NODE_ENV=development` selects `http://localhost:3100/api/v1`. Start that API
@@ -120,7 +122,7 @@ The SDK covers the full platform API surface across 8 operation domains with ful
 ## Features
 
 - **Full API Coverage**: auth, projects, runs, issues, analytics, taxonomy, orgs, and admin domains
-- **Type-Safe**: Complete TypeScript definitions; every response is Zod-parsed before it is returned. Write inputs are Zod-validated as a gate (the raw input is what goes to the wire, and the primary writers may pass `_skipClientValidation`) — see [Runs Operations](#runs-operations) for which fields each write validates
+- **Type-Safe**: Complete TypeScript definitions; every response is Zod-parsed before it is returned. Write inputs are Zod-validated as a gate (the raw input is what goes to the wire, and the primary writers may pass `_skipClientValidation`) — see [Run Operations](#run-operations) for which fields each write validates
 - **Dual Authentication**: API key (preferred) and JWT session support
 - **Automatic Retries**: Exponential backoff for transient errors (502, 503, 504, 429, network failures)
 - **Error Hierarchy**: Typed errors for precise error handling
@@ -145,6 +147,7 @@ bun add @uluops/ops-sdk zod
 **Requirements:**
 - Node.js 20.3.0 or higher (enforced by `engines` in `package.json`)
 - TypeScript 5.0+ (for TypeScript users)
+- An ES-module project (the package is ESM-only; see [Quick Start](#quick-start))
 
 **Dependencies:**
 - [`@uluops/sdk-core`](https://www.npmjs.com/package/@uluops/sdk-core) — Shared HTTP client, auth strategies, and utilities (installed automatically)
@@ -2341,7 +2344,7 @@ try {
 | `RateLimitError` | 429 | Rate limit exceeded |
 | `PayloadTooLargeError` | 413 | Request body too large |
 | `UnprocessableError` | 422 | Semantically invalid request |
-| `ServiceUnavailableError` | 503 | Server unavailable |
+| `ServiceUnavailableError` | 502, 503, 504 | Server unavailable; keeps the server's `details` (since sdk-core 0.19.0) |
 | `NetworkError` | - | Connection error (auto-retried) |
 | `TimeoutError` | - | Request timeout |
 | `InputValidationError` | - | Client-side Zod validation failure |
@@ -2392,6 +2395,8 @@ const client = new OpsClient({
   timeout: 30000,    // Request timeout in ms (default: 30000)
 });
 ```
+
+**A server can opt a failure out of retry (since @uluops/sdk-core 0.19.0).** When the error's `details.retryable === false`, `isRetryable()` returns `false` and the SDK does not retry, whatever the status code. Before 0.19.0, retryability followed the status alone, so a server refusing work it knew would fail again was retried anyway. Your own retry logic gets the same answer from `error.isRetryable()`. `ServiceUnavailableError` (502/503/504) also keeps the server's `details` now, so such a refusal (e.g. `{ retryable: false, reason: 'busy' }`) reaches your code.
 
 ### Request Size Limits
 
@@ -2518,6 +2523,15 @@ console.log(config.baseUrl);
 ```
 
 ## Troubleshooting
+
+### Peer dependency conflict (zod)
+
+```text
+npm error ERESOLVE unable to resolve dependency tree
+npm error peer zod@"^4.6.7" from @uluops/ops-sdk@7.0.0
+```
+
+`zod` is a peer dependency (see [Installation](#installation)). Your app is on zod 3, or on a 4.x below 4.6.7. Move the app to `zod@^4.6.7`. Do not reach for `--legacy-peer-deps`: it installs a second zod, whose errors your app's `instanceof ZodError` checks will not recognize.
 
 ### Invalid API Key Format
 
