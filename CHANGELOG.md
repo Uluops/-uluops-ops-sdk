@@ -6,7 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-10-24
+
 ### Changed
+- **BREAKING: `zod` is now a peer dependency (`^4.6.7`), not a bundled exact dependency (`4.3.6`).** Your app must supply zod 4.6.7 or later. npm 7+ and pnpm 8+ install it automatically; yarn classic needs it named; an app on zod 3 gets an `ERESOLVE` peer conflict.
+  - **Why** (zod-4 release train, uluops-specifications `cross-repo/drafts/zod-4-release-train` spec v0.2.1, D2):
+    - The exact pin gave every app its own nested 4.3.6, which is in the range of GHSA-mrhx-c7xc-m3w5 (memory exhaustion validating oversized collections, fixed in 4.6.6). That copy held two deploy gates on a time-boxed exception.
+    - A nested copy also throws a `ZodError` the app's own `instanceof ZodError` does not match.
+    - With a peer, each app resolves one zod. The next zod advisory is that app's `npm update`, not a republish of this SDK.
+  - **The SDK's own tests run against exactly 4.6.7** (`devDependencies`), the floor of the peer range. The app's lockfile decides which 4.x actually runs, and the app's gate tests that combination.
+- **`@uluops/sdk-core` 0.18.1 → 0.19.0** (exact), which comes with two behaviour changes:
+  - `SdkApiError.isRetryable()` honours a server's `details.retryable === false`;
+  - `ServiceUnavailableError` (502/503/504) keeps the server's `details`.
+
 - **Doc comments only:** `ProjectLogStat.cameBack.detected` and the module note in `types/log.ts` now describe the API since ops-api `7a9f95d6` (2026-10-23, tracker `d64e9358`): `detected` counts a run's re-detection of a **fixed** (`completed`) finding; a re-detected `wontfix`/`false-positive` holds its status and is not counted, retroactively. A `regression` stream event still labels any run-written resolved → open row, so the two can differ for pre-2026-10-23 rows. No schema or type change.
 
 ## [6.17.0] - 2026-10-09

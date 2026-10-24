@@ -130,16 +130,16 @@ The SDK covers the full platform API surface across 8 operation domains with ful
 
 ```bash
 # npm
-npm install @uluops/ops-sdk
+npm install @uluops/ops-sdk zod
 
 # yarn
-yarn add @uluops/ops-sdk
+yarn add @uluops/ops-sdk zod
 
 # pnpm
-pnpm add @uluops/ops-sdk
+pnpm add @uluops/ops-sdk zod
 
 # bun
-bun add @uluops/ops-sdk
+bun add @uluops/ops-sdk zod
 ```
 
 **Requirements:**
@@ -148,7 +148,7 @@ bun add @uluops/ops-sdk
 
 **Dependencies:**
 - [`@uluops/sdk-core`](https://www.npmjs.com/package/@uluops/sdk-core) — Shared HTTP client, auth strategies, and utilities (installed automatically)
-- [`zod`](https://www.npmjs.com/package/zod) — Runtime schema validation (installed automatically)
+- [`zod`](https://www.npmjs.com/package/zod) `^4.6.7`: a **peer dependency** since 7.0.0. Your app supplies one zod, and this SDK validates with it, so the app holds exactly one copy. npm 7+ and pnpm 8+ install a missing peer automatically, but yarn classic only warns, so the commands above name `zod` explicitly. An app still on zod 3 gets an `ERESOLVE` peer conflict until it moves to zod 4.
 
 ## Authentication
 
