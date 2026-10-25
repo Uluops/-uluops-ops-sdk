@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import nock from 'nock';
+import { z } from 'zod';
 import { ProjectResponseSchema } from '../src/types/response-schemas.js';
 import { OpsClient } from '../src/client.js';
 import { BASE_URL, TEST_API_KEY, TEST_UUID, createMockProject } from './setup.js';
@@ -124,5 +125,37 @@ describe('discovery page-v1 contract', () => {
     const project = createMockProject();
     nock(BASE_URL).get('/projects').reply(200, { data: [project], total: 1 });
     expect(await client().projects.list()).toEqual({ data: [ProjectResponseSchema.parse(project)], total: 1 });
+  });
+});
+
+/**
+ * The SDK's own discovery checks throw zod errors that are real `Error`s (tracker 2daed86c).
+ * zod 4's exported `ZodError` does not extend `Error`; `ZodRealError` does and is what `.parse()`
+ * throws. Built with `new z.ZodError`, these four throws had no stack and failed every
+ * `err instanceof Error` arm in a consumer. Control: each case fails on 7.0.0.
+ */
+describe('discovery throws real Errors (2daed86c)', () => {
+  const expectRealZodError = async (p: Promise<unknown>, path: string) => {
+    const err = await p.then(() => undefined, (e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).toBeInstanceOf(z.ZodError);
+    expect((err as z.ZodError).issues[0]?.path).toEqual([path]);
+    expect(typeof (err as Error).stack).toBe('string');
+  };
+  it('unknown projection field', () => expectRealZodError(client().discovery.listProjects({ fields: ['privateSecret'] }), 'fields'));
+  it('inconsistent page metadata', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, capabilities);
+    nock(BASE_URL).get('/projects').query({ format: 'page', fields: 'name' }).reply(200, { ...emptyPage, hasMore: true });
+    await expectRealZodError(client().discovery.listProjects({ fields: ['name'] }), 'hasMore');
+  });
+  it('inconsistent agent page metadata', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, capabilities);
+    nock(BASE_URL).get('/agents/discovery').query({ format: 'page' }).reply(200, { data: [{ name: 'a' }], total: 5, limit: 50, offset: 0, hasMore: false });
+    await expectRealZodError(client().discovery.listAgents(), 'hasMore');
+  });
+  it('agent page with no progress', async () => {
+    nock(BASE_URL).get('/capabilities').reply(200, capabilities);
+    nock(BASE_URL).get('/agents/discovery').query({ format: 'page' }).reply(200, { data: [], total: 1, limit: 50, offset: 0, hasMore: true });
+    await expectRealZodError(client().discovery.listAgents(), 'data');
   });
 });

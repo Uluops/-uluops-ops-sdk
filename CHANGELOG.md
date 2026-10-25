@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.0.1] - 2026-10-25
+
+### Fixed
+- **Ids the server stores no longer fail to parse.** All 54 `z.string().uuid()` sites (response schemas, request schemas, discovery projections) are `z.guid()`. zod 4's `.uuid()` requires an RFC version nibble (1-8) and variant; zod 3's, and zod 4's `z.guid()`, accept any 8-4-4-4-12 hex. The production census of 2026-10-25 found stored ids that fail the strict check: the `system` org and its projects, two users, issue and pipeline-run authors. This SDK has been on zod 4 since 6.x, so a valid response carrying one failed to parse, and for `runs.save` that failure came from `RunWriteEchoResponseSchema.authorId` **after the run had been written**. Both APIs, `@uluops/platform` 2.0.0 and the MCP servers already use `z.guid()` (zod-4 release train).
+  - **What changes for you:** schemas accept a superset of what 7.0.0 accepted; inferred types are unchanged (`string`). A malformed id is still refused.
+  - `test/stored-ids.test.ts` reads a project, an issue and a write echo with a version-0 id and a non-RFC seed id, and a source census fails on any `.uuid(` in `src/`. Control: all of it fails on 7.0.0.
+- **The SDK's own discovery checks throw real `Error`s** (tracker `2daed86c`). Four checks in `operations/discovery.ts` (unknown projection field, inconsistent page metadata twice, an agent page with no progress) built `new z.ZodError(...)`. zod 4's `ZodError` does not extend `Error` (`ZodRealError`, which `.parse()` throws, does), so these had no stack and failed every `err instanceof Error` arm in a consumer. They now throw `z.ZodRealError`: `instanceof Error` and `instanceof z.ZodError` both hold, issues unchanged. Tests assert both per site; they fail on 7.0.0.
+
 ## [7.0.0] - 2026-10-24
 
 ### Changed

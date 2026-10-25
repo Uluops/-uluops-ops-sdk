@@ -85,10 +85,10 @@ async function page<S extends z.ZodRawShape>(
   client: OpsHttpClient, path: string, schema: z.ZodObject<S>, query: DiscoveryQuery & object,
 ): Promise<DiscoveryPage<z.infer<typeof schema>>> {
   z.object({ limit: z.number().int().min(1).max(100).optional(), offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional() }).parse(query);
-  const shape: { -readonly [K in keyof z.ZodRawShape]: z.ZodRawShape[K] } = { id: z.string().uuid() };
+  const shape: { -readonly [K in keyof z.ZodRawShape]: z.ZodRawShape[K] } = { id: z.guid() };
   if (query.fields) {
     for (const key of query.fields) {
-      if (!Object.hasOwn(schema.shape, key)) throw new z.ZodError([{ code: 'custom', path: ['fields'], message: `Unknown or unauthorized field: ${key}` }]);
+      if (!Object.hasOwn(schema.shape, key)) throw new z.ZodRealError([{ code: 'custom', path: ['fields'], message: `Unknown or unauthorized field: ${key}` }]);
       shape[key] = schema.shape[key]!;
     }
   }
@@ -103,7 +103,7 @@ async function page<S extends z.ZodRawShape>(
     limit: z.number().int().min(1).max(100), offset: z.number().int().nonnegative(), hasMore: z.boolean(),
   }).parse(await client.request<unknown>('GET', path, params, { rawEnvelope: true }));
   if (result.hasMore !== (result.offset + result.data.length < result.total)) {
-    throw new z.ZodError([{ code: 'custom', path: ['hasMore'], message: 'Inconsistent discovery page metadata' }]);
+    throw new z.ZodRealError([{ code: 'custom', path: ['hasMore'], message: 'Inconsistent discovery page metadata' }]);
   }
   return result as DiscoveryPage<z.infer<typeof schema>>;
 }
@@ -134,10 +134,10 @@ export async function listAgents(client: OpsHttpClient, query: AgentDiscoveryQue
     limit: z.number().int().min(1).max(100), offset: z.number().int().nonnegative(), hasMore: z.boolean(),
   }).parse(await client.request<unknown>('GET', '/agents/discovery', params, { rawEnvelope: true }));
   if (result.hasMore !== (result.offset + result.data.length < result.total)) {
-    throw new z.ZodError([{ code: 'custom', path: ['hasMore'], message: 'Inconsistent discovery page metadata' }]);
+    throw new z.ZodRealError([{ code: 'custom', path: ['hasMore'], message: 'Inconsistent discovery page metadata' }]);
   }
   if (result.hasMore && result.data.length === 0) {
-    throw new z.ZodError([{ code: 'custom', path: ['data'], message: 'Agent discovery page made no progress while hasMore=true' }]);
+    throw new z.ZodRealError([{ code: 'custom', path: ['data'], message: 'Agent discovery page made no progress while hasMore=true' }]);
   }
   return result;
 }

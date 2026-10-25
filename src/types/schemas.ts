@@ -13,7 +13,7 @@ import {
 // SHARED SCHEMAS
 // ============================================
 
-export const UuidSchema = z.string().uuid();
+export const UuidSchema = z.guid();
 
 /**
  * Max length of the agent-local analysis `recordId`.
@@ -300,7 +300,7 @@ export const SaveRunInputSchema = z.object({
   definitionName: z.string().max(100).optional(),
   definitionVersion: z.string().max(50).optional(),
   definitionHash: z.string().max(64).optional(),
-  definitionId: z.string().uuid().optional(),
+  definitionId: z.guid().optional(),
   definitionMinSubscription: z.enum(['free', 'hobbyist', 'plus', 'pro', 'enterprise']).optional(),
   analysisRecords: z.array(z.object({
     /**

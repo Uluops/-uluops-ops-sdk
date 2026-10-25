@@ -293,10 +293,10 @@ export const PaginationResponseSchema = z.object({
 // ============================================
 
 export const ProjectResponseSchema = z.object({
-  id: z.string().uuid(),
+  id: z.guid(),
   name: z.string(),
   domain: z.string().optional(),
-  ownerId: z.string().uuid(),
+  ownerId: z.guid(),
   // The org the project lives in (6.4.0). The API has emitted this on every
   // project read since org scoping landed; `z.object()` was stripping it, so a
   // re-homed project's new org was invisible through the SDK. Nullable for
@@ -371,8 +371,8 @@ const MAX_CREATED_BY = 200; // issue_notes.created_by varchar(200)
 export const IssueResponseSchema = z.object({
   authorId: z.string().nullable().optional(),
   semanticFingerprint: z.string().nullable().optional(),
-  id: z.string().uuid(),
-  projectId: z.string().uuid(),
+  id: z.guid(),
+  projectId: z.guid(),
   fingerprint: z.string().max(MAX_FINGERPRINT),
   title: z.string().max(MAX_TITLE),
   status: StatusResponseSchema,
@@ -388,8 +388,8 @@ export const IssueResponseSchema = z.object({
   filePath: z.string().max(MAX_FILE_PATH).nullable(),
   lineNumber: z.number().int().nonnegative().nullable(),
   timesSeen: z.number().int().positive(),
-  firstSeenRunId: z.string().uuid(),
-  lastSeenRunId: z.string().uuid(),
+  firstSeenRunId: z.guid(),
+  lastSeenRunId: z.guid(),
   resolvedAt: NullableDateTimeSchema,
   /**
    * @deprecated Always absent from ops-uluops-api once migration 075 deploys, and
@@ -407,9 +407,9 @@ export const IssueResponseSchema = z.object({
    * detect, humans and agents resolve, and no run is in scope at a resolving transition.
    * It was NULL on all 18,192 production rows. ops-uluops-api tracker `83eeac77`.
    */
-  resolutionRunId: z.string().uuid().nullable().optional(),
+  resolutionRunId: z.guid().nullable().optional(),
   // Merge provenance (merge-projects v0.3.4, ops-api mig 069); null = never merged.
-  mergedFromProjectId: z.string().uuid().nullable().optional(),
+  mergedFromProjectId: z.guid().nullable().optional(),
   /**
    * The issue this one was merged INTO by `POST /issues/merge` (ops-api mig 078).
    * `null` = not a merge source.
@@ -432,7 +432,7 @@ export const IssueResponseSchema = z.object({
    * soft-deleted. Correlation follows it; the by-fingerprint endpoints deliberately do
    * not. Read-only — the API refuses to set it through any update path.
    */
-  mergedIntoIssueId: z.string().uuid().nullable().optional(),
+  mergedIntoIssueId: z.guid().nullable().optional(),
   /**
    * The latest occurrence's description — the agent's account of the sighting,
    * as opposed to the issue's `title`.
@@ -465,9 +465,9 @@ export const IssueResponseSchema = z.object({
 });
 
 export const OccurrenceResponseSchema = z.object({
-  id: z.string().uuid(),
-  issueId: z.string().uuid(),
-  runId: z.string().uuid(),
+  id: z.guid(),
+  issueId: z.guid(),
+  runId: z.guid(),
   agentName: z.string().max(MAX_AGENT_NAME),
   description: z.string().max(MAX_DESCRIPTION).nullable(),
   filePath: z.string().max(MAX_FILE_PATH).nullable(),
@@ -481,8 +481,8 @@ export const OccurrenceResponseSchema = z.object({
 });
 
 export const IssueNoteResponseSchema = z.object({
-  id: z.string().uuid(),
-  issueId: z.string().uuid(),
+  id: z.guid(),
+  issueId: z.guid(),
   content: z.string().max(MAX_NOTE_CONTENT),
   noteType: NoteTypeResponseSchema,
   createdBy: z.string().max(MAX_CREATED_BY).nullable(),
@@ -505,8 +505,8 @@ export const IssueNoteResponseSchema = z.object({
 export const TransitionTypeResponseSchema = z.enum(['change', 'undo']);
 
 export const StatusHistoryResponseSchema = z.object({
-  id: z.string().uuid(),
-  issueId: z.string().uuid(),
+  id: z.guid(),
+  issueId: z.guid(),
   oldStatus: StatusResponseSchema.nullable(),
   from: StatusResponseSchema.nullable().optional(), // Alternative field name
   newStatus: StatusResponseSchema,
@@ -518,7 +518,7 @@ export const StatusHistoryResponseSchema = z.object({
   // Nullable + optional so the schema parses cleanly against pre-migration
   // server responses that don't carry these fields.
   transitionType: TransitionTypeResponseSchema.nullable().optional(),
-  revertedChangeId: z.string().uuid().nullable().optional(),
+  revertedChangeId: z.guid().nullable().optional(),
 });
 
 export const IssueDetailsResponseSchema = z.object({
@@ -550,7 +550,7 @@ export const IssueDetailsResponseSchema = z.object({
 export const HistoryOccurrenceEventSchema = z.object({
   type: z.literal('occurrence'),
   timestamp: DateTimeStringSchema,
-  runId: z.string().uuid(),
+  runId: z.guid(),
   agentName: z.string().max(MAX_AGENT_NAME),
   description: z.string().max(MAX_DESCRIPTION).nullable(),
 });
@@ -570,14 +570,14 @@ export const HistoryStatusEventSchema = z.object({
   // non-current server (rollback, blue/green, MySQL driver quirk, upstream
   // proxy stripping nulls) sends pre-migration shape.
   transitionType: TransitionTypeResponseSchema.nullable().optional(),
-  revertedChangeId: z.string().uuid().nullable().optional(),
+  revertedChangeId: z.guid().nullable().optional(),
 });
 
 /** User-added note, projected as a history event. */
 export const HistoryNoteEventSchema = z.object({
   type: z.literal('note'),
   timestamp: DateTimeStringSchema,
-  noteId: z.string().uuid(),
+  noteId: z.guid(),
   content: z.string().max(MAX_NOTE_CONTENT),
   noteType: NoteTypeResponseSchema,
   createdBy: z.string().max(MAX_CREATED_BY).nullable(),
@@ -592,7 +592,7 @@ export const HistoryEventSchema = z.discriminatedUnion('type', [
 
 /** Envelope returned by GET /issues/:id/history. */
 export const IssueHistoryEnvelopeSchema = z.object({
-  issueId: z.string().uuid(),
+  issueId: z.guid(),
   events: z.array(HistoryEventSchema),
   totalEvents: z.number().int().nonnegative(),
   /** True when totalEvents > 1000 (the post-merge ceiling); oldest events were dropped. */
@@ -600,8 +600,8 @@ export const IssueHistoryEnvelopeSchema = z.object({
 });
 
 export const StatusUpdateResultResponseSchema = z.object({
-  id: z.string().uuid(),
-  issueId: z.string().uuid().optional(),
+  id: z.guid(),
+  issueId: z.guid().optional(),
   fingerprint: z.string(),
   previousStatus: StatusResponseSchema,
   newStatus: StatusResponseSchema,
@@ -638,8 +638,8 @@ export const RunEditCapabilitiesResponseSchema = z.object({
 export const RunReadResponseSchema = z.object({
   // Absent on older producers and diff refs: unknown, never inferred permission.
   editCapabilities: RunEditCapabilitiesResponseSchema.optional(),
-  id: z.string().uuid(),
-  projectId: z.string().uuid(),
+  id: z.guid(),
+  projectId: z.guid(),
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -651,7 +651,7 @@ export const RunReadResponseSchema = z.object({
   archivedAt: NullableDateTimeSchema,
   archiveReason: z.string().nullable(),
   // Merge provenance (merge-projects v0.3.4, ops-api mig 069); null = never merged.
-  mergedFromProjectId: z.string().uuid().nullable(),
+  mergedFromProjectId: z.guid().nullable(),
   mergedFromRunNumber: z.number().int().nullable(),
   mergedFromIdempotencyKey: z.string().nullable(),
   createdAt: DateTimeStringSchema,
@@ -678,9 +678,9 @@ export const RunDetailRunResponseSchema = RunReadResponseSchema.extend({
  * silently slim the echoes.
  */
 export const RunWriteEchoResponseSchema = z.object({
-  id: z.string().uuid(),
-  projectId: z.string().uuid(),               // Always present (NOT NULL in DB)
-  authorId: z.string().uuid().nullable(),      // User who created the run; null for system/API-key runs
+  id: z.guid(),
+  projectId: z.guid(),               // Always present (NOT NULL in DB)
+  authorId: z.guid().nullable(),      // User who created the run; null for system/API-key runs
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -695,9 +695,9 @@ export const RunWriteEchoResponseSchema = z.object({
   definitionName: z.string().nullable(),
   definitionVersion: z.string().nullable(),
   definitionHash: z.string().nullable(),
-  definitionId: z.string().uuid().nullable(),
+  definitionId: z.guid().nullable(),
   registrySyncedAt: NullableDateTimeSchema,
-  mergedFromProjectId: z.string().uuid().nullable().optional(),
+  mergedFromProjectId: z.guid().nullable().optional(),
   mergedFromRunNumber: z.number().int().nullable().optional(),
   mergedFromIdempotencyKey: z.string().nullable().optional(),
   // ── Declared 6.14.0 (ops-api strip guard, a6cc132a) — previously dropped from every write echo ──
@@ -769,8 +769,8 @@ export const RunUpdatePreviewResponseSchema = z.object({
 
 /** Run summary schema for list endpoints — enriched with aggregate fields, omits detail-only fields */
 export const RunSummaryResponseSchema = z.object({
-  id: z.string().uuid(),
-  projectId: z.string().uuid(),
+  id: z.guid(),
+  projectId: z.guid(),
   runNumber: z.number().int().positive(),
   workflowType: z.string(),
   timestamp: DateTimeStringSchema,
@@ -791,16 +791,16 @@ export const RunSummaryResponseSchema = z.object({
   backlogCount: z.number().int().nonnegative(),
   agentScores: z.record(z.string(), z.number().nullable()),
   // Merge provenance (v0.3.4, mig 069) — present only if the summary query selects them.
-  mergedFromProjectId: z.string().uuid().nullable().optional(),
+  mergedFromProjectId: z.guid().nullable().optional(),
   mergedFromRunNumber: z.number().int().nullable().optional(),
 });
 
 export const AgentSnapshotResponseSchema = z.object({
-  id: z.string().uuid(),
-  runId: z.string().uuid(),
+  id: z.guid(),
+  runId: z.guid(),
   name: z.string(),
   definitionVersion: z.string().nullable().optional(),
-  registryDefinitionId: z.string().uuid().nullable().optional(),
+  registryDefinitionId: z.guid().nullable().optional(),
   score: z.number().min(0).max(100).nullable(),
   maxScore: z.number().min(0).max(100).nullable(),
   decision: z.string(),
@@ -882,7 +882,7 @@ export const SaveRunEnvelopeSchema = z.object({
 });
 
 export const DiffIssueRefResponseSchema = z.object({
-  issueId: z.string().uuid(),
+  issueId: z.guid(),
   title: z.string(),
 });
 
@@ -912,7 +912,7 @@ export const RunDetailsResponseSchema = z.object({
   run: RunDetailRunResponseSchema,
   agents: z.array(AgentSnapshotResponseSchema),
   recommendations: z.array(z.object({
-    issueId: z.string().uuid(),
+    issueId: z.guid(),
     title: z.string(),
     priority: PriorityResponseSchema,
     agent: z.string(),
@@ -984,12 +984,12 @@ export const DeleteResultResponseSchema = z.object({
 
 /** Analysis record returned by getAnalysis / queryAnalysisRecords */
 export const AnalysisRecordResponseSchema = z.object({
-  id: z.string().uuid(),
-  runId: z.string().uuid(),
+  id: z.guid(),
+  runId: z.guid(),
   agentName: z.string(),
   agentType: z.string(),
   agentTypeSource: z.string().nullish(),
-  agentTypeDefinitionId: z.string().uuid().nullish(),
+  agentTypeDefinitionId: z.guid().nullish(),
   agentTypeDefinitionVersion: z.string().nullish(),
   recordType: z.string(),
   recordId: z.string(),
@@ -1019,12 +1019,12 @@ export const ExplorationMapResponseSchema = z.object({
 
 /** Analysis summary returned by getProjectAnalysis */
 export const AnalysisSummaryResponseSchema = z.object({
-  id: z.string().uuid(),
-  runId: z.string().uuid(),
+  id: z.guid(),
+  runId: z.guid(),
   agentName: z.string(),
   agentType: z.string(),
   agentTypeSource: z.string().nullish(),
-  agentTypeDefinitionId: z.string().uuid().nullish(),
+  agentTypeDefinitionId: z.guid().nullish(),
   agentTypeDefinitionVersion: z.string().nullish(),
   decision: z.string(),
   score: z.number().min(0).max(100).nullable(),
@@ -1085,10 +1085,10 @@ export const AgentRunsAnalysisResponseSchema = z.object({
 
 export const MergeIssuesResultResponseSchema = z.object({
   targetIssue: IssueResponseSchema.optional(),
-  targetIssueId: z.string().uuid(),
+  targetIssueId: z.guid(),
   mergedCount: z.number().int().nonnegative(),
   migratedOccurrences: z.number().int().nonnegative(),
-  sourceIssues: z.array(z.string().uuid()).optional(),
+  sourceIssues: z.array(z.guid()).optional(),
 });
 
 // ============================================
@@ -1107,14 +1107,14 @@ export const MergeIssuesResultResponseSchema = z.object({
  */
 export const MergeProjectsResultResponseSchema = z.object({
   source: z.object({
-    id: z.string().uuid(),
+    id: z.guid(),
     name: z.string(),
     runCount: z.number().int().nonnegative(),
     issueCount: z.number().int().nonnegative(),
     statusAfter: z.enum(['soft-deleted', 'retained', 'dry-run']),
   }),
   target: z.object({
-    id: z.string().uuid(),
+    id: z.guid(),
     name: z.string(),
     runCountBefore: z.number().int().nonnegative(),
     issueCountBefore: z.number().int().nonnegative(),
@@ -1131,8 +1131,8 @@ export const MergeProjectsResultResponseSchema = z.object({
   }),
   conflicts: z.array(z.object({
     kind: MergeConflictKindResponseSchema,
-    sourceId: z.string().uuid(),
-    targetId: z.string().uuid(),
+    sourceId: z.guid(),
+    targetId: z.guid(),
     resolution: z.string(),
   })),
   audit: z.object({
