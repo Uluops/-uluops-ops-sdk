@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import nock from 'nock';
 import { OpsClient } from '../src/client.js';
-import { UnauthorizedError } from '../src/errors/errors.js';
+import { UnauthorizedError, isNotFoundError } from '../src/errors/errors.js';
 import { BASE_URL, TEST_API_KEY } from './setup.js';
 import {
   createMockRun,
@@ -249,6 +249,45 @@ describe('OpsClient', () => {
       const run = await client.runs.getLatest('proj-1');
 
       expect(run.runNumber).toBe(5);
+    });
+
+    it('findLatest returns null when the project has no runs yet (the API answers data: null)', async () => {
+      nock(BASE_URL).get('/runs/project/proj-empty/latest').reply(200, { data: null });
+
+      await expect(client.runs.findLatest('proj-empty')).resolves.toBeNull();
+    });
+
+    it('findLatest returns the run when there is one', async () => {
+      nock(BASE_URL).get('/runs/project/proj-1/latest').reply(200, { data: createMockRun({ runNumber: 7 }) });
+
+      const run = await client.runs.findLatest('proj-1');
+
+      expect(run?.runNumber).toBe(7);
+    });
+
+    it('getLatest throws NotFoundError NO_RUNS, not a shape mismatch, when the project has no runs', async () => {
+      nock(BASE_URL)
+        .get('/runs/project/proj-empty/latest')
+        .query({ workflow_type: 'ship' })
+        .reply(200, { data: null });
+
+      const error = await client.runs.getLatest('proj-empty', 'ship').then(() => null, (e: unknown) => e);
+
+      expect(isNotFoundError(error)).toBe(true);
+      expect(error).toMatchObject({
+        code: 'NO_RUNS',
+        details: { projectId: 'proj-empty', workflowType: 'ship' },
+      });
+      expect((error as Error).message).toBe("Latest run not found: project 'proj-empty' has no runs with workflow type 'ship' yet");
+    });
+
+    it('findLatest still surfaces the API 404 for a project that does not exist', async () => {
+      nock(BASE_URL).get('/runs/project/no-such/latest').reply(404, { error: 'Project not found', code: 'NOT_FOUND' });
+
+      const error = await client.runs.findLatest('no-such').then(() => null, (e: unknown) => e);
+
+      expect(isNotFoundError(error)).toBe(true);
+      expect(error).not.toMatchObject({ code: 'NO_RUNS' });
     });
 
     it('should list runs by project', async () => {

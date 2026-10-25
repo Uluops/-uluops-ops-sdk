@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { OpsHttpClient } from '../http/http-client.js';
 import { toApiQuery } from '../http/http-client.js';
+import { NotFoundError } from '../errors/errors.js';
 import type {
   Run,
   RunWriteEcho,
@@ -520,23 +521,64 @@ export async function listByProject(
 }
 
 /**
+ * Get the most recent run for a project, optionally filtered by workflow type, or `null`
+ * when the project has no matching run yet.
+ *
+ * The API answers `{ data: null }` for that case on purpose (ops-uluops-api run-controller:
+ * "null = no runs yet"), so `null` here is an answer, not a failure. Through 7.0.1 the SDK had
+ * no method that could return it: {@link getLatest} parsed `null` as a malformed response and
+ * threw `SDK_RESPONSE_SHAPE_MISMATCH` (consumer-validate run #4, 2026-10-25).
+ *
+ * @param client - HTTP client instance
+ * @param projectId - Project ID or name
+ * @param workflowType - Optional workflow type filter (e.g. 'post-implementation')
+ * @returns The latest run, or `null` when none exists for the project/workflow
+ * @throws {NotFoundError} If the project itself does not exist (the API's 404)
+ * @since 7.1.0
+ */
+export async function findLatest(
+  client: OpsHttpClient,
+  projectId: string,
+  workflowType?: string
+): Promise<Run | null> {
+  const data = await client.get<unknown>(
+    `/runs/project/${encodeURIComponent(projectId)}/latest`,
+    workflowType ? toApiQuery({ workflowType }) : undefined
+  );
+  return data === null ? null : RunReadResponseSchema.parse(data);
+}
+
+/**
  * Get the most recent run for a project, optionally filtered by workflow type.
+ *
+ * Use {@link findLatest} when "no runs yet" is an expected answer; this method treats it as
+ * not-found. Its `NotFoundError` carries code `NO_RUNS` and `details: { projectId, workflowType }`,
+ * which tells it apart from the API's own 404 for a project that does not exist. Through 7.0.1
+ * this case threw `SDK_RESPONSE_SHAPE_MISMATCH` instead of the documented `NotFoundError`.
  *
  * @param client - HTTP client instance
  * @param projectId - Project ID or name
  * @param workflowType - Optional workflow type filter (e.g. 'post-implementation')
  * @returns Latest run
- * @throws {NotFoundError} If no runs exist for the project/workflow
+ * @throws {NotFoundError} If no runs exist for the project/workflow (code `NO_RUNS`), or the project does not exist
  */
 export async function getLatest(
   client: OpsHttpClient,
   projectId: string,
   workflowType?: string
 ): Promise<Run> {
-  return RunReadResponseSchema.parse(await client.get<unknown>(
-    `/runs/project/${encodeURIComponent(projectId)}/latest`,
-    workflowType ? toApiQuery({ workflowType }) : undefined
-  ));
+  const run = await findLatest(client, projectId, workflowType);
+  if (run === null) {
+    const scope = workflowType ? ` with workflow type '${workflowType}'` : '';
+    throw new NotFoundError(
+      `Latest run not found: project '${projectId}' has no runs${scope} yet`,
+      undefined,
+      undefined,
+      'NO_RUNS',
+      { projectId, ...(workflowType ? { workflowType } : {}) },
+    );
+  }
+  return run;
 }
 
 /**

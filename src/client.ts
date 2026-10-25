@@ -647,7 +647,11 @@ export class OpsClient {
     listByProject: <C extends boolean = false>(projectId: string, query?: ListRunsQuery, options?: OrgScopedOptions<C>): Promise<ContextResult<{ data: RunSummary[]; total: number }, C>> =>
       this.execute(options, client => runOps.listByProject(client, projectId, query)),
 
-    /** Get the latest run for a project (optionally by workflow type). */
+    /** Get the latest run for a project (optionally by workflow type), or `null` when it has none yet (7.1.0). */
+    findLatest: <C extends boolean = false>(projectId: string, workflowType?: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Run | null, C>> =>
+      this.execute(options, client => runOps.findLatest(client, projectId, workflowType)),
+
+    /** Get the latest run for a project (optionally by workflow type). Throws `NotFoundError` (code `NO_RUNS`) when it has none; use `findLatest` when that is an expected answer. */
     getLatest: <C extends boolean = false>(projectId: string, workflowType?: string, options?: OrgScopedOptions<C>): Promise<ContextResult<Run, C>> =>
       this.execute(options, client => runOps.getLatest(client, projectId, workflowType)),
 

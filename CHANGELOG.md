@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.1.0] - 2026-10-25
+
+### Added
+- **`runs.findLatest(projectId, workflowType?)` returns `Run | null`.** The API answers `{ data: null }` on purpose when a project has no matching run ("null = no runs yet", ops-uluops-api run-controller). Until now no SDK method could return that answer.
+
+### Fixed
+- **`runs.getLatest()` throws the documented `NotFoundError` when a project has no runs, not `SDK_RESPONSE_SHAPE_MISMATCH`.** Its JSDoc promised `NotFoundError` for this case, but the implementation parsed `null` with the run schema and failed with a shape error that reads as server/SDK drift. The error carries code `NO_RUNS` and `details: { projectId, workflowType }`, so a caller can tell "no runs yet" from the API's own 404 for a missing project (code `NOT_FOUND`). The return type is unchanged. Callers that caught the old shape error now get `NotFoundError`. Found in `@uluops/ops-mcp`'s `get_latest_run` during registry-mcp consumer-validate run #4 (2026-10-25); the CLI's `ulu runs latest` had the same failure.
+
 ## [7.0.1] - 2026-10-25
 
 ### Fixed

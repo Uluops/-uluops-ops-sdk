@@ -1178,9 +1178,20 @@ const { data: runs, total } = await client.runs.listByProject('my-project', {
 });
 ```
 
+#### `client.runs.findLatest(projectId, workflowType)`
+
+Get the latest run for a project, or `null` when it has no matching run yet. The API answers `null` for that case on purpose, so use this method when "no runs yet" is an expected answer (since 7.1.0).
+
+```typescript
+const latestRun = await client.runs.findLatest('my-project', 'post-implementation');
+if (latestRun === null) {
+  // the project exists but has no post-implementation run yet
+}
+```
+
 #### `client.runs.getLatest(projectId, workflowType)`
 
-Get the latest run for a project.
+Get the latest run for a project. When it has no matching run, this throws `NotFoundError` with code `NO_RUNS` and `details: { projectId, workflowType }`. A project that does not exist throws the API's own `NotFoundError` (code `NOT_FOUND`).
 
 ```typescript
 const latestRun = await client.runs.getLatest('my-project', 'post-implementation');
