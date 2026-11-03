@@ -2,28 +2,34 @@
 
 All notable changes to `@uluops/ops-sdk` will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Alongside its `Added / Changed / Deprecated / Removed / Fixed / Security` sections, an entry may carry `### Why` and `### Not changed` sections: they record why a release looks the way it does and what was considered and left alone. Readers scanning only for the standard headings lose nothing.
 
 ## [Unreleased]
 
-## [7.2.0] - 2026-11-03
+## [7.2.0] - 2026-11-02
 
 ### Added
-- **Analysis rejections are declared, so they survive the parse** (ops-uluops-api analysis-never-loses-the-run spec v0.2.1, phase R1). From the server's R2 onward, an invalid analysis entry rejects only that agent's analysis and the run is kept. The server reports it in fields this SDK did not declare, and `z.object()` strips undeclared keys: on 7.1.0 a caller would get a `201` with the rejection silently removed. This release declares them before any server sends them:
-  - `analysisWrite.rejected` on `runs.save` (and on a deduplicated replay, rebuilt from storage);
-  - `rejected` on `runs.validate` (the rejections a save would record);
-  - `rejections` (each with `createdAt`) and `rejectionsTotal` on `runs.getAnalysis`.
+- **Analysis rejections are declared, so they survive the parse** (ops-uluops-api analysis-never-loses-the-run spec v0.2.2, phase R1). From the server's R2 onward, invalid analysis rejects one agent's analysis as a unit and the run is kept. The server reports it in fields this SDK did not declare, and `z.object()` strips undeclared keys: on 7.1.0 a caller would get a `201` with the rejection silently removed. This release declares them before any server sends them:
+  - `analysisWrite.rejected` on `runs.save`, including a deduplicated replay (rebuilt from storage by R2 servers);
+  - `wouldReject` on `runs.validate`: the rejections a save of the payload would record;
+  - `rejections` (each with `createdAt`) and `rejectionsTotal` on `runs.getAnalysis`. `rejectionsTotal` counts rows, not agents.
   - All are optional: servers before R2 omit them, and responses parse as before.
 - **Types `AnalysisRejection` and `AnalysisRejectionRead`**, derived from the response schemas (not hand-written beside them), and `AnalysisWriteEcho.rejected?`.
+- **README "Rejected analysis" section**: when a rejection happens and when the client still throws instead, how to repair (resend the agent's complete set with `update`, never `save` again), the known `reason` values and their `detail` shapes, and reading `rejected` on replays.
+
+### Changed
+- **Docs only: the save replay contract.** `SaveRunResponseWithEcho` and the save echo check said a deduplicated replay carries no echo. That holds for servers before R2; from R2 a replay carries one rebuilt from storage, whose `created*` are the run's live analysis rows (an update since the original save may have changed them) and whose `rejected` is what the original save rejected. The check still skips replays, and `save()` passes the replay echo through unchecked, as before.
+- **Docs only:** `save`'s `@throws {ConflictError}` said "if idempotencyKey was already used". The same key with the same payload returns the original run with `deduplicated: true`; only a different payload or contract conflicts. `findLatest` / `getLatest` README headings now show `workflowType` as optional, as the signatures have since 7.1.0, and say what omitting it returns.
 
 ### Why
-- **`reason` is `string`, not an enum** (spec review A9). A pinned `z.enum` throws on a value it has not seen, so a reason the server adds later would fail every save parse in this version. The wire-enum lesson is old here: an added value breaks pinned consumers the same way a removed one does.
-- **`detail` is an open record.** Its shape belongs to the reason: `{ issues, issuesTotal, truncated? }` for `entry_invalid`, and `{ unitsOmitted, recordsRejected, summariesRejected }` for the folded row past the server's 20-row cap, whose `agentName` is `null`.
-- **Release order:** this ships before ops-api R2, so no client strips the field when the server starts sending it.
+- **`reason` is `string`, not an enum** (spec review A9). A pinned `z.enum` throws on a value it has not seen, so a reason the server adds later would fail every save parse in this version. An added wire value breaks pinned consumers the same way a removed one does.
+- **`reason` discriminates `detail`.** `entry_invalid` carries `{ issues, issuesTotal, truncated? }`. The folded row past the server's 20-row cap has its own reason, `units_omitted`, with `{ unitsOmitted, recordsRejected, summariesRejected }` and a null `agentName`. In spec v0.2.1 the folded row was also `entry_invalid`, so a handler keyed on `reason` would throw on exactly the largest failure; consumer-validate run #53 found it, and spec v0.2.2 gives the row its own reason. `detail` stays an open record typed `Record<string, unknown>`: narrow on `reason` first.
+- **`wouldReject`, not `rejected`, on validate.** Every other validate field is counterfactual (`wouldCreate`, `wouldUpdate`, …). A predicted rejection named like a real one is indistinguishable from one once it leaves its container (run #53). Spec v0.2.2 renames it before any server sends it.
+- **Release order:** this ships before ops-api R2, so no client strips the fields when the server starts sending them.
 
 ### Not changed — recorded so the next reader does not re-derive it
-- **Client-side analysis validation is unchanged.** Moving it to envelope-only (arrays, objects, count caps) is R3. Until then one bad entry still fails the save *in the client*, before the server's per-agent rule can apply.
-- **The spec's R1 list omitted `/runs/validate`.** Its R2 response gains `rejected[]` too, and `ValidateRunResponseSchema` would have stripped it the same way, so it is declared here as well. R2 must place it at the top level of the validate response, where this schema reads it.
+- **Client-side analysis validation is unchanged, and it now matters more.** An invalid entry this SDK can check still throws `InputValidationError` from `save()` before any request, and no run is created; the server's per-agent rule never sees it. Before R2 that matched the server; from R2 it is stricter than the server in outcome. Moving it to envelope-only (arrays, objects, count caps) is R3. The README states the limit where the rejection behaviour is described.
+- **The spec's R1 list omitted `/runs/validate`.** Its R2 response gains the prediction too, and `ValidateRunResponseSchema` would have stripped it the same way, so it is declared here as well, at the top level of the validate response.
 
 ## [7.1.0] - 2026-10-25
 

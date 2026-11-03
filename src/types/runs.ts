@@ -63,7 +63,11 @@ export type SaveRunResponse = z.infer<typeof SaveRunResponseSchema>;
 /**
  * save() return: the response fields plus the analysisWrite confirmation
  * (tool-sweep T21). `analysisWrite` is null when the payload carried no
- * analysis data or the save deduplicated (a replay writes nothing).
+ * analysis data, or when a deduplicated replay came from a server before
+ * ops-api R2 (a replay writes nothing). From R2 a replay carries an echo
+ * rebuilt from storage, including `rejected`: read it on `deduplicated`
+ * results too, because after a lost response the replay is the caller's only
+ * view of the save. See {@link AnalysisWriteEcho}.
  */
 export type SaveRunResponseWithEcho = SaveRunResponse & { analysisWrite: AnalysisWriteEcho | null };
 
@@ -354,9 +358,13 @@ export interface UpdateRunPreviewByNumberInput extends UpdateRunPreviewInput {
 
 /**
  * The additive `analysisWrite` block echoed on analysis-bearing update
- * responses (API 1a, spec §3.9). The SDK asserts `recordMode` equals the mode
- * it implements before returning; consumers normally never see a mismatch —
- * it surfaces as {@link AnalysisEchoMismatchError}.
+ * responses (API 1a, spec §3.9) and saves (`recordMode` 'initial'). The SDK
+ * asserts `recordMode` equals the mode it implements before returning;
+ * consumers normally never see a mismatch — it surfaces as
+ * {@link AnalysisEchoMismatchError}. On a fresh write the counts are a
+ * receipt of this call; on a deduplicated save replay (ops-api R2 onward)
+ * `created*` are the run's live analysis rows and `rejected` is what the
+ * original save rejected.
  */
 export interface AnalysisWriteEcho {
   recordMode: string;
@@ -364,14 +372,16 @@ export interface AnalysisWriteEcho {
   supersededSummaries: number;
   createdRecords: number;
   createdSummaries: number;
-  /** Units of analysis rejected while the run was kept (save path, R2). Absent or empty means none. See {@link AnalysisRejection}. */
+  /** Units of analysis the save rejected while keeping the run (R2; saves only). Absent or empty means none. See {@link AnalysisRejection}. */
   rejected?: AnalysisRejection[];
 }
 
 /**
  * One rejected unit of analysis (ops-uluops-api analysis-never-loses-the-run
  * spec §3.3). Derived from the response schema so the two cannot drift.
- * `reason` is an open string: never exhaustively switch on it.
+ * `reason` is an open string: never exhaustively switch on it. Narrow on it
+ * before reading `detail` (`entry_invalid` carries `issues`; `units_omitted`,
+ * the folded row past the server's 20-row cap, carries `unitsOmitted`).
  */
 export type AnalysisRejection = z.infer<typeof AnalysisRejectionResponseSchema>;
 

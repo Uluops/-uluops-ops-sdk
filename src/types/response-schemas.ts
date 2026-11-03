@@ -719,30 +719,36 @@ export const RunWriteEchoResponseSchema = z.object({
 });
 
 /**
- * The additive `analysisWrite` block on analysis-bearing update responses
- * (ops-uluops-api update-run replacement-semantics spec §3.9, live since 1a).
- * `recordMode` is deliberately a plain string, not a literal: the update path
- * asserts equality with the mode it implements (see assertAnalysisWriteEcho in
- * operations/runs.ts), so a future server mode surfaces as a loud named
- * mismatch instead of an anonymous parse failure.
- */
-/**
  * One rejected unit of analysis on a save (ops-uluops-api
- * analysis-never-loses-the-run spec v0.2.1 §3.3). The unit is the agent: one
- * invalid entry rejects that agent's analysis, and the run and every other
- * agent's analysis are kept. Declared in 7.2.0 (R1), before any server sends
- * it, so no client strips it when R2 ships.
+ * analysis-never-loses-the-run spec v0.2.2 §3.1, §3.3). Declared in 7.2.0
+ * (R1), before any server sends it, so no client strips it when R2 ships.
  *
- * `reason` is a plain string, NEVER an enum (spec review A9): a pinned
+ * **What a unit is.** Every entry of one agent is accepted or rejected
+ * together, so one invalid entry rejects that agent's whole set, valid
+ * entries included; the run and every other agent's analysis are kept.
+ * `agentName` is the unit's key, which is not always an entry of `agents[]`:
+ * - a named agent: its name;
+ * - on a single-agent run, entries without `agentName` take the server's
+ *   default name (the definition or workflow name, or `unknown`), which
+ *   need not match any `agents[].name`;
+ * - `null`: an entry that is its own unit (an unreadable `agentName`, or a
+ *   nameless entry on a multi-agent run), reported by array index in
+ *   `detail.issues`; or the folded row below.
+ *
+ * **`reason` is a plain string, NEVER an enum** (spec review A9): a pinned
  * `z.enum` throws on a value it has not seen, so a reason added later would
  * fail every save parse in an older SDK. Branch on known values and treat
- * any other as "rejected, reason unknown".
+ * any other as "rejected, reason unknown". Known values, and the `detail`
+ * each carries:
+ * - `entry_invalid`: `{ issues: [{ array, index, path, code, message }], issuesTotal, truncated? }`.
+ *   `issues` lists the failing entries only; `recordsRejected` /
+ *   `summariesRejected` count everything the rejection removed.
+ * - `units_omitted`: the one folded row standing for every unit past the
+ *   server's 20-row cap. `agentName` is null and `detail` is
+ *   `{ unitsOmitted, recordsRejected, summariesRejected }`.
  *
- * `agentName` is null for an entry that is its own unit, and for the one
- * folded row that stands for every unit past the server's 20-row cap. That
- * row's `detail` is `{ unitsOmitted, recordsRejected, summariesRejected }`
- * instead of `{ issues, issuesTotal, truncated? }`. `detail` is therefore an
- * open record: its shape belongs to the reason.
+ * `detail` is typed as an open record because its shape belongs to the
+ * reason: narrow on `reason` before reading it.
  */
 export const AnalysisRejectionResponseSchema = z.object({
   agentName: z.string().nullable(),
@@ -757,6 +763,22 @@ export const AnalysisRejectionReadResponseSchema = AnalysisRejectionResponseSche
   createdAt: DateTimeStringSchema,
 });
 
+/**
+ * The additive `analysisWrite` block on analysis-bearing write responses:
+ * updates (ops-uluops-api update-run replacement-semantics spec §3.9, live
+ * since 1a) and saves (tool-sweep T21, `recordMode` 'initial').
+ * `recordMode` is deliberately a plain string, not a literal: the update path
+ * asserts equality with the mode it implements (see assertAnalysisWriteEcho in
+ * operations/runs.ts), so a future server mode surfaces as a loud named
+ * mismatch instead of an anonymous parse failure.
+ *
+ * On a fresh write the counts are a receipt: what this call superseded and
+ * created. A deduplicated save replay writes nothing; before ops-api R2 it
+ * carries no echo, and from R2 the server rebuilds one from storage, where
+ * `created*` are the run's live analysis rows (which an update since the
+ * original save may have changed) and `rejected` is what the original save
+ * rejected.
+ */
 export const AnalysisWriteEchoSchema = z.object({
   recordMode: z.string(),
   supersededRecords: z.number().int().nonnegative(),
@@ -764,10 +786,9 @@ export const AnalysisWriteEchoSchema = z.object({
   createdRecords: z.number().int().nonnegative(),
   createdSummaries: z.number().int().nonnegative(),
   /**
-   * Units of analysis the server rejected while keeping the run (R2). Absent
-   * from servers before R2, and from responses that rejected nothing may be
-   * either absent or empty — treat both as "none". A replay rebuilds it from
-   * storage.
+   * Units of analysis the save rejected while keeping the run (R2; saves
+   * only, the update path stays strict). Servers before R2 never send it.
+   * Absent and empty both mean nothing was rejected.
    */
   rejected: z.array(AnalysisRejectionResponseSchema).optional(),
 });
@@ -1012,9 +1033,12 @@ export const ValidateRunResponseSchema = z.object({
   preview: ValidateRunPreviewSchema,
   /**
    * The rejections a save of this payload would record (spec §3.3, R2), in
-   * the save echo's item shape. Optional: servers before R2 omit it.
+   * the save echo's item shape. Named `wouldReject` like the other
+   * counterfactual fields here: nothing was rejected, this is a prediction.
+   * Optional: servers before R2 omit it. Client-side validation runs first,
+   * so an entry this SDK refuses never reaches the server's prediction.
    */
-  rejected: z.array(AnalysisRejectionResponseSchema).optional(),
+  wouldReject: z.array(AnalysisRejectionResponseSchema).optional(),
 });
 
 export const ArchiveRunsResultResponseSchema = z.object({
@@ -1096,6 +1120,8 @@ export const RunAnalysisResponseSchema = z.object({
    * Analysis the server rejected at save time (spec §3.3, R2). Optional: a
    * server before R2 omits both. A rejection is an event, never superseded;
    * if the agent's analysis was added later by an update, both appear.
+   * `rejectionsTotal` counts rejection ROWS, not agents: the folded
+   * `units_omitted` row is one row standing for several units.
    */
   rejections: z.array(AnalysisRejectionReadResponseSchema).optional(),
   rejectionsTotal: z.number().int().nonnegative().optional(),

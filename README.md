@@ -1043,23 +1043,37 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 
 #### Rejected analysis (`analysisWrite.rejected`, 7.2.0)
 
-From ops-api's analysis-never-loses-the-run R2 onward, an invalid analysis entry no longer fails the save. The server keeps the run and every other agent's analysis, and rejects **that agent's** analysis as one unit (one bad entry rejects the agent's whole set, so a later `update_run` cannot half-replace it). The save still answers `201`. The rejection is reported in `analysisWrite.rejected`:
+**What changes, and when.** Once the server reports rejections (ops-api's "analysis never loses the run" release), it no longer fails a save over invalid analysis. It keeps the run, its issues and every other agent's analysis, and rejects **one agent's analysis as a unit**: an agent's records and summary are one judgement, so one bad entry rejects that agent's whole set, valid entries included. The save still answers `201` and reports the rejection in `analysisWrite.rejected`. Servers before that release never send the field; SDKs before 7.2.0 stripped it.
+
+**What does not change yet: this SDK still validates analysis entries before sending.** An entry it can check (an empty `recordId`, a missing `title`, a non-integer score, …) throws `InputValidationError` from `save()`, and **no run is created**. In that case fix the payload and call `save()` again; that is the only way to get the run. Only what the server rejects and this SDK lets through reaches `rejected`. Narrowing client validation to envelope checks (arrays, objects, count caps) is planned for a later SDK release. `{ _skipClientValidation: true }` skips it today, at the cost of every other client-side check on the payload.
 
 ```typescript
+import type { AnalysisRejection } from '@uluops/ops-sdk';
+
 const result = await client.runs.save(input);
-for (const r of result.analysisWrite?.rejected ?? []) {
-  // { agentName: 'code-validator', reason: 'entry_invalid',
-  //   recordsRejected: 3, summariesRejected: 1,
-  //   detail: { issues: [{ array: 'records', index: 2, path: ['recordId'], code, message }], issuesTotal: 1 } }
-  console.warn(`Run #${result.run.runNumber} saved; ${r.agentName ?? '(unattributed)'} analysis rejected: ${r.reason}`);
+const rejected: AnalysisRejection[] = result.analysisWrite?.rejected ?? [];
+for (const r of rejected) {
+  if (r.reason === 'entry_invalid') {
+    // detail is Record<string, unknown>: narrow it before use.
+    const issuesTotal = typeof r.detail.issuesTotal === 'number' ? r.detail.issuesTotal : '?';
+    console.warn(`Run #${result.run.runNumber} saved; analysis for ${r.agentName ?? '(own unit)'} rejected: ` +
+      `${issuesTotal} invalid entr(ies), ${r.recordsRejected} records and ${r.summariesRejected} summaries not stored`);
+  } else if (r.reason === 'units_omitted') {
+    console.warn(`Run #${result.run.runNumber} saved; ${String(r.detail.unitsOmitted)} more rejected units not itemized`);
+  } else {
+    console.warn(`Run #${result.run.runNumber} saved; analysis rejected (${r.reason})`);
+  }
 }
 ```
 
-- **Do not save again to fix it.** That creates a second run. Add the corrected analysis to this run with `update` / `updateById`.
-- **`reason` is an open string.** Branch on values you know and treat any other as "rejected, reason unknown"; never switch on it exhaustively. A new reason must not break an older SDK, which is why the schema is `string`, not an enum.
-- **`agentName` can be `null`**: for an entry that is its own unit, and for the one folded row standing in for every unit past the server's 20-row cap. That row's `detail` is `{ unitsOmitted, recordsRejected, summariesRejected }`.
-- Absent or empty `rejected` both mean nothing was rejected. Servers before R2 never send it; before 7.2.0, the SDK stripped it.
-- A deduplicated replay returns the same `rejected[]`, rebuilt from storage.
+- **Do not call `save()` again for a rejection.** The run exists; a second save creates a second run. Add the corrected analysis to this run with `client.runs.update` / `updateById`.
+- **Resend the agent's complete set.** `detail.issues` lists only the failing entries, but the rejection removed all of that agent's entries (`recordsRejected`, `summariesRejected`), and none of them were stored. Correct the failing ones and send every record and the summary for that agent, as `recordWriteMode: 'replace'` (the default) or `'merge'`; with nothing stored for the agent, both write the same rows. Sending only the corrected entries loses the rest.
+- **`reason` is an open string.** Branch on values you know and treat any other as "rejected, reason unknown"; never switch on it exhaustively. A new reason must not break an older SDK, which is why the schema is `string`, not an enum. Known values:
+  - `entry_invalid`: `detail` is `{ issues: [{ array, index, path, code, message }], issuesTotal, truncated? }` (at most 10 issues).
+  - `units_omitted`: the server itemizes at most 20 rejected units per save; this one row stands for the rest. `agentName` is `null` and `detail` is `{ unitsOmitted, recordsRejected, summariesRejected }`.
+- **`agentName` is the unit's key, not always an entry of `agents[]`.** On a single-agent run, entries without `agentName` take the server's default name (the definition or workflow name), which need not match `agents[].name`. It is `null` for an entry that is its own unit (an unreadable `agentName`, or a nameless entry on a multi-agent run, located by `detail.issues[].index`) and for the `units_omitted` row.
+- Absent and empty `rejected` both mean nothing was rejected.
+- **Read it on replays too.** A deduplicated replay (`deduplicated: true`, e.g. a retry after a lost response) carries the original save's `rejected[]`, rebuilt from storage, and may be the only response you see. Its `createdRecords` / `createdSummaries` are the run's live analysis rows at the time of the replay, not what the original call wrote. Before the server release, a replay's `analysisWrite` is `null`.
 
 #### Convergence clustering (`clusterKey`)
 
@@ -1163,7 +1177,7 @@ const preview = await client.runs.validate({
 console.log('Would create issues:', preview.wouldCreate);
 console.log('Would update issues:', preview.wouldUpdate);
 console.log('Would regress issues:', preview.wouldRegress);
-console.log('Would reject analysis:', preview.rejected ?? []); // 7.2.0; same item shape as analysisWrite.rejected
+console.log('Would reject analysis:', preview.wouldReject ?? []); // 7.2.0: the rejections a save would record (same item shape as analysisWrite.rejected)
 console.log('Would observe issues:', preview.wouldObserve);
 
 // v3.2.2+: optional analysis previews (present when API >= v1.58.1)
@@ -1199,9 +1213,9 @@ const { data: runs, total } = await client.runs.listByProject('my-project', {
 });
 ```
 
-#### `client.runs.findLatest(projectId, workflowType)`
+#### `client.runs.findLatest(projectId, workflowType?)`
 
-Get the latest run for a project, or `null` when it has no matching run yet. The API answers `null` for that case on purpose, so use this method when "no runs yet" is an expected answer (since 7.1.0).
+Get the latest run for a project, or `null` when it has no matching run yet. Without `workflowType` the API returns the latest non-archived run of any workflow except the synthetic `manual` run (issues logged outside a run); pass `'manual'` explicitly to get that one. The API answers `null` for that case on purpose, so use this method when "no runs yet" is an expected answer (since 7.1.0).
 
 ```typescript
 const latestRun = await client.runs.findLatest('my-project', 'post-implementation');
@@ -1210,9 +1224,9 @@ if (latestRun === null) {
 }
 ```
 
-#### `client.runs.getLatest(projectId, workflowType)`
+#### `client.runs.getLatest(projectId, workflowType?)`
 
-Get the latest run for a project. When it has no matching run, this throws `NotFoundError` with code `NO_RUNS` and `details: { projectId, workflowType }`. A project that does not exist throws the API's own `NotFoundError` (code `NOT_FOUND`).
+Get the latest run for a project (`workflowType` optional, as in `findLatest`). When it has no matching run, this throws `NotFoundError` with code `NO_RUNS` and `details: { projectId, workflowType }`. A project that does not exist throws the API's own `NotFoundError` (code `NOT_FOUND`).
 
 ```typescript
 const latestRun = await client.runs.getLatest('my-project', 'post-implementation');
@@ -1427,7 +1441,7 @@ console.log(analysis.summaries); // Per-agent system metrics, epistemic assessme
 console.log(analysis.rejections, analysis.rejectionsTotal); // 7.2.0: analysis rejected at save time, each with createdAt
 ```
 
-`rejections` lists what the save rejected (see [Rejected analysis](#rejected-analysis-analysiswriterejected-720)). A rejection is never superseded: if the agent's analysis was added later with `update`, both the rejection and the live analysis appear. Both fields are absent from servers before R2.
+`rejections` lists what the save rejected (see [Rejected analysis](#rejected-analysis-analysiswriterejected-720)). A rejection is never superseded: if the agent's analysis was added later with `update`, both the rejection and the live analysis appear. `rejectionsTotal` counts rejection rows, not agents: a `units_omitted` row stands for several units. Both fields are absent from servers that do not report rejections yet.
 
 #### `client.runs.getProjectAnalysis(projectId, query)`
 

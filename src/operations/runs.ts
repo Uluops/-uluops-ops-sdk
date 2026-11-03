@@ -56,9 +56,17 @@ import { AnalysisEchoMismatchError, OpsApiError, UnsupportedContractError } from
  *
  * @param client - HTTP client instance
  * @param input - Run data (project, workflowType, agents, recommendations required)
- * @returns Save result with run metadata and issue correlation (new/recurring/regressions)
- * @throws {InputValidationError} If input fails client-side Zod validation
- * @throws {ConflictError} If idempotencyKey was already used
+ * @returns Save result with run metadata, issue correlation (new/recurring/regressions)
+ *   and `analysisWrite`. From ops-api R2, `analysisWrite.rejected` lists agents whose
+ *   analysis the server rejected while keeping the run; read it on `deduplicated`
+ *   results too (see {@link SaveRunResponseWithEcho}).
+ * @throws {InputValidationError} If input fails client-side Zod validation. This
+ *   includes an invalid analysis entry: until client validation becomes envelope-only
+ *   (ops-api spec R3), one bad entry still fails the whole save here, before the
+ *   server's per-agent rejection can apply, and no run is created.
+ * @throws {ConflictError} If idempotencyKey was already used with a different payload
+ *   or contract. The same key with the same payload is not an error: it returns the
+ *   original run with `deduplicated: true`.
  * @example
  * ```typescript
  * const result = await client.runs.save({
@@ -74,6 +82,10 @@ import { AnalysisEchoMismatchError, OpsApiError, UnsupportedContractError } from
 // Pre-validated callers (MCP, autosave hooks) skip it to avoid redundant work —
 // the server always validates regardless. This is an intentional escape hatch,
 // not a contradiction of the validation commitment.
+// From ops-api R2 it is no longer only a convenience for analysis: the server
+// keeps the run and rejects one agent's analysis, while this validator fails
+// the whole save first. Narrowing it to envelope-only checks is spec R3; until
+// then the per-entry checks stay, and the README says so.
 export async function save(
   client: OpsHttpClient,
   input: SaveRunInput,
@@ -162,8 +174,11 @@ function parseSaveEnvelope(body: unknown, endpoint: string): z.infer<typeof Save
 /**
  * Analysis-bearing saves must carry the analysisWrite echo (tool-sweep T21)
  * with recordMode 'initial' — except on a deduplicated replay, which wrote
- * nothing and correctly carries no echo. Same contract and error class as
- * the update path's assertAnalysisWriteEcho.
+ * nothing, so there is no receipt to check. A replay from a server before
+ * ops-api R2 carries no echo; from R2 it carries one rebuilt from storage
+ * (live counts and the original `rejected`), which save() passes through
+ * unchecked. Same contract and error class as the update path's
+ * assertAnalysisWriteEcho.
  */
 function assertSaveAnalysisWriteEcho(
   input: SaveRunInput,
@@ -199,8 +214,10 @@ function assertSaveAnalysisWriteEcho(
  *
  * @param client - HTTP client instance
  * @param input - Same shape as save() input
- * @returns Preview with projected new/recurring/regression counts
- * @throws {InputValidationError} If input fails client-side Zod validation
+ * @returns Preview with projected new/recurring/regression counts, and from ops-api R2
+ *   `wouldReject`: the analysis rejections a save of this payload would record
+ * @throws {InputValidationError} If input fails client-side Zod validation (an invalid
+ *   analysis entry included, so the server's prediction never sees it)
  * @example
  * ```typescript
  * const preview = await client.runs.validate({
@@ -758,7 +775,8 @@ export async function deleteRun(
  *
  * @param client - HTTP client instance
  * @param runId - Run UUID
- * @returns Analysis data with records and summaries arrays
+ * @returns Analysis data with records and summaries arrays, and from ops-api R2
+ *   `rejections` / `rejectionsTotal`: what the save rejected (rows, each with `createdAt`)
  */
 export async function getAnalysis(
   client: OpsHttpClient,

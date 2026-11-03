@@ -1,8 +1,8 @@
 /**
- * T13 — ops-uluops-api analysis-never-loses-the-run spec v0.2.1, phase R1.
+ * T13 — ops-uluops-api analysis-never-loses-the-run spec v0.2.2, phase R1.
  *
  * The server (R2) will keep the run and reject a bad agent's analysis,
- * reporting it as `analysisWrite.rejected[]` on save, `rejected[]` on
+ * reporting it as `analysisWrite.rejected[]` on save, `wouldReject[]` on
  * validate, and `rejections[]` / `rejectionsTotal` on GET /runs/:id/analysis.
  * `z.object()` strips undeclared keys, so an SDK that does not declare them
  * hands callers a response with the rejection silently removed. R1 declares
@@ -40,10 +40,11 @@ const UNSEEN_REASON = {
   detail: {},
 };
 
-// The folded row past the server's 20-row cap: null agent, count-shaped detail.
+// The folded row past the server's 20-row cap (spec v0.2.2): its own reason,
+// null agent, count-shaped detail.
 const FOLDED = {
   agentName: null,
-  reason: 'entry_invalid',
+  reason: 'units_omitted',
   recordsRejected: 40,
   summariesRejected: 5,
   detail: { unitsOmitted: 5, recordsRejected: 40, summariesRejected: 5 },
@@ -105,7 +106,22 @@ describe('T13: analysis rejections survive the SDK parse (spec R1)', () => {
     expect(result.analysisWrite?.rejected).toEqual([ENTRY_INVALID]);
   });
 
-  it('validate keeps rejected[]', async () => {
+  it('validate keeps wouldReject[]', async () => {
+    nock(BASE_URL).post('/runs/validate').reply(200, {
+      data: {
+        wouldCreate: 0,
+        wouldUpdate: 0,
+        wouldRegress: 0,
+        validationErrors: [],
+        preview: { newIssues: [], recurringIssues: [], regressions: [] },
+        wouldReject: [ENTRY_INVALID],
+      },
+    });
+    const result = await runOps.validate(client, ANALYSIS_INPUT);
+    expect(result.wouldReject).toEqual([ENTRY_INVALID]);
+  });
+
+  it('validate reads the prediction from wouldReject, not from a past-tense rejected key (spec v0.2.2)', async () => {
     nock(BASE_URL).post('/runs/validate').reply(200, {
       data: {
         wouldCreate: 0,
@@ -117,7 +133,8 @@ describe('T13: analysis rejections survive the SDK parse (spec R1)', () => {
       },
     });
     const result = await runOps.validate(client, ANALYSIS_INPUT);
-    expect(result.rejected).toEqual([ENTRY_INVALID]);
+    expect(result.wouldReject).toBeUndefined();
+    expect(result).not.toHaveProperty('rejected');
   });
 
   it('getAnalysis keeps rejections[] (with createdAt) and rejectionsTotal', async () => {
