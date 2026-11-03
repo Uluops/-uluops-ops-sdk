@@ -83,10 +83,9 @@ import { AnalysisEchoMismatchError, OpsApiError, UnsupportedContractError } from
 // Pre-validated callers (MCP, autosave hooks) skip it to avoid redundant work —
 // the server always validates regardless. This is an intentional escape hatch,
 // not a contradiction of the validation commitment.
-// From ops-api R2 it is no longer only a convenience for analysis: the server
-// keeps the run and rejects one agent's analysis, while this validator fails
-// the whole save first. Narrowing it to envelope-only checks is spec R3; until
-// then the per-entry checks stay, and the README says so.
+// Analysis is checked as an envelope only since 7.3.0 (spec R3): the server
+// judges each entry per agent and keeps the run, so a client-side per-entry
+// check here would cost the whole save for one agent's mistake.
 export async function save(
   client: OpsHttpClient,
   input: SaveRunInput,

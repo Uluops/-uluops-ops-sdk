@@ -123,14 +123,52 @@ describe('T14: save and validate send invalid analysis entries to the server (sp
       nock(BASE_URL).post('/runs').reply(201, saveReply());
       await expect(runOps.save(client, { ...base, analysisRecords: entries(100) })).resolves.toBeDefined();
     });
+
+    it('20 summaries pass (the cap is inclusive)', async () => {
+      nock(BASE_URL).post('/runs').reply(201, saveReply());
+      await expect(runOps.save(client, { ...base, analysisSummary: Array.from({ length: 20 }, () => ({ decision: 'PASS' })) } as never)).resolves.toBeDefined();
+    });
+
+    // validate() applies the same envelope as save(): the preview refuses what the write refuses.
+    it.each([
+      ['101 records', { analysisRecords: entries(101) }],
+      ['21 summaries', { analysisSummary: Array.from({ length: 21 }, () => ({ decision: 'PASS' })) }],
+      ['a record that is not an object', { analysisRecords: ['finding'] }],
+    ])('validate: %s throws InputValidationError and sends nothing', async (_label, analysis) => {
+      const scope = nock(BASE_URL).post('/runs/validate').reply(200, {});
+      await expect(runOps.validate(client, { ...base, ...analysis } as never)).rejects.toBeInstanceOf(InputValidationError);
+      expect(scope.isDone()).toBe(false);
+    });
   });
 
   // The update path stays strict (spec §3.7, ruling 3): an update creates no run, so
-  // refusing the request loses nothing already stored.
-  it('update: an invalid entry still throws InputValidationError before any request', async () => {
-    const scope = nock(BASE_URL).patch(/\/runs/).reply(200, {});
-    await expect(runOps.update(client, { project: 'my-project', runNumber: 3, analysisRecords: [BAD_RECORDS[0]![1]] } as never))
-      .rejects.toBeInstanceOf(InputValidationError);
-    expect(scope.isDone()).toBe(false);
+  // refusing the request loses nothing already stored. Every entry point that writes or
+  // previews an update is covered, for records and for summaries: the repair a rejection
+  // asks for goes through these, so a loosened update schema would let a bad repair reach
+  // the server unrefused.
+  describe('the update path stays strict', () => {
+    const RUN_ID = '3f1d3f1d-0000-4000-8000-0000000000aa';
+    const badRecord = { analysisRecords: [BAD_RECORDS[0]![1]] };
+    const badSummary = { analysisSummary: [BAD_SUMMARY] };
+    const calls: Array<[string, (a: Record<string, unknown>) => Promise<unknown>]> = [
+      ['update', (a) => runOps.update(client, { project: 'my-project', runNumber: 3, ...a } as never)],
+      ['updateById', (a) => runOps.updateById(client, RUN_ID, a as never)],
+      ['previewUpdate', (a) => runOps.previewUpdate(client, { project: 'my-project', runNumber: 3, ...a } as never)],
+      ['previewUpdateById', (a) => runOps.previewUpdateById(client, RUN_ID, a as never)],
+    ];
+    for (const [name, call] of calls) {
+      it.each([['a record missing recordId', badRecord], ['a summary missing decision', badSummary]])(
+        `${name}: %s throws InputValidationError before any request`, async (_l, analysis) => {
+          const scope = nock(BASE_URL).patch(/\/runs/).reply(200, {}).post(/\/runs/).reply(200, {});
+          await expect(call(analysis)).rejects.toBeInstanceOf(InputValidationError);
+          expect(scope.pendingMocks()).toHaveLength(2); // neither PATCH nor POST was sent
+        });
+    }
+
+    it('positive control: a valid update entry is sent', async () => {
+      const scope = nock(BASE_URL).patch(`/runs/${RUN_ID}`).reply(200, { data: {} });
+      await runOps.updateById(client, RUN_ID, { analysisRecords: [goodRecord] } as never).catch(() => undefined);
+      expect(scope.isDone()).toBe(true);
+    });
   });
 });
