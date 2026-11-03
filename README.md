@@ -1041,11 +1041,13 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 | `analysisSummary` | `AnalysisSummaryInput \| AnalysisSummaryInput[]` | No | Single or per-agent array of analysis summaries (v1.8.1) |
 | `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
 
-#### Rejected analysis (`analysisWrite.rejected`, 7.2.0)
+#### Rejected analysis (`analysisWrite.rejected`, 7.2.0; envelope-only validation, 7.3.0)
 
 **What changes, and when.** Once the server reports rejections (ops-api's "analysis never loses the run" release), it no longer fails a save over invalid analysis. It keeps the run, its issues and every other agent's analysis, and rejects **one agent's analysis as a unit**: an agent's records and summary are one judgement, so one bad entry rejects that agent's whole set, valid entries included. The save still answers `201` and reports the rejection in `analysisWrite.rejected`. Servers before that release never send the field; SDKs before 7.2.0 stripped it.
 
-**What does not change yet: this SDK still validates analysis entries before sending.** An entry it can check (an empty `recordId`, a missing `title`, a non-integer score, …) throws `InputValidationError` from `save()`, and **no run is created**. In that case fix the payload and call `save()` again; that is the only way to get the run. Only what the server rejects and this SDK lets through reaches `rejected`. Narrowing client validation to envelope checks (arrays, objects, count caps) is planned for a later SDK release. `{ _skipClientValidation: true }` skips it today, at the cost of every other client-side check on the payload.
+**Since 7.3.0, `save()` and `validate()` check the analysis envelope only:** `analysisRecords` is an array of at most 100 objects, `analysisSummary` is an object or an array of at most 20 objects. Those still throw `InputValidationError` before any request, because the server answers them with a `400` too. **Everything inside an entry is the server's to judge**, per agent: an empty `recordId`, a missing `title` or `decision`, an unknown `agentType`, an over-long `agentName`. The run is saved and the agent's analysis comes back in `rejected`. Until 7.3.0 the SDK judged each entry first, so one bad entry threw and **no run was created**, which is the loss the server change exists to remove. An empty or whitespace-only `agentName` is no longer an error at all: the server treats it as absent.
+
+**`update()` / `updateById()` and the previews still validate every entry** before sending, and the server refuses an invalid update whole (`400`). An update creates no run, so refusing it loses nothing already stored; fix the payload and send it again.
 
 ```typescript
 import type { AnalysisRejection } from '@uluops/ops-sdk';

@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.3.0] - 2026-11-03
+
+### Changed
+- **Behaviour change: `runs.save` and `runs.validate` validate analysis as an envelope only** (ops-uluops-api analysis-never-loses-the-run spec v0.2.3, phase R3). `analysisRecords` must be an array of at most 100 objects, `analysisSummary` one object or an array of at most 20; those still throw `InputValidationError` before any request. **Per-entry analysis validation moved to the server: an invalid entry is now reported in `analysisWrite.rejected` instead of thrown.** On 7.2.0 one invalid entry (an empty `recordId`, a missing `title` or `decision`, an unknown `agentType`, an empty or over-long `agentName`, `data` that is not an object) threw from `save()` and no run was created; on 7.3.0 the entry is sent, the server keeps the run, and rejects that one agent's analysis as a unit. `validate()` sends it too, so the server's `wouldReject` can predict it. Code that caught `InputValidationError` to detect bad analysis on save must read `result.analysisWrite?.rejected` instead.
+- **`SaveRunInputSchema`'s `analysisRecords` / `analysisSummary` are now loose objects** (`z.looseObject({})`): the parse keeps every key and checks none, so `z.infer<typeof SaveRunInputSchema>` and `validateSaveRunInput`'s return type widen those two fields to `Record<string, unknown>` shapes. `save()` never transmitted the parse output (it sends the caller's input), so the request body is unchanged. A caller that used the return value's analysis fields as typed entries must keep its own `AnalysisRecordInput` / `AnalysisSummaryInput` types. The input types (`SaveRunInput`) are unchanged.
+
+### Added
+- **`AnalysisRecordEntrySchema`**, the per-entry record schema the save path used before 7.3.0, exported beside `AnalysisSummaryEntrySchema`. The update path validates with both.
+
+### Not changed — recorded so the next reader does not re-derive it
+- **`runs.update` / `updateById` and the update previews still validate every analysis entry** (spec §3.7, ruling 3). An update creates no run, so refusing it whole loses nothing already stored, and the server refuses an invalid update with a `400` anyway; the client refusing first is the same outcome, sooner. Their schemas no longer derive from `SaveRunInputSchema` (a `pick` would have inherited the envelope) but from a shared strict analysis-fields schema.
+- **Against a server before ops-api R2,** an invalid entry is now a server `400` for the whole save instead of a client throw: the run is lost either way, as before. `api.uluops.ai` runs R2 since 2026-11-03.
+
 ## [7.2.0] - 2026-11-02
 
 ### Added

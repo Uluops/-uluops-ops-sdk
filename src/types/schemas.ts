@@ -281,6 +281,45 @@ export const AnalysisSummaryEntrySchema = z.object({
   })).max(50).nullish(),
 });
 
+/** One analysis record as the update path validates it (and the save path did, before 7.3.0). */
+export const AnalysisRecordEntrySchema = z.object({
+  /**
+   * Agent that produced this record — overrides the run-level default.
+   *
+   * **The same load-bearing-declaration case as `clusterKey` above, and it had
+   * already happened.** This is a plain `z.object()`, so an undeclared key is
+   * *stripped, not rejected*. `AnalysisRecordInput` in `./runs.ts` has declared
+   * `agentName` the whole time, so a caller setting it saw no type error, no
+   * validation error, and a successful request.
+   *
+   * It reached the wire regardless — but only by accident: `save()` discards
+   * `validateSaveRunInput`'s return value and transmits the raw `input`
+   * (`operations/runs.ts`). The declared contract and the transmitted contract
+   * were different objects, and the moment anyone sends the *parsed* value —
+   * the natural refactor when adding client-side normalization — every record
+   * loses its agent.
+   *
+   * Where `clusterKey` degraded to NULL, this degrades to something worse than
+   * absent: the tracker falls back to `definitionName ?? agents[0].name ??
+   * 'unknown'` and then infers `agentType` from that string, so the row reads
+   * as confidently attributed to the wrong agent. NULL announces itself; a
+   * plausible wrong name does not. Observed on tracker run #4 (2026-08-09) via
+   * the MCP path, which omitted the field for the same reason: 32 records from
+   * two analysts stored under a definition name, all typed `validator`.
+   *
+   * @see test/types/agent-name-survives.test.ts — asserts the parse OUTPUT, for
+   *      the same reason the clusterKey test does.
+   */
+  agentName: z.string().min(1).max(100).optional(),
+  agentType: z.enum(['validator', 'analyst', 'explorer', 'forecaster', 'executor', 'generator']).nullish(),
+  recordType: z.string().min(1).max(50),
+  recordId: z.string().min(1).max(ANALYSIS_RECORD_ID_MAX_LENGTH),
+  title: z.string().min(1).max(500),
+  classification: z.string().max(50).nullish(),
+  severity: SeveritySchema.nullish(),
+  data: z.record(z.string(), z.unknown()),
+});
+
 export const SaveRunInputSchema = z.object({
   project: z.string().min(1).max(200),
   workflowType: z.string().min(1).max(100),
@@ -302,53 +341,38 @@ export const SaveRunInputSchema = z.object({
   definitionHash: z.string().max(64).optional(),
   definitionId: z.guid().optional(),
   definitionMinSubscription: z.enum(['free', 'hobbyist', 'plus', 'pro', 'enterprise']).optional(),
-  analysisRecords: z.array(z.object({
-    /**
-     * Agent that produced this record — overrides the run-level default.
-     *
-     * **The same load-bearing-declaration case as `clusterKey` above, and it had
-     * already happened.** This is a plain `z.object()`, so an undeclared key is
-     * *stripped, not rejected*. `AnalysisRecordInput` in `./runs.ts` has declared
-     * `agentName` the whole time, so a caller setting it saw no type error, no
-     * validation error, and a successful request.
-     *
-     * It reached the wire regardless — but only by accident: `save()` discards
-     * `validateSaveRunInput`'s return value and transmits the raw `input`
-     * (`operations/runs.ts`). The declared contract and the transmitted contract
-     * were different objects, and the moment anyone sends the *parsed* value —
-     * the natural refactor when adding client-side normalization — every record
-     * loses its agent.
-     *
-     * Where `clusterKey` degraded to NULL, this degrades to something worse than
-     * absent: the tracker falls back to `definitionName ?? agents[0].name ??
-     * 'unknown'` and then infers `agentType` from that string, so the row reads
-     * as confidently attributed to the wrong agent. NULL announces itself; a
-     * plausible wrong name does not. Observed on tracker run #4 (2026-08-09) via
-     * the MCP path, which omitted the field for the same reason: 32 records from
-     * two analysts stored under a definition name, all typed `validator`.
-     *
-     * @see test/types/agent-name-survives.test.ts — asserts the parse OUTPUT, for
-     *      the same reason the clusterKey test does.
-     */
-    agentName: z.string().min(1).max(100).optional(),
-    agentType: z.enum(['validator', 'analyst', 'explorer', 'forecaster', 'executor', 'generator']).nullish(),
-    recordType: z.string().min(1).max(50),
-    recordId: z.string().min(1).max(ANALYSIS_RECORD_ID_MAX_LENGTH),
-    title: z.string().min(1).max(500),
-    classification: z.string().max(50).nullish(),
-    severity: SeveritySchema.nullish(),
-    data: z.record(z.string(), z.unknown()),
-  })).max(100).optional(),
+  /**
+   * **Envelope only** (analysis-never-loses-the-run R3, 7.3.0): an array of at most
+   * 100 objects. The entries themselves are judged by the server, per agent: an
+   * invalid entry costs that agent's analysis, reported in `analysisWrite.rejected`,
+   * never the run (ops-api R2). Until 7.3.0 this array held the full
+   * {@link AnalysisRecordEntrySchema}, so one bad entry threw `InputValidationError`
+   * here and no run existed at all. Loose, so the parse keeps every key
+   * (`agentName` included; see test/types/agent-name-survives.test.ts).
+   */
+  analysisRecords: z.array(z.looseObject({})).max(100).optional(),
+  /** Envelope only, as `analysisRecords`: one object, or an array of at most 20. */
+  analysisSummary: z.union([
+    z.looseObject({}),
+    z.array(z.looseObject({})).max(20),
+  ]).optional(),
+});
+
+/**
+ * The analysis fields of the UPDATE path, judged per entry. The update path stays
+ * strict (spec §3.7, ruling 3): an update creates no run, so refusing the whole
+ * request loses nothing already stored, and the client refusing it first is the
+ * same outcome, sooner.
+ */
+const StrictAnalysisFieldsSchema = z.object({
+  analysisRecords: z.array(AnalysisRecordEntrySchema).max(100).optional(),
   analysisSummary: z.union([
     AnalysisSummaryEntrySchema,
     z.array(AnalysisSummaryEntrySchema).max(20),
   ]).optional(),
 });
 
-export const UpdateRunInputSchema = SaveRunInputSchema.pick({
-  analysisRecords: true,
-  analysisSummary: true,
-}).extend({
+export const UpdateRunInputSchema = StrictAnalysisFieldsSchema.extend({
   workflowType: z.string().min(1).optional(),
   allGatesPassed: z.boolean().optional(),
   averageScore: z.number().min(0).max(100).nullish(),
@@ -369,10 +393,7 @@ export const UpdateRunInputSchema = SaveRunInputSchema.pick({
  * API's rejection client-side against UPDATE_PREVIEW_FORBIDDEN_INPUT_KEYS;
  * this schema alone (a non-strict pick) does NOT enforce the scope rule.
  */
-export const UpdateRunPreviewInputSchema = SaveRunInputSchema.pick({
-  analysisRecords: true,
-  analysisSummary: true,
-}).extend({
+export const UpdateRunPreviewInputSchema = StrictAnalysisFieldsSchema.extend({
   // The preview MUST carry the mode (spec §4): previewing replace while the
   // write merges is the strip-and-execute divergence the endpoint exists to
   // prevent.

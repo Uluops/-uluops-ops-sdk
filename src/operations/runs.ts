@@ -60,10 +60,11 @@ import { AnalysisEchoMismatchError, OpsApiError, UnsupportedContractError } from
  *   and `analysisWrite`. From ops-api R2, `analysisWrite.rejected` lists agents whose
  *   analysis the server rejected while keeping the run; read it on `deduplicated`
  *   results too (see {@link SaveRunResponseWithEcho}).
- * @throws {InputValidationError} If input fails client-side Zod validation. This
- *   includes an invalid analysis entry: until client validation becomes envelope-only
- *   (ops-api spec R3), one bad entry still fails the whole save here, before the
- *   server's per-agent rejection can apply, and no run is created.
+ * @throws {InputValidationError} If input fails client-side Zod validation. Analysis is
+ *   checked as an envelope only (7.3.0: arrays, objects, the 100-record and 20-summary
+ *   caps). An invalid entry is sent, and the server reports that agent's analysis in
+ *   `analysisWrite.rejected` while keeping the run; before 7.3.0 it threw here and no
+ *   run was created.
  * @throws {ConflictError} If idempotencyKey was already used with a different payload
  *   or contract. The same key with the same payload is not an error: it returns the
  *   original run with `deduplicated: true`.
@@ -216,8 +217,9 @@ function assertSaveAnalysisWriteEcho(
  * @param input - Same shape as save() input
  * @returns Preview with projected new/recurring/regression counts, and from ops-api R2
  *   `wouldReject`: the analysis rejections a save of this payload would record
- * @throws {InputValidationError} If input fails client-side Zod validation (an invalid
- *   analysis entry included, so the server's prediction never sees it)
+ * @throws {InputValidationError} If input fails client-side Zod validation. Analysis is
+ *   checked as an envelope only (7.3.0), so an invalid entry reaches the server and
+ *   comes back in `wouldReject` instead of throwing here.
  * @example
  * ```typescript
  * const preview = await client.runs.validate({

@@ -30,7 +30,7 @@
  * whether or not Zod keeps the value at runtime, and runtime retention is the claim.
  */
 import { describe, it, expect } from 'vitest';
-import { SaveRunInputSchema } from '../../src/types/schemas.js';
+import { SaveRunInputSchema, UpdateRunInputSchema } from '../../src/types/schemas.js';
 
 const record = {
   recordType: 'fear',
@@ -89,27 +89,25 @@ describe('SaveRunInputSchema — analysisRecords[].agentName', () => {
     expect(parseRecord({})?.agentName).toBeUndefined();
   });
 
-  it('rejects an empty agentName instead of storing a nameless record', () => {
-    // Not arbitrary strictness. The tracker resolves attribution with
-    // `r.agentName ?? defaultAgentName` — and `''` is not nullish, so an empty
-    // string defeats the fallback and is written to an `agent_name` column the
-    // tracker's own read schema requires to be non-empty. Rejecting here is the
-    // only layer that can tell an empty name from an absent one.
-    expect(() =>
-      SaveRunInputSchema.parse({ ...base, analysisRecords: [{ ...record, agentName: '' }] }),
-    ).toThrow();
+  // Until 7.3.0 the two tests below asserted that the SAVE schema throws on `''` and on a
+  // 101-character name. The reasons were real (`''` defeated the tracker's
+  // `agentName ?? default` fallback; a long name would truncate into a different agent),
+  // and the server now owns both on the save path (ops-api R2): `''` and whitespace count
+  // as absent (A4), and an unreadable name becomes its own rejected unit. A client throw
+  // there would cost the whole run for one agent's name, the failure R3 removes. The
+  // UPDATE path stays strict (spec §3.7), so the assertions move there.
+  it('save: leaves an empty or over-long agentName to the server (envelope only, 7.3.0)', () => {
+    expect(parseRecord({ agentName: '' })?.agentName).toBe('');
+    expect(parseRecord({ agentName: 'a'.repeat(101) })?.agentName).toHaveLength(101);
   });
 
-  it('rejects a name longer than the tracker column instead of silently truncating', () => {
-    // varchar(100) on the tracker side. Truncation would produce a *different* agent
-    // name that still looks valid — the same class of wrongness as a truncated
-    // identifier, and invisible at the point of use.
-    expect(() =>
-      SaveRunInputSchema.parse({
-        ...base,
-        analysisRecords: [{ ...record, agentName: 'a'.repeat(101) }],
-      }),
-    ).toThrow();
-    expect(parseRecord({ agentName: 'a'.repeat(100) })?.agentName).toHaveLength(100);
+  it('update: rejects an empty agentName instead of storing a nameless record', () => {
+    expect(UpdateRunInputSchema.safeParse({ analysisRecords: [{ ...record, agentName: '' }] }).success).toBe(false);
+  });
+
+  it('update: rejects a name longer than the tracker column instead of silently truncating', () => {
+    expect(UpdateRunInputSchema.safeParse({ analysisRecords: [{ ...record, agentName: 'a'.repeat(101) }] }).success).toBe(false);
+    const ok = UpdateRunInputSchema.parse({ analysisRecords: [{ ...record, agentName: 'a'.repeat(100) }] });
+    expect(ok.analysisRecords?.[0]?.agentName).toHaveLength(100);
   });
 });
