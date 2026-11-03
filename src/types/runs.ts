@@ -27,6 +27,8 @@ import {
   ProjectAnalysisListResponseSchema,
   AnalysisRecordsListResponseSchema,
   AgentRunsAnalysisResponseSchema,
+  AnalysisRejectionResponseSchema,
+  AnalysisRejectionReadResponseSchema,
 } from './response-schemas.js';
 
 // ─────────────────────────────────────────────────────────────────
@@ -362,7 +364,19 @@ export interface AnalysisWriteEcho {
   supersededSummaries: number;
   createdRecords: number;
   createdSummaries: number;
+  /** Units of analysis rejected while the run was kept (save path, R2). Absent or empty means none. See {@link AnalysisRejection}. */
+  rejected?: AnalysisRejection[];
 }
+
+/**
+ * One rejected unit of analysis (ops-uluops-api analysis-never-loses-the-run
+ * spec §3.3). Derived from the response schema so the two cannot drift.
+ * `reason` is an open string: never exhaustively switch on it.
+ */
+export type AnalysisRejection = z.infer<typeof AnalysisRejectionResponseSchema>;
+
+/** A stored rejection as {@link RunAnalysis}`.rejections` returns it. */
+export type AnalysisRejectionRead = z.infer<typeof AnalysisRejectionReadResponseSchema>;
 
 /** Per-agent block of an update preview (spec §4). */
 export interface AgentWritePlan {

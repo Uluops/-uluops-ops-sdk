@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.2.0] - 2026-11-03
+
+### Added
+- **Analysis rejections are declared, so they survive the parse** (ops-uluops-api analysis-never-loses-the-run spec v0.2.1, phase R1). From the server's R2 onward, an invalid analysis entry rejects only that agent's analysis and the run is kept. The server reports it in fields this SDK did not declare, and `z.object()` strips undeclared keys: on 7.1.0 a caller would get a `201` with the rejection silently removed. This release declares them before any server sends them:
+  - `analysisWrite.rejected` on `runs.save` (and on a deduplicated replay, rebuilt from storage);
+  - `rejected` on `runs.validate` (the rejections a save would record);
+  - `rejections` (each with `createdAt`) and `rejectionsTotal` on `runs.getAnalysis`.
+  - All are optional: servers before R2 omit them, and responses parse as before.
+- **Types `AnalysisRejection` and `AnalysisRejectionRead`**, derived from the response schemas (not hand-written beside them), and `AnalysisWriteEcho.rejected?`.
+
+### Why
+- **`reason` is `string`, not an enum** (spec review A9). A pinned `z.enum` throws on a value it has not seen, so a reason the server adds later would fail every save parse in this version. The wire-enum lesson is old here: an added value breaks pinned consumers the same way a removed one does.
+- **`detail` is an open record.** Its shape belongs to the reason: `{ issues, issuesTotal, truncated? }` for `entry_invalid`, and `{ unitsOmitted, recordsRejected, summariesRejected }` for the folded row past the server's 20-row cap, whose `agentName` is `null`.
+- **Release order:** this ships before ops-api R2, so no client strips the field when the server starts sending it.
+
+### Not changed — recorded so the next reader does not re-derive it
+- **Client-side analysis validation is unchanged.** Moving it to envelope-only (arrays, objects, count caps) is R3. Until then one bad entry still fails the save *in the client*, before the server's per-agent rule can apply.
+- **The spec's R1 list omitted `/runs/validate`.** Its R2 response gains `rejected[]` too, and `ValidateRunResponseSchema` would have stripped it the same way, so it is declared here as well. R2 must place it at the top level of the validate response, where this schema reads it.
+
 ## [7.1.0] - 2026-10-25
 
 ### Added

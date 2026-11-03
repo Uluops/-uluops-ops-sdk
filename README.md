@@ -1041,6 +1041,26 @@ Save a new execution run. Pass `{ _skipClientValidation: true }` as the second a
 | `analysisSummary` | `AnalysisSummaryInput \| AnalysisSummaryInput[]` | No | Single or per-agent array of analysis summaries (v1.8.1) |
 | `analysisSummary.explorationMaps` | `ExplorationMap[]` | No | Structural maps from explorer agents (v1.8.0) |
 
+#### Rejected analysis (`analysisWrite.rejected`, 7.2.0)
+
+From ops-api's analysis-never-loses-the-run R2 onward, an invalid analysis entry no longer fails the save. The server keeps the run and every other agent's analysis, and rejects **that agent's** analysis as one unit (one bad entry rejects the agent's whole set, so a later `update_run` cannot half-replace it). The save still answers `201`. The rejection is reported in `analysisWrite.rejected`:
+
+```typescript
+const result = await client.runs.save(input);
+for (const r of result.analysisWrite?.rejected ?? []) {
+  // { agentName: 'code-validator', reason: 'entry_invalid',
+  //   recordsRejected: 3, summariesRejected: 1,
+  //   detail: { issues: [{ array: 'records', index: 2, path: ['recordId'], code, message }], issuesTotal: 1 } }
+  console.warn(`Run #${result.run.runNumber} saved; ${r.agentName ?? '(unattributed)'} analysis rejected: ${r.reason}`);
+}
+```
+
+- **Do not save again to fix it.** That creates a second run. Add the corrected analysis to this run with `update` / `updateById`.
+- **`reason` is an open string.** Branch on values you know and treat any other as "rejected, reason unknown"; never switch on it exhaustively. A new reason must not break an older SDK, which is why the schema is `string`, not an enum.
+- **`agentName` can be `null`**: for an entry that is its own unit, and for the one folded row standing in for every unit past the server's 20-row cap. That row's `detail` is `{ unitsOmitted, recordsRejected, summariesRejected }`.
+- Absent or empty `rejected` both mean nothing was rejected. Servers before R2 never send it; before 7.2.0, the SDK stripped it.
+- A deduplicated replay returns the same `rejected[]`, rebuilt from storage.
+
 #### Convergence clustering (`clusterKey`)
 
 *(v5.12.0)* If your pipeline has a stage that adjudicates duplication — a merge,
@@ -1143,6 +1163,7 @@ const preview = await client.runs.validate({
 console.log('Would create issues:', preview.wouldCreate);
 console.log('Would update issues:', preview.wouldUpdate);
 console.log('Would regress issues:', preview.wouldRegress);
+console.log('Would reject analysis:', preview.rejected ?? []); // 7.2.0; same item shape as analysisWrite.rejected
 console.log('Would observe issues:', preview.wouldObserve);
 
 // v3.2.2+: optional analysis previews (present when API >= v1.58.1)
@@ -1403,7 +1424,10 @@ Get structured analysis records and summaries for a specific run (v0.3.0).
 const analysis = await client.runs.getAnalysis('run-uuid-here');
 console.log(analysis.records);   // Convention inventories, tension maps, decay vectors, etc.
 console.log(analysis.summaries); // Per-agent system metrics, epistemic assessments
+console.log(analysis.rejections, analysis.rejectionsTotal); // 7.2.0: analysis rejected at save time, each with createdAt
 ```
+
+`rejections` lists what the save rejected (see [Rejected analysis](#rejected-analysis-analysiswriterejected-720)). A rejection is never superseded: if the agent's analysis was added later with `update`, both the rejection and the live analysis appear. Both fields are absent from servers before R2.
 
 #### `client.runs.getProjectAnalysis(projectId, query)`
 
