@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [7.3.1] - 2026-11-08
+
+### Changed
+- **`@uluops/sdk-core` 0.19.0 → 0.20.0** (exact pin). No ops-sdk surface changes: ops-sdk imports `/config`, `/errors`, `/http` and `/utils` and none of the 0.20.0 deltas (the `invalid` decision category in `/decisions`, `retry({ maxRetries: 0 })`, the longer `Invalid baseUrl` message) is reached from ops-sdk's source (census 2026-11-08: `grep -rnE "\bretry\(|maxRetries|Invalid baseUrl" src` → no hits). The `Invalid baseUrl` text a caller can see when constructing a client with a malformed URL now ends `(expected an absolute URL such as …)`; `/Invalid baseUrl/` still matches.
+
+### Why
+- `@uluops/core` and `ops-uluops-api` move to sdk-core 0.20.0 for the `INVALID` register string. While ops-sdk pinned 0.19.0 exactly, npm nested a second sdk-core under ops-sdk in each of them: two `SdkApiError` class identities in one process, so an `instanceof` guard misses errors raised inside ops-sdk. This release exists so those consumers resolve one copy.
+
 ## [7.3.0] - 2026-11-03
 
 ### Changed

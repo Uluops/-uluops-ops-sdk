@@ -1,6 +1,6 @@
 {
   "name": "@uluops/ops-sdk",
-  "version": "7.3.0",
+  "version": "7.3.1",
   "description": "Track execution runs, manage issues, and query analytics against the UluOps platform API — typed TypeScript client with Zod runtime validation.",
   "type": "module",
   "main": "dist/index.js",
@@ -92,7 +92,7 @@
   },
   "sideEffects": false,
   "dependencies": {
-    "@uluops/sdk-core": "0.19.0"
+    "@uluops/sdk-core": "0.20.0"
   },
   "devDependencies": {
     "@types/node": "22.12.0",
